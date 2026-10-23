@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSOT - Sistema de Solicitações e Operações de Transporte</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
+    <style>
+        .si{width:1em;height:1em;display:inline-block;vertical-align:-.125em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+        .si-fw{width:1.25em;height:1.25em}
+        .si-lg{width:1.5em;height:1.5em}
+        .si-2x{width:2em;height:2em}
+        .si-3x{width:3em;height:3em}
+    </style>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path d="M3 17V11l2-5h14l2 5v6"/><path d="M3 11h18"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-user-tie" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="13 12 14 20 10 22 11 14"/></symbol>
+<symbol id="i-user-check" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></symbol>
+<symbol id="i-users-cog" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-file-signature" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 15c1-1 2-1 3 0s2 1 3 0 2-1 3 0"/><line x1="8" y1="19" x2="16" y2="19"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+<symbol id="i-envelope" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-sign-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+<symbol id="i-sign-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777z"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+<symbol id="i-chevron-r" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+<symbol id="i-chevron-l" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+<symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+<symbol id="i-plus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+<symbol id="i-file-pdf" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 18v-6h2a2 2 0 0 1 0 4H9"/><path d="M15 18v-6h2"/><path d="M15 15h1.5"/></symbol>
+<symbol id="i-file-excel" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13l3 6M15 13l-3 6M9 19h6"/></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></symbol>
+<symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+<symbol id="i-calendar-check" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></symbol>
+<symbol id="i-chart-line" viewBox="0 0 24 24"><path d="M3 3v18h18"/><polyline points="18.7 8 13.5 13.2 9.5 9.2 5 13.7"/></symbol>
+<symbol id="i-chart-bar" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></symbol>
+<symbol id="i-chart-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+<symbol id="i-history" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="12 7 12 12 15 15"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 2h12M6 22h12M6 2c0 4 6 6 6 10 0-4 6-6 6-10M6 22c0-4 6-6 6-10 0 4 6 6 6 10"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+<symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+<symbol id="i-broom" viewBox="0 0 24 24"><path d="M19 3l-7 7-3-3 7-7z"/><path d="M9 7l-6 6h6l6-6"/><path d="M3 13l6 6"/><path d="M5 19l6-6"/></symbol>
+<symbol id="i-repeat" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+<symbol id="i-id-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 10h5M14 14h5"/></symbol>
+<symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M18 8v7a4 4 0 0 1-4 4H9"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+<symbol id="i-google" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></symbol>
+</svg>
+
+<div id="conn-loading" class="conn-loading">
+    <div class="loading-content">
+        <div class="loading-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+        <div class="spinner"></div>
+        <p class="loading-title">Conectando...</p>
+    </div>
+</div>
+
+<div class="modal-overlay" id="session-modal">
+    <div class="modal modal-small">
+        <div class="modal-header modal-header-warning"><h3>Sessão Inativa</h3></div>
+        <div class="modal-body modal-body-center">
+            <div class="modal-icon-warning"><svg class="si si-2x"><use href="#i-clock"/></svg></div>
+            <p class="modal-title-large">Você ainda está aí?</p>
+            <p class="modal-text-muted">Sua sessão expirará em <strong id="session-countdown" class="countdown-highlight">60</strong> segundos.</p>
+        </div>
+        <div class="modal-footer modal-footer-center">
+            <button class="btn btn-success" id="session-stay-btn">Sim, continuar</button>
+            <button class="btn btn-danger" id="session-logout-btn">Sair agora</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="resume-modal">
+    <div class="modal modal-small">
+        <div class="modal-header modal-header-info"><h3>Continuar Sessão?</h3></div>
+        <div class="modal-body modal-body-center">
+            <div class="modal-icon-info"><svg class="si si-2x"><use href="#i-user-check"/></svg></div>
+            <p class="modal-title-large">Detectamos que você já estava logado.</p>
+            <p class="modal-text-muted">Deseja continuar de onde parou?</p>
+        </div>
+        <div class="modal-footer modal-footer-center">
+            <button class="btn btn-success" id="resume-yes-btn">Sim, continuar</button>
+            <button class="btn btn-danger" id="resume-no-btn">Não, voltar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="password-confirm-modal">
+    <div class="modal modal-small">
+        <div class="modal-header modal-header-danger">
+            <h3>Confirme sua Senha</h3>
+            <button class="modal-close" onclick="closePasswordConfirm()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-text-muted modal-text-center">Ação irreversível. Digite sua senha.</p>
+            <div class="form-group">
+                <label for="confirm-password-input">Senha</label>
+                <div class="password-container">
+                    <input type="password" id="confirm-password-input" class="form-control" placeholder="Sua senha">
+                </div>
+            </div>
+            <div id="password-confirm-error" class="alert alert-danger hidden"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-danger" id="password-confirm-btn">Confirmar</button>
+            <button class="btn btn-secondary" onclick="closePasswordConfirm()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div id="login-page" class="login-container hidden">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+            <h2>SSOT</h2>
+            <p>Sistema de Solicitações e Operações de Transporte</p>
+        </div>
+
+        <div id="screen-select">
+            <p class="screen-prompt">Como você deseja acessar?</p>
+            <div class="access-buttons">
+                <button type="button" class="access-btn setor" onclick="goToLogin('admin')">
+                    <div class="access-icon"><svg class="si si-lg"><use href="#i-user-tie"/></svg></div>
+                    <div class="access-text"><h4>Sou Setor</h4><p>Acesso administrativo</p></div>
+                    <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
+                </button>
+                <button type="button" class="access-btn usuario" onclick="goToLogin('user')">
+                    <div class="access-icon"><svg class="si si-lg"><use href="#i-user"/></svg></div>
+                    <div class="access-text"><h4>Sou Usuário</h4><p>Acessar minhas solicitações</p></div>
+                    <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
+                </button>
+                <button type="button" class="access-btn requerimento" onclick="goToRequerimento()">
+                    <div class="access-icon"><svg class="si si-lg"><use href="#i-file-signature"/></svg></div>
+                    <div class="access-text"><h4>Solicitar Cadastro</h4><p>Pedir uma conta</p></div>
+                    <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-login" class="hidden">
+            <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
+            <div class="screen-title" id="login-title">Entrar</div>
+            <div class="screen-subtitle" id="login-subtitle">Acesso ao sistema</div>
+            <div id="login-error" class="alert alert-danger hidden"></div>
+            <div id="login-info" class="alert alert-info hidden"></div>
+
+            <form id="login-form" autocomplete="on">
+                <div class="form-group">
+                    <label for="username">E-mail</label>
+                    <input type="text" id="username" class="form-control" placeholder="seu@email.com" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <div class="password-container">
+                        <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required autocomplete="current-password">
+                        <span class="toggle-password" id="toggle-password"><svg class="si"><use href="#i-eye"/></svg></span>
+                    </div>
+                    <div class="capslock-warning" id="capslock-warning">Caps Lock ativado</div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">Entrar</button>
+            </form>
+
+            <div class="login-divider"><span>ou</span></div>
+
+            <button type="button" class="btn-google" id="google-login-btn">
+                <svg class="si si-fw" viewBox="0 0 48 48" style="fill:none;stroke:none"><use href="#i-google"/></svg>
+                <span>Entrar com Google</span>
+            </button>
+
+            <div class="forgot-password-link">
+                <a href="#" onclick="openForgotPassword(event)">Esqueci minha senha</a>
+            </div>
+        </div>
+
+        <div id="screen-requerimento" class="hidden">
+            <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
+            <div class="screen-title">Solicitar Cadastro</div>
+            <div class="screen-subtitle">Preencha seus dados. Um administrador aprovará sua conta.</div>
+            <div id="requerimento-error" class="alert alert-danger hidden"></div>
+            <div id="requerimento-success" class="alert alert-success hidden"></div>
+
+            <form id="requerimento-form">
+                <div class="form-group">
+                    <label for="r-nome">Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="r-nome" class="form-control" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="r-email">E-mail <span class="required">*</span></label>
+                            <input type="email" id="r-email" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="r-ramal">Ramal <span class="required">*</span></label>
+                            <input type="text" id="r-ramal" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="r-setor">Setor <span class="required">*</span></label>
+                            <input type="text" id="r-setor" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="r-cargo">Cargo</label>
+                            <input type="text" id="r-cargo" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="r-senha">Senha <span class="required">*</span></label>
+                            <div class="password-container">
+                                <input type="password" id="r-senha" class="form-control" placeholder="Mínimo 6 caracteres" required>
+                                <span class="toggle-password" onclick="togglePass('r-senha', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="r-senha2">Confirmar Senha <span class="required">*</span></label>
+                            <div class="password-container">
+                                <input type="password" id="r-senha2" class="form-control" required>
+                                <span class="toggle-password" onclick="togglePass('r-senha2', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="r-justificativa">Justificativa (opcional)</label>
+                    <textarea id="r-justificativa" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success btn-block btn-lg" id="requerimento-submit-btn">Enviar Solicitação</button>
+            </form>
+        </div>
+
+        <div class="login-footer">
+            <p><a href="politica-de-uso.html" target="_blank">Política de Uso</a></p>
+        </div>
+    </div>
+</div>
+
+<div id="app-container" class="container hidden">
+    <header class="top-menu">
+        <div class="top-menu-left">
+            <button class="mobile-menu-btn" id="mobile-menu-toggle">
+                <svg class="si si-lg"><use href="#i-menu"/></svg>
+            </button>
+            <div class="top-menu-brand"><svg class="si si-fw"><use href="#i-car"/></svg><span>SSOT</span></div>
+        </div>
+        
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <nav class="top-menu-nav" id="main-nav">
+            <ul id="top-menu-list">
+                <!-- O menu será preenchido via JS -->
+            </ul>
+        </nav>
+        
+        <div class="top-menu-icons">
+            <button class="top-icon" id="notif-bell-btn" title="Notificações">
+                <svg class="si si-fw"><use href="#i-bell"/></svg>
+                <span class="top-icon-badge hidden" id="notif-badge">0</span>
+            </button>
+            <button class="top-icon" title="Ajuda" disabled>
+                <svg class="si si-fw"><use href="#i-help"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="header-left">
+                <div class="breadcrumb"><svg class="si si-fw"><use href="#i-car"/></svg> <span>Início</span></div>
+                <h1 id="page-title">Dashboard</h1>
+                <p id="page-subtitle" class="page-subtitle hidden"></p>
+            </div>
+            <div class="header-right">
+                <div class="user-info" id="user-info-trigger" title="Meu Perfil">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-details">
+                        <h4 id="current-user">Usuário</h4>
+                        <p id="user-role">Usuário</p>
+                    </div>
+                </div>
+                <div class="logout" id="logout-btn"><svg class="si si-fw"><use href="#i-sign-out"/></svg> <span>Sair</span></div>
+            </div>
+        </div>
+
+        <!-- As áreas abaixo não mudam -->
+        <div id="user-area" class="hidden">
+            <div class="tab-content active" id="user-solicitacoes-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-plus-circle"/></svg>
+                            <h2>Nova Solicitação de Transporte</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="user-request-form">
+                            <div class="form-tabs">
+                                <button type="button" class="form-tab active" data-form-tab="solicitante">
+                                    <svg class="si"><use href="#i-user"/></svg> Solicitante
+                                </button>
+                                <button type="button" class="form-tab" data-form-tab="viagem">
+                                    <svg class="si"><use href="#i-route"/></svg> Detalhes da Viagem
+                                </button>
+                            </div>
+
+                            <div class="form-tab-content active" data-form-content="solicitante">
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-solicitante">Nome <span class="required">*</span></label>
+                                            <input type="text" id="u-solicitante" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-email">E-mail <span class="required">*</span></label>
+                                            <input type="email" id="u-email" class="form-control" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-ramal">Ramal <span class="required">*</span></label>
+                                            <input type="text" id="u-ramal" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-setor">Setor <span class="required">*</span></label>
+                                            <input type="text" id="u-setor" class="form-control" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="u-cargo">Cargo</label>
+                                    <input type="text" id="u-cargo" class="form-control">
+                                </div>
+                                <div class="form-tab-nav">
+                                    <button type="button" class="btn btn-primary" onclick="goToFormTab('viagem')">
+                                        Continuar <svg class="si"><use href="#i-arrow-right"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-tab-content" data-form-content="viagem">
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-destino">Destino <span class="required">*</span></label>
+                                            <input type="text" id="u-destino" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-origem">Origem</label>
+                                            <input type="text" id="u-origem" class="form-control">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-finalidade">Finalidade <span class="required">*</span></label>
+                                            <input type="text" id="u-finalidade" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-prioridade">Prioridade</label>
+                                            <select id="u-prioridade" class="form-control">
+                                                <option value="normal" selected>Normal</option>
+                                                <option value="baixa">Baixa</option>
+                                                <option value="alta">Alta</option>
+                                                <option value="urgente">Urgente</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-saida">Saída <span class="required">*</span></label>
+                                            <select id="u-saida" class="form-control" required>
+                                                <option value="">Selecione uma data disponível...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-retorno">Retorno</label>
+                                            <input type="datetime-local" id="u-retorno" class="form-control">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-passageiros">Nº de Passageiros</label>
+                                            <input type="number" id="u-passageiros" class="form-control" min="1" value="1">
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <div class="form-group">
+                                            <label for="u-necessidades">Necessidades Especiais</label>
+                                            <input type="text" id="u-necessidades" class="form-control" placeholder="Ex: cadeira de rodas">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="u-nomes-passageiros">Nomes dos Passageiros</label>
+                                    <textarea id="u-nomes-passageiros" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="u-observacoes">Observações</label>
+                                    <textarea id="u-observacoes" class="form-control" rows="3"></textarea>
+                                </div>
+                                <div class="form-tab-nav">
+                                    <button type="button" class="btn btn-secondary" onclick="goToFormTab('solicitante')">
+                                        <svg class="si"><use href="#i-arrow-left"/></svg> Voltar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <svg class="si"><use href="#i-send"/></svg> Enviar Solicitação
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-clipboard"/></svg>
+                            <h2>Minhas Solicitações</h2>
+                            <span class="card-header-count" id="user-requests-count">0</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="user-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-bar">
+                            <div class="filter-search">
+                                <svg class="si si-fw"><use href="#i-search"/></svg>
+                                <input type="text" id="user-search" class="form-control" placeholder="Pesquisar...">
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Nº</th><th>Destino</th><th>Saída</th><th>Retorno</th><th>Status</th><th>Ações</th></tr></thead>
+                                <tbody id="user-requests-table"><tr><td colspan="6" class="table-empty"><p>Carregando...</p></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="user-perfil-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-user"/></svg>
+                            <h2>Meu Perfil</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="profile-pic-wrapper">
+                            <div class="profile-pic-preview" id="up-photo-preview">
+                                <svg class="si si-2x"><use href="#i-user"/></svg>
+                            </div>
+                            <label for="up-photo-input" class="btn btn-secondary btn-sm profile-pic-btn">
+                                <svg class="si"><use href="#i-camera"/></svg> Escolher Foto
+                            </label>
+                            <input type="file" id="up-photo-input" accept="image/*" style="display:none;">
+                            <button type="button" class="btn btn-danger btn-sm profile-pic-btn" id="up-photo-remove" style="display:none;">
+                                <svg class="si"><use href="#i-x"/></svg> Remover
+                            </button>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="up-name">Nome Completo <span class="required">*</span></label>
+                                    <input type="text" id="up-name" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="up-email">E-mail (não editável)</label>
+                                    <input type="email" id="up-email" class="form-control" readonly style="background:#f1f3f5;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="up-phone">Telefone</label>
+                                    <input type="tel" id="up-phone" class="form-control" placeholder="(11) 99999-9999">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="up-ramal">Ramal</label>
+                                    <input type="text" id="up-ramal" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="up-setor">Setor</label>
+                                    <input type="text" id="up-setor" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="up-cargo">Cargo</label>
+                                    <input type="text" id="up-cargo" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-primary" id="up-save-btn">
+                                <svg class="si"><use href="#i-save"/></svg> Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-area" class="hidden">
+            <div class="tab-content" id="admin-dashboard-tab">
+                <div class="charts-grid">
+                    <div class="chart-card" data-chart="status">
+                        <div class="chart-header">
+                            <h3><svg class="si si-fw"><use href="#i-chart-pie"/></svg> Por Status</h3>
+                            <div class="chart-actions">
+                                <select class="chart-filter" data-chart-filter="status">
+                                    <option value="all">Tudo</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="30">30 dias</option>
+                                    <option value="90">90 dias</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                                <button class="chart-download-btn" title="Baixar"><svg class="si"><use href="#i-download"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="chart-custom-dates" data-chart-dates="status" style="display:none;">
+                            <div class="chart-date-group">
+                                <label>De:</label>
+                                <input type="date" class="chart-date-start" data-chart-start="status">
+                            </div>
+                            <div class="chart-date-group">
+                                <label>Até:</label>
+                                <input type="date" class="chart-date-end" data-chart-end="status">
+                            </div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="chart-status"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" data-chart="prioridade">
+                        <div class="chart-header">
+                            <h3><svg class="si si-fw"><use href="#i-chart-bar"/></svg> Por Prioridade</h3>
+                            <div class="chart-actions">
+                                <select class="chart-filter" data-chart-filter="prioridade">
+                                    <option value="all">Tudo</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="30">30 dias</option>
+                                    <option value="90">90 dias</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                                <button class="chart-download-btn" title="Baixar"><svg class="si"><use href="#i-download"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="chart-custom-dates" data-chart-dates="prioridade" style="display:none;">
+                            <div class="chart-date-group"><label>De:</label><input type="date" class="chart-date-start" data-chart-start="prioridade"></div>
+                            <div class="chart-date-group"><label>Até:</label><input type="date" class="chart-date-end" data-chart-end="prioridade"></div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="chart-prioridade"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" data-chart="timeline">
+                        <div class="chart-header">
+                            <h3><svg class="si si-fw"><use href="#i-chart-line"/></svg> Linha do Tempo</h3>
+                            <div class="chart-actions">
+                                <select class="chart-filter" data-chart-filter="timeline">
+                                    <option value="all">Tudo</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="30">30 dias</option>
+                                    <option value="90">90 dias</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                                <button class="chart-download-btn" title="Baixar"><svg class="si"><use href="#i-download"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="chart-custom-dates" data-chart-dates="timeline" style="display:none;">
+                            <div class="chart-date-group"><label>De:</label><input type="date" class="chart-date-start" data-chart-start="timeline"></div>
+                            <div class="chart-date-group"><label>Até:</label><input type="date" class="chart-date-end" data-chart-end="timeline"></div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="chart-timeline"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" data-chart="destinos">
+                        <div class="chart-header">
+                            <h3><svg class="si si-fw"><use href="#i-truck"/></svg> Top Destinos</h3>
+                            <div class="chart-actions">
+                                <select class="chart-filter" data-chart-filter="destinos">
+                                    <option value="all">Tudo</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="30">30 dias</option>
+                                    <option value="90">90 dias</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                                <button class="chart-download-btn" title="Baixar"><svg class="si"><use href="#i-download"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="chart-custom-dates" data-chart-dates="destinos" style="display:none;">
+                            <div class="chart-date-group"><label>De:</label><input type="date" class="chart-date-start" data-chart-start="destinos"></div>
+                            <div class="chart-date-group"><label>Até:</label><input type="date" class="chart-date-end" data-chart-end="destinos"></div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="chart-destinos"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" data-chart="veiculos">
+                        <div class="chart-header">
+                            <h3><svg class="si si-fw"><use href="#i-car"/></svg> Veículos</h3>
+                            <div class="chart-actions">
+                                <select class="chart-filter" data-chart-filter="veiculos">
+                                    <option value="all">Tudo</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="30">30 dias</option>
+                                    <option value="90">90 dias</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                                <button class="chart-download-btn" title="Baixar"><svg class="si"><use href="#i-download"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="chart-custom-dates" data-chart-dates="veiculos" style="display:none;">
+                            <div class="chart-date-group"><label>De:</label><input type="date" class="chart-date-start" data-chart-start="veiculos"></div>
+                            <div class="chart-date-group"><label>Até:</label><input type="date" class="chart-date-end" data-chart-end="veiculos"></div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="chart-veiculos"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" data-chart="setores">
+                        <div class="chart-header">
+                            <h3><svg class="si si-fw"><use href="#i-building"/></svg> Top Setores</h3>
+                            <div class="chart-actions">
+                                <select class="chart-filter" data-chart-filter="setores">
+                                    <option value="all">Tudo</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="30">30 dias</option>
+                                    <option value="90">90 dias</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                                <button class="chart-download-btn" title="Baixar"><svg class="si"><use href="#i-download"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="chart-custom-dates" data-chart-dates="setores" style="display:none;">
+                            <div class="chart-date-group"><label>De:</label><input type="date" class="chart-date-start" data-chart-start="setores"></div>
+                            <div class="chart-date-group"><label>Até:</label><input type="date" class="chart-date-end" data-chart-end="setores"></div>
+                        </div>
+                        <div class="chart-wrapper"><canvas id="chart-setores"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="widgets-grid">
+                    <div class="widget-card"><div class="widget-header"><h3><svg class="si si-fw"><use href="#i-clock"/></svg> Atividades Recentes</h3><button class="widget-link" onclick="gotoAdminTab('admin-historico')">Ver tudo <svg class="si"><use href="#i-arrow-right"/></svg></button></div><div class="widget-body" id="dashboard-recent-activity"><div class="widget-empty">Carregando...</div></div></div>
+                    <div class="widget-card"><div class="widget-header"><h3><svg class="si si-fw"><use href="#i-calendar"/></svg> Hoje</h3><button class="widget-link" onclick="gotoAdminTab('admin-solicitacoes')">Ver todas <svg class="si"><use href="#i-arrow-right"/></svg></button></div><div class="widget-body" id="dashboard-today-requests"><div class="widget-empty">Nenhuma</div></div></div>
+                    <div class="widget-card"><div class="widget-header"><h3><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Próximos</h3><button class="widget-link" onclick="gotoAdminTab('admin-agenda')">Agenda <svg class="si"><use href="#i-arrow-right"/></svg></button></div><div class="widget-body" id="dashboard-upcoming-slots"><div class="widget-empty">Nenhum</div></div></div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-solicitacoes-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-clipboard"/></svg><h2>Solicitações</h2></div>
+                        <div class="action-buttons">
+                            <button id="admin-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                            <button id="admin-export-pdf" class="btn btn-success btn-sm"><svg class="si"><use href="#i-file-pdf"/></svg> PDF</button>
+                            <button id="admin-export-excel" class="btn btn-success btn-sm"><svg class="si"><use href="#i-file-excel"/></svg> Excel</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-bar">
+                            <div class="filter-search"><svg class="si si-fw"><use href="#i-search"/></svg><input type="text" id="admin-search" class="form-control" placeholder="Pesquisar..."></div>
+                            <select id="admin-filter-status" class="form-control filter-select">
+                                <option value="">Todos os Status</option>
+                                <option value="pendente">Pendente</option><option value="aprovada">Aprovada</option><option value="recusada">Recusada</option>
+                                <option value="em-andamento">Em Andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option>
+                            </select>
+                            <select id="admin-filter-user" class="form-control filter-select"><option value="">Todos os Usuários</option></select>
+                            <select id="admin-filter-priority" class="form-control filter-select">
+                                <option value="">Prioridades</option>
+                                <option value="baixa">Baixa</option><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Nº</th><th>Solicitante</th><th>Setor</th><th>Destino</th><th>Saída</th><th>Prioridade</th><th>Status</th><th class="table-actions-col">Ações</th></tr></thead>
+                                <tbody id="admin-requests-table"><tr><td colspan="8" class="table-empty"><p>Carregando...</p></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-usuarios-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-users-cog"/></svg>
+                            <h2>Usuários e Cadastros</h2>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="new-user-btn" class="btn btn-success btn-sm" type="button">Novo Usuário</button>
+                            <button id="refresh-users" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="tabs-inner">
+                            <button class="tab-inner active" data-users-tab="usuarios">
+                                <svg class="si"><use href="#i-users-cog"/></svg> Usuários
+                            </button>
+                            <button class="tab-inner" data-users-tab="pendentes">
+                                <svg class="si"><use href="#i-clock"/></svg> Pendentes
+                                <span id="signups-pending-badge" class="card-header-count hidden" style="margin-left:6px;background:#c0392b;">0</span>
+                            </button>
+                            <button class="tab-inner" data-users-tab="recusados">
+                                <svg class="si"><use href="#i-x-circle"/></svg> Recusados
+                            </button>
+                        </div>
+
+                        <div class="users-tab-content active" data-users-content="usuarios">
+                            <div class="filter-bar">
+                                <div class="filter-search"><svg class="si si-fw"><use href="#i-search"/></svg><input type="text" id="users-search" class="form-control" placeholder="Pesquisar..."></div>
+                                <select id="users-filter-role" class="form-control filter-select">
+                                    <option value="">Todos os Perfis</option>
+                                    <option value="admin">Administradores</option>
+                                    <option value="setor">Setor</option>
+                                    <option value="user">Usuários</option>
+                                </select>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th style="width:60px;">Foto</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th class="table-actions-col">Ações</th></tr></thead>
+                                    <tbody id="users-table"><tr><td colspan="6" class="table-empty"><p>Carregando...</p></td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="users-tab-content" data-users-content="pendentes">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th>Data</th><th>Nome</th><th>E-mail</th><th>Setor</th><th>Ramal</th><th class="table-actions-col">Ações</th></tr></thead>
+                                    <tbody id="signups-table"><tr><td colspan="6" class="table-empty"><p>Nenhuma solicitação pendente.</p></td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="users-tab-content" data-users-content="recusados">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th>Data</th><th>Nome</th><th>E-mail</th><th>Setor</th><th>Motivo</th><th class="table-actions-col">Ações</th></tr></thead>
+                                    <tbody id="signups-rejected-table"><tr><td colspan="6" class="table-empty"><p>Nenhuma solicitação recusada.</p></td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-agenda-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-calendar-check"/></svg><h2>Agenda</h2></div>
+                        <div class="action-buttons"><button id="refresh-slots" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="section-title"><svg class="si si-fw"><use href="#i-plus"/></svg> Adicionar Bloco de Horários</div>
+                        <div class="form-row">
+                            <div class="form-col"><div class="form-group"><label for="slot-date">Data <span class="required">*</span></label><input type="date" id="slot-date" class="form-control"></div></div>
+                            <div class="form-col"><div class="form-group"><label for="slot-start">Início</label><input type="time" id="slot-start" class="form-control" value="08:00"></div></div>
+                            <div class="form-col"><div class="form-group"><label for="slot-end">Fim</label><input type="time" id="slot-end" class="form-control" value="17:00"></div></div>
+                            <div class="form-col form-col-button"><div class="form-group"><button id="add-slot-block" class="btn btn-primary">Adicionar Bloco</button></div></div>
+                        </div>
+
+                        <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-plus-circle"/></svg> Adicionar Horário Individual</div>
+                        <div class="form-row">
+                            <div class="form-col"><div class="form-group"><label for="single-slot-date">Data <span class="required">*</span></label><input type="date" id="single-slot-date" class="form-control"></div></div>
+                            <div class="form-col"><div class="form-group"><label for="single-slot-time">Horário <span class="required">*</span></label><input type="time" id="single-slot-time" class="form-control" value="08:00"></div></div>
+                            <div class="form-col form-col-button"><div class="form-group"><button id="add-single-slot" class="btn btn-success">Adicionar Horário</button></div></div>
+                        </div>
+
+                        <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Horários Cadastrados</div>
+                        <div id="slots-container"><div class="notes-empty">Carregando...</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-frota-tab">
+                <div class="card card-elevated">
+                    <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-truck"/></svg><h2>Veículos</h2><span class="card-header-count" id="vehicles-count">0</span></div></div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="form-col"><div class="form-group"><label for="veiculo-placa">Placa</label><input type="text" id="veiculo-placa" class="form-control" placeholder="ABC-1234"></div></div>
+                            <div class="form-col"><div class="form-group"><label for="veiculo-modelo">Modelo</label><input type="text" id="veiculo-modelo" class="form-control"></div></div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="veiculo-tipo">Tipo</label>
+                                    <select id="veiculo-tipo" class="form-control">
+                                        <option value="carro">Carro</option><option value="van">Van</option><option value="micro-onibus">Micro-ônibus</option>
+                                        <option value="onibus">Ônibus</option><option value="ambulancia">Ambulância</option><option value="caminhonete">Caminhonete</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-col"><div class="form-group"><label for="veiculo-capacidade">Capacidade</label><input type="number" id="veiculo-capacidade" class="form-control" min="1"></div></div>
+                        </div>
+                        <button id="add-vehicle" class="btn btn-primary">Adicionar</button>
+                        <div class="table-responsive">
+                            <table class="table" style="margin-top:18px;">
+                                <thead><tr><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Capacidade</th><th class="table-actions-col">Ações</th></tr></thead>
+                                <tbody id="vehicles-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-elevated">
+                    <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-id-card"/></svg><h2>Motoristas</h2><span class="card-header-count" id="drivers-count">0</span></div></div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="form-col"><div class="form-group"><label for="motorista-nome">Nome</label><input type="text" id="motorista-nome" class="form-control"></div></div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="motorista-categoria">Categoria</label>
+                                    <select id="motorista-categoria" class="form-control">
+                                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-col"><div class="form-group"><label for="motorista-telefone">Telefone</label><input type="text" id="motorista-telefone" class="form-control"></div></div>
+                        </div>
+                        <button id="add-driver" class="btn btn-primary">Adicionar</button>
+                        <div class="table-responsive">
+                            <table class="table" style="margin-top:18px;">
+                                <thead><tr><th>Nome</th><th>Categoria</th><th>Telefone</th><th class="table-actions-col">Ações</th></tr></thead>
+                                <tbody id="drivers-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-relatorios-tab">
+                <div class="card card-elevated">
+                    <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-chart-bar"/></svg><h2>Relatórios</h2></div></div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="form-col"><div class="form-group"><label for="report-type">Tipo</label>
+                                <select id="report-type" class="form-control">
+                                    <option value="todas">Todas</option><option value="periodo">Por Período</option>
+                                    <option value="usuario">Por Usuário</option><option value="status">Por Status</option>
+                                </select>
+                            </div></div>
+                            <div class="form-col"><div class="form-group"><label for="report-status-filter">Status</label>
+                                <select id="report-status-filter" class="form-control">
+                                    <option value="">Todos</option><option value="pendente">Pendente</option><option value="aprovada">Aprovada</option>
+                                    <option value="recusada">Recusada</option><option value="em-andamento">Em Andamento</option>
+                                    <option value="concluida">Concluída</option><option value="cancelada">Cancelada</option>
+                                </select>
+                            </div></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Período</label>
+                            <div class="form-row-inline">
+                                <input type="date" id="report-start" class="form-control">
+                                <input type="date" id="report-end" class="form-control">
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="generate-report" class="btn btn-primary">Gerar</button>
+                            <button id="export-excel" class="btn btn-success">Excel</button>
+                            <button id="export-pdf" class="btn btn-danger">PDF</button>
+                            <button id="preview-pdf" class="btn btn-secondary">Visualizar</button>
+                        </div>
+                        <div id="report-results" style="margin-top: 18px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-historico-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-history"/></svg><h2>Histórico</h2><span class="card-header-count" id="historico-count">0</span></div>
+                        <div class="action-buttons">
+                            <button id="historico-clear" class="btn btn-danger btn-sm"><svg class="si"><use href="#i-broom"/></svg> Limpar Histórico</button>
+                            <button id="historico-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-bar">
+                            <div class="filter-search"><svg class="si si-fw"><use href="#i-search"/></svg><input type="text" id="historico-search" class="form-control" placeholder="Pesquisar..."></div>
+                            <select id="historico-filter-action" class="form-control filter-select">
+                                <option value="">Todas as ações</option>
+                                <option value="Login">Login</option><option value="Login com Google">Login com Google</option>
+                                <option value="Logout">Logout</option><option value="Solicitação Criada">Solicitação Criada</option>
+                                <option value="Status Alterado">Status Alterado</option><option value="Usuário Criado">Usuário Criado</option>
+                                <option value="Cadastro Aprovado">Cadastro Aprovado</option>
+                                <option value="Notificação Enviada">Notificação Enviada</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Solicitação</th><th>Detalhes</th></tr></thead>
+                                <tbody id="historico-table"><tr><td colspan="5" class="table-empty"><p>Carregando...</p></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-lixeira-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-trash"/></svg><h2>Lixeira</h2><span class="card-header-count" id="trash-count">0</span></div>
+                        <div class="action-buttons"><button id="lixeira-clear" class="btn btn-danger btn-sm">Esvaziar</button></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="trash-info"><svg class="si si-fw"><use href="#i-alert"/></svg><div><strong>Itens são removidos após 120 dias</strong></div></div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Nº</th><th>Solicitante</th><th>Destino</th><th>Excluída em</th><th>Dias restantes</th><th class="table-actions-col">Ações</th></tr></thead>
+                                <tbody id="lixeira-table"><tr><td colspan="6" class="table-empty"><p>Vazia</p></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-perfil-tab">
+                <div class="card card-elevated">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-user"/></svg>
+                            <h2>Meu Perfil</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="profile-pic-wrapper">
+                            <div class="profile-pic-preview" id="ap-photo-preview">
+                                <svg class="si si-2x"><use href="#i-user"/></svg>
+                            </div>
+                            <label for="ap-photo-input" class="btn btn-secondary btn-sm profile-pic-btn">
+                                <svg class="si"><use href="#i-camera"/></svg> Escolher Foto
+                            </label>
+                            <input type="file" id="ap-photo-input" accept="image/*" style="display:none;">
+                            <button type="button" class="btn btn-danger btn-sm profile-pic-btn" id="ap-photo-remove" style="display:none;">
+                                <svg class="si"><use href="#i-x"/></svg> Remover
+                            </button>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="ap-name">Nome Completo <span class="required">*</span></label>
+                                    <input type="text" id="ap-name" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="ap-email">E-mail (não editável)</label>
+                                    <input type="email" id="ap-email" class="form-control" readonly style="background:#f1f3f5;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="ap-phone">Telefone</label>
+                                    <input type="tel" id="ap-phone" class="form-control" placeholder="(11) 99999-9999">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="ap-ramal">Ramal</label>
+                                    <input type="text" id="ap-ramal" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="ap-setor">Setor</label>
+                                    <input type="text" id="ap-setor" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="ap-cargo">Cargo</label>
+                                    <input type="text" id="ap-cargo" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-primary" id="ap-save-btn">
+                                <svg class="si"><use href="#i-save"/></svg> Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="admin-servicos-tab">
+                <div class="card card-elevated">
+                    <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Serviços</h2></div></div>
+                    <div class="card-body">
+                        <div class="section-title"><svg class="si si-fw"><use href="#i-palette"/></svg> Aparência</div>
+                        <div class="form-group">
+                            <label for="theme-selector">Tema</label>
+                            <select id="theme-selector" class="form-control"><option value="light">Claro</option><option value="dark">Escuro</option></select>
+                        </div>
+                        <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-database"/></svg> Backup</div>
+                        <div class="action-buttons">
+                            <button id="run-backup" class="btn btn-success">Baixar Backup</button>
+                            <button id="import-backup" class="btn btn-secondary">Importar</button>
+                            <input type="file" id="backup-input" style="display: none;" accept=".json">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="view-request-modal">
+    <div class="modal modal-large">
+        <div class="modal-header"><h3 id="view-request-title">Detalhes</h3><button class="modal-close" id="close-view-modal">&times;</button></div>
+        <div class="modal-body">
+            <div class="patient-details" id="request-details"></div>
+            <div class="qr-code-container"><h4>QR Code</h4><div class="qr-code" id="view-qr-code"></div><p style="margin-top:8px;font-size:0.75rem;color:#7f8c8d;">Escaneie para abrir esta solicitação em outro dispositivo</p></div>
+        </div>
+        <div class="modal-footer" id="view-modal-footer"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="user-modal">
+    <div class="modal" style="max-width:620px;">
+        <div class="modal-header"><h3 id="user-modal-title">Novo Usuário</h3><button class="modal-close" onclick="closeUserModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="profile-pic-wrapper">
+                <div class="profile-pic-preview" id="user-photo-preview">
+                    <svg class="si si-2x"><use href="#i-user"/></svg>
+                </div>
+                <label for="user-photo-input" class="btn btn-secondary btn-sm profile-pic-btn">
+                    <svg class="si"><use href="#i-camera"/></svg> Escolher Foto
+                </label>
+                <input type="file" id="user-photo-input" accept="image/*" style="display:none;">
+                <button type="button" class="btn btn-danger btn-sm profile-pic-btn" id="user-photo-remove" style="display:none;">
+                    <svg class="si"><use href="#i-x"/></svg> Remover
+                </button>
+            </div>
+
+            <div class="form-group"><label for="user-name">Nome Completo <span class="required">*</span></label><input type="text" id="user-name" class="form-control"></div>
+            <div class="form-group"><label for="user-email">E-mail <span class="required">*</span></label><input type="email" id="user-email" class="form-control"></div>
+            <div class="form-row">
+                <div class="form-col"><div class="form-group"><label for="user-phone">Telefone</label><input type="tel" id="user-phone" class="form-control" placeholder="(11) 99999-9999"></div></div>
+                <div class="form-col"><div class="form-group"><label for="user-ramal">Ramal</label><input type="text" id="user-ramal" class="form-control"></div></div>
+            </div>
+            <div class="form-row">
+                <div class="form-col"><div class="form-group"><label for="user-setor">Setor</label><input type="text" id="user-setor" class="form-control"></div></div>
+                <div class="form-col"><div class="form-group"><label for="user-cargo">Cargo</label><input type="text" id="user-cargo" class="form-control"></div></div>
+            </div>
+            <div class="form-group" id="user-password-group">
+                <label for="user-password">Senha <span class="required">*</span></label>
+                <div class="password-container">
+                    <input type="password" id="user-password" class="form-control" placeholder="Mínimo 6 caracteres">
+                    <span class="toggle-password" onclick="togglePass('user-password', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="user-role">Perfil <span class="required">*</span></label>
+                <select id="user-role" class="form-control">
+                    <option value="user">Usuário Comum</option>
+                    <option value="setor">Setor</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <div class="custom-checkbox"><input type="checkbox" id="user-active" checked><span class="checkmark"></span><label for="user-active">Usuário ativo</label></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="save-user-btn">Salvar</button>
+            <button class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="notif-modal">
+    <div class="modal" style="max-width:560px;">
+        <div class="modal-header"><h3>Nova Notificação</h3><button class="modal-close" onclick="closeNotifModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="notif-target">Destinatário <span class="required">*</span></label>
+                <select id="notif-target" class="form-control"><option value="all">Todos os usuários</option></select>
+            </div>
+            <div class="form-group">
+                <label for="notif-type">Tipo</label>
+                <select id="notif-type" class="form-control">
+                    <option value="info" selected>Informação</option>
+                    <option value="success">Sucesso</option>
+                    <option value="warning">Aviso</option>
+                    <option value="danger">Urgente</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="notif-title">Título <span class="required">*</span></label>
+                <input type="text" id="notif-title" class="form-control" placeholder="Ex: Manutenção programada" maxlength="80">
+            </div>
+            <div class="form-group">
+                <label for="notif-message">Mensagem <span class="required">*</span></label>
+                <textarea id="notif-message" class="form-control" rows="4" placeholder="Escreva a mensagem..." maxlength="500"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="send-notif-btn">Enviar Notificação</button>
+            <button class="btn btn-secondary" onclick="closeNotifModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="notif-view-modal">
+    <div class="modal" style="max-width:520px;">
+        <div class="modal-header">
+            <h3>Notificações</h3>
+            <button class="modal-close" onclick="closeNotifViewModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="notif-view-list" style="max-height:60vh;overflow-y:auto;">
+                <p class="widget-empty">Nenhuma notificação.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNotifViewModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="notif-admin-modal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h3>Notificações Enviadas</h3>
+            <button class="modal-close" onclick="closeNotifAdminModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="action-buttons" style="margin-bottom:16px;">
+                <button class="btn btn-success btn-sm" onclick="closeNotifAdminModal(); window.openNotifModal();">Nova Notificação</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Data</th><th>Destinatário</th><th>Título</th><th>Enviado por</th><th class="table-actions-col">Ações</th></tr></thead>
+                    <tbody id="admin-notifs-table"><tr><td colspan="5" class="table-empty"><p>Carregando...</p></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNotifAdminModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="pdf-modal">
+    <div class="modal modal-large">
+        <div class="modal-header"><h3>Visualização</h3><button class="modal-close" id="close-pdf-modal">&times;</button></div>
+        <div class="modal-body"><div class="pdf-preview-container"><iframe id="pdf-iframe"></iframe></div></div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="download-pdf">Baixar PDF</button>
+            <button class="btn btn-danger" id="close-pdf-modal-btn">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div class="notification-panel" id="notification-panel"></div>
+
+<div class="network-status network-online" id="network-status">
+    <span id="network-status-text">Online</span>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
