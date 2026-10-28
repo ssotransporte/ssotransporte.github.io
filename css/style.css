@@ -124,7 +124,6 @@ textarea.form-control{resize:vertical;min-height:70px;line-height:1.5}
 .login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--color-gray-500);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;}
 .login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--color-gray-200)}
 
-/* NOVO: Ícone de botão para input */
 .btn-icon { background: none; border: none; color: var(--color-primary); cursor: pointer; padding: 0 5px; font-size: 1rem; }
 .btn-icon:hover { color: var(--color-primary-dark); }
 
@@ -279,7 +278,6 @@ textarea.form-control{resize:vertical;min-height:70px;line-height:1.5}
 .fleet-search-wrapper .search-icon { position: absolute; left: 10px; top: 32px; color: var(--color-gray-500); }
 .fleet-search-wrapper input { padding-left: 32px; }
 
-/* NOVO: Header colapsável Frota */
 .fleet-form-header {
     display: flex; justify-content: space-between; align-items: center;
     cursor: pointer; padding: 10px; background: var(--color-gray-50);
@@ -287,7 +285,6 @@ textarea.form-control{resize:vertical;min-height:70px;line-height:1.5}
 }
 .fleet-form-header:hover { background: var(--color-gray-100); }
 
-/* NOVO: Lista de pesquisa */
 .fleet-search-list-item {
     padding: 10px 15px;
     border-bottom: 1px solid var(--color-gray-200);
@@ -299,6 +296,101 @@ textarea.form-control{resize:vertical;min-height:70px;line-height:1.5}
     color: var(--color-primary-dark);
 }
 .fleet-search-list-item:last-child { border-bottom: none; }
+
+/* ============================================================
+   FROTA - DADOS DO DRIVVO (EXCEL)
+   ============================================================ */
+.frota-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    border-bottom: 2px solid var(--color-gray-200);
+    padding-bottom: 6px;
+}
+.frota-tab {
+    padding: 8px 14px;
+    border: 1px solid var(--color-gray-300);
+    background: var(--color-gray-50);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-gray-700);
+    transition: all var(--transition-fast);
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.frota-tab:hover { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary); }
+.frota-tab.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.frota-tab .tab-count {
+    background: rgba(0,0,0,0.12);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.frota-tab.active .tab-count { background: rgba(255,255,255,0.28); }
+
+.frota-table-container {
+    overflow: auto;
+    max-height: 620px;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-md);
+    background: #fff;
+}
+.frota-data-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+.frota-data-table th,
+.frota-data-table td {
+    border: 1px solid var(--color-gray-200);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+.frota-data-table thead th {
+    background: var(--color-gray-100);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-weight: 700;
+    color: var(--color-secondary);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+}
+.frota-data-table tbody tr:nth-child(even) { background: var(--color-gray-50); }
+.frota-data-table tbody tr:hover { background: var(--color-primary-light); }
+.frota-row-count {
+    font-size: 0.8rem;
+    color: var(--color-gray-600);
+    padding: 10px;
+    background: var(--color-gray-50);
+    border-top: 1px solid var(--color-gray-200);
+    text-align: center;
+}
+.fleet-excel-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 12px;
+    color: var(--color-gray-600);
+    font-size: 0.9rem;
+}
+.fleet-excel-loading .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--color-gray-300);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
 
 /* PERFIL */
 .profile-pic-wrapper {
@@ -472,121 +564,6 @@ body.dark-theme .modal-header{background:#2a2a2a;border-bottom-color:#3a3a3a}
 #admin-filter-priority option[value="urgente"]{color:#c0392b;font-weight:700}
 
 /* ============================================================
-   ✅ NOVO: FROTA - SUB-GUIAS + CRUD EXCEL (v2)
-   ============================================================ */
-.frota-subtabs {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-    margin-bottom: 18px;
-    background: var(--color-gray-50);
-    padding: 6px;
-    border-radius: var(--radius-md);
-    width: 100%;
-    box-sizing: border-box;
-}
-.frota-subtabs .tab-inner {
-    padding: 8px 14px;
-    background: none;
-    border: none;
-    color: var(--color-gray-700);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: inherit;
-}
-.frota-subtabs .tab-inner:hover {
-    color: var(--color-primary);
-    background: #fff;
-}
-.frota-subtabs .tab-inner.active {
-    background: var(--color-primary);
-    color: #fff;
-    font-weight: 600;
-    box-shadow: 0 1px 3px rgba(52,152,219,0.3);
-}
-.frota-subtabs .tab-inner .tab-count {
-    background: rgba(0,0,0,0.12);
-    padding: 1px 7px;
-    border-radius: 10px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    margin-left: 4px;
-}
-.frota-subtabs .tab-inner.active .tab-count {
-    background: rgba(255,255,255,0.3);
-}
-
-.fleet-crud-table th,
-.fleet-crud-table td {
-    font-size: 0.8rem;
-    padding: 8px 10px;
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.fleet-crud-table .table-actions-col {
-    width: 140px;
-    white-space: nowrap;
-}
-.fleet-crud-table .action-buttons .btn {
-    padding: 4px 8px;
-}
-.fleet-crud-table .action-buttons .btn svg {
-    width: 12px;
-    height: 12px;
-}
-
-.fleet-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    padding: 14px;
-    border-top: 1px solid var(--color-gray-200);
-    background: var(--color-gray-50);
-    font-size: 0.85rem;
-    color: var(--color-gray-700);
-    flex-wrap: wrap;
-}
-
-.fleet-view-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-.fleet-view-item {
-    padding: 8px 0;
-    border-bottom: 1px solid var(--color-gray-100);
-}
-.fleet-view-item.full {
-    grid-column: 1 / -1;
-}
-.fleet-view-label {
-    font-size: 0.72rem;
-    color: var(--color-gray-600);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-weight: 700;
-    margin-bottom: 3px;
-}
-.fleet-view-value {
-    font-size: 0.92rem;
-    color: var(--color-secondary);
-    word-break: break-word;
-    line-height: 1.4;
-}
-@media (max-width: 600px) {
-    .fleet-view-grid { grid-template-columns: 1fr; }
-}
-
-/* ============================================================
    RESPONSIVO (MOBILE E TABLET)
    ============================================================ */
 @media (max-width: 900px) {
@@ -626,10 +603,8 @@ body.dark-theme .modal-header{background:#2a2a2a;border-bottom-color:#3a3a3a}
     .table-responsive { border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); }
     .table th, .table td{padding:8px 10px;font-size:0.8rem}
 
-    /* ✅ Frota sub-tabs responsivas */
-    .frota-subtabs { gap: 3px; padding: 4px; }
-    .frota-subtabs .tab-inner { padding: 6px 10px; font-size: 0.78rem; }
-    .fleet-crud-table th, .fleet-crud-table td { font-size: 0.75rem; padding: 6px 8px; }
+    .frota-tab { padding: 6px 10px; font-size: 0.78rem; }
+    .frota-tab .tab-count { font-size: 0.65rem; }
 }
 
 @media (max-width:520px){
@@ -639,9 +614,8 @@ body.dark-theme .modal-header{background:#2a2a2a;border-bottom-color:#3a3a3a}
     .tab-inner{font-size:0.78rem;padding:6px 10px}
     .tabs-inner{width:100%;overflow-x:auto}
     .form-tab{padding:9px 12px;font-size:0.8rem}
-    .fleet-pagination { gap: 8px; padding: 10px; font-size: 0.78rem; }
 }
 @media (max-width:400px){
     .access-btn{padding:14px 16px}
     .access-btn .access-text h4{font-size:0.95rem}
-}
+   }
