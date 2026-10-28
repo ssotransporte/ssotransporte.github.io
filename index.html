@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <style>
         .si{width:1em;height:1em;display:inline-block;vertical-align:-.125em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
         .si-fw{width:1.25em;height:1.25em}
@@ -857,6 +858,40 @@
 
             <!-- FROTA -->
             <div class="tab-content" id="admin-frota-tab">
+
+                <!-- ============ NOVO: DADOS DO DRIVVO (EXCEL) ============ -->
+                <div class="card card-elevated" id="fleet-excel-card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-file-excel"/></svg>
+                            <h2>Dados do Drivvo (Excel)</h2>
+                            <span class="card-header-count" id="fleet-excel-total">0</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="btn-fleet-import" class="btn btn-primary btn-sm">
+                                <svg class="si"><use href="#i-upload"/></svg> Importar Excel
+                            </button>
+                            <button id="btn-fleet-export" class="btn btn-success btn-sm">
+                                <svg class="si"><use href="#i-download"/></svg> Exportar Excel
+                            </button>
+                            <button id="btn-fleet-reset" class="btn btn-danger btn-sm">
+                                <svg class="si"><use href="#i-broom"/></svg> Zerar Dados
+                            </button>
+                            <input type="file" id="fleet-file-input" accept=".xlsx,.xls" hidden>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="fleet-excel-tabs" class="frota-tabs"></div>
+                        <div id="fleet-excel-container">
+                            <p class="notes-empty">
+                                <svg class="si si-2x" style="opacity:0.3;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;"><use href="#i-file-excel"/></svg>
+                                Nenhum dado importado.<br>Clique em <strong>"Importar Excel"</strong> para carregar o arquivo do Drivvo.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ============ FIM NOVO ============ -->
+
                 <div class="card card-elevated">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -1362,4 +1397,4 @@
 
 <script type="module" src="js/main.js"></script>
 </body>
-</html>
+    </html>
