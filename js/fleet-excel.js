@@ -364,4 +364,4 @@ function showLoading() {
             <span>Processando arquivo...</span>
         </div>
     `;
-}
+    }
