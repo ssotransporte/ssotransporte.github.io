@@ -619,3 +619,49 @@ body.dark-theme .modal-header{background:#2a2a2a;border-bottom-color:#3a3a3a}
     .access-btn{padding:14px 16px}
     .access-btn .access-text h4{font-size:0.95rem}
    }
+/* ============================================================
+   FROTA - DADOS DO DRIVVO (EXCEL) — ABAS
+   ============================================================ */
+.frota-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 6px;
+}
+.frota-tab {
+    padding: 8px 14px;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #555555;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.frota-tab:hover {
+    background: #eaf4fc;
+    color: #2980b9;
+    border-color: #3498db;
+}
+.frota-tab.active {
+    background: #3498db;
+    color: #ffffff;
+    border-color: #3498db;
+}
+.frota-tab .tab-count {
+    background: rgba(0,0,0,0.12);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.frota-tab.active .tab-count {
+    background: rgba(255,255,255,0.28);
+}
