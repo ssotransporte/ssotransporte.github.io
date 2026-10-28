@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v11.3 - Correção Cadastro Público)
+// SSOT - MAIN (v11.4 - Blindagem do Cadastro)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -46,7 +46,8 @@ function init() {
     db = getDatabase(app);
     auth = getAuth(app);
 
-    // ✅ CORREÇÃO: Informa o banco de dados para o módulo de cadastro antes do login
+    // ✅ BLINDAGEM: Salva o db globalmente e no contexto
+    window._db = db;
     Signups.setSignupsContext(db, null, false);
 
     window._addHistoryInternal = (action, num, details) => History.addHistory(action, num, details).catch(() => {});
@@ -276,7 +277,7 @@ async function enterSystem() {
     Fleet.setFleetContext(db, currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
-    Signups.setSignupsContext(db, currentUser, isAdmin); // Atualiza com o admin logado
+    Signups.setSignupsContext(db, currentUser, isAdmin);
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
 
