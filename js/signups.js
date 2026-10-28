@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE CADASTRO (v10.3 - sem duplicação)
+// SSOT - SOLICITAÇÕES DE CADASTRO (v11.4)
 // ============================================================
 
 import {
@@ -22,9 +22,6 @@ let _unsub = null;
 let _isAdmin = false;
 let _isSubscribed = false;
 
-// ============================================================
-// CONTEXTO
-// ============================================================
 export function setSignupsContext(db, currentUser, isAdmin) {
     _db = db;
     _currentUser = currentUser;
@@ -33,9 +30,6 @@ export function setSignupsContext(db, currentUser, isAdmin) {
 
 export function getSignups() { return _signups; }
 
-// ============================================================
-// SUBSCRIÇÃO
-// ============================================================
 export function subscribeSignups() {
     if (!_isAdmin || !_db) return null;
     if (_isSubscribed && _unsub) return _unsub;
@@ -60,51 +54,18 @@ export function unsubscribeSignups() {
     _isSubscribed = false;
 }
 
-// ============================================================
-// VERIFICAÇÃO POR EMAIL (usada no login Google/email)
-// ⚠️ Esta função só pode existir UMA VEZ no arquivo
-// ============================================================
-export async function checkSignupByEmail(email) {
-    if (!_db) return { exists: false };
-    const emailLower = email.toLowerCase().trim();
-
-    try {
-        const snap = await get(ref(_db, 'signups'));
-        let found = null;
-        if (snap.exists()) {
-            snap.forEach(child => {
-                const s = child.val();
-                if (s.email && s.email.toLowerCase() === emailLower) {
-                    // Guarda o mais recente (caso haja múltiplos)
-                    if (!found || new Date(s.timestamp) > new Date(found.timestamp)) {
-                        found = { ...s, id: child.key };
-                    }
-                }
-            });
-        }
-        return found
-            ? { exists: true, status: found.status, signup: found }
-            : { exists: false };
-    } catch (err) {
-        console.warn('[Signups] checkSignupByEmail:', err);
-        return { exists: false };
-    }
-}
-
-// ============================================================
-// CRIAR (público — chamado na tela de requerimento)
-// ============================================================
+// ✅ BLINDADO: Tenta pegar o _db do contexto ou da window
 export async function createSignup(data) {
-    if (!_db) throw new Error('Sistema não conectado.');
+    const db = _db || window._db;
+    if (!db) throw new Error('Sistema não conectado. Recarregue a página.');
     if (!data.nome || !data.email || !data.senha) throw new Error('Preencha todos os campos.');
     if (!isValidEmail(data.email)) throw new Error('E-mail inválido.');
     if (!isValidPassword(data.senha)) throw new Error('Senha muito curta (mínimo 6 caracteres).');
 
     const emailLower = data.email.toLowerCase().trim();
 
-    // Verifica se já existe usuário com esse e-mail
     try {
-        const usersSnap = await get(ref(_db, 'users'));
+        const usersSnap = await get(ref(db, 'users'));
         let jaExiste = false;
         if (usersSnap.exists()) {
             usersSnap.forEach(child => {
@@ -117,9 +78,8 @@ export async function createSignup(data) {
         if (err.message.includes('cadastrado')) throw err;
     }
 
-    // Verifica se já existe solicitação pendente
     try {
-        const signupsSnap = await get(ref(_db, 'signups'));
+        const signupsSnap = await get(ref(db, 'signups'));
         let jaExiste = false;
         if (signupsSnap.exists()) {
             signupsSnap.forEach(child => {
@@ -132,7 +92,7 @@ export async function createSignup(data) {
         if (err.message.includes('pendente')) throw err;
     }
 
-    const newRef = push(ref(_db, 'signups'));
+    const newRef = push(ref(db, 'signups'));
     await set(newRef, {
         nome: data.nome.trim(),
         email: emailLower,
@@ -149,16 +109,13 @@ export async function createSignup(data) {
     return newRef.key;
 }
 
-// ============================================================
-// APROVAR
-// ============================================================
 export async function approveSignup(signupId) {
     const s = _signups.find(x => x.id === signupId);
     if (!s) { showNotification('Erro', 'Solicitação não encontrada.', 'danger'); return; }
     if (s.status !== 'pendente') { showNotification('Aviso', 'Já foi processada.', 'warning'); return; }
 
     if (!s.password || !isValidPassword(s.password)) {
-        await sstAlert('A senha do solicitante é inválida. Não é possível aprovar.', 'Erro', 'danger');
+        await sstAlert('A senha do solicitante é inválida.', 'Erro', 'danger');
         return;
     }
 
@@ -167,7 +124,7 @@ export async function approveSignup(signupId) {
         `E-mail: ${s.email}\n` +
         `Setor: ${s.setor || '—'}\n` +
         `Ramal: ${s.ramal || '—'}\n\n` +
-        `A conta será criada com a senha escolhida pelo solicitante.`,
+        `A conta será criada com a senha escolhida.`,
         'Aprovar Cadastro',
         'info'
     );
@@ -218,9 +175,6 @@ export async function approveSignup(signupId) {
     }
 }
 
-// ============================================================
-// RECUSAR
-// ============================================================
 export async function rejectSignup(signupId) {
     const s = _signups.find(x => x.id === signupId);
     if (!s) return;
@@ -250,9 +204,6 @@ export async function rejectSignup(signupId) {
     }
 }
 
-// ============================================================
-// EXCLUIR
-// ============================================================
 export async function deleteSignup(signupId) {
     const s = _signups.find(x => x.id === signupId);
     if (!s) return;
@@ -270,9 +221,33 @@ export async function deleteSignup(signupId) {
     }
 }
 
-// ============================================================
-// TABELAS (pendentes / recusados)
-// ============================================================
+export async function checkSignupByEmail(email) {
+    const db = _db || window._db;
+    if (!db) return { exists: false };
+    const emailLower = email.toLowerCase().trim();
+
+    try {
+        const snap = await get(ref(db, 'signups'));
+        let found = null;
+        if (snap.exists()) {
+            snap.forEach(child => {
+                const s = child.val();
+                if (s.email && s.email.toLowerCase() === emailLower) {
+                    if (!found || new Date(s.timestamp) > new Date(found.timestamp)) {
+                        found = { ...s, id: child.key };
+                    }
+                }
+            });
+        }
+        return found
+            ? { exists: true, status: found.status, signup: found }
+            : { exists: false };
+    } catch (err) {
+        console.warn('[Signups] checkSignupByEmail:', err);
+        return { exists: false };
+    }
+}
+
 export function updateSignupsTables() {
     updatePendingTable();
     updateRejectedTable();
@@ -371,9 +346,6 @@ function updatePendingBadge() {
     }
 }
 
-// ============================================================
-// EXPORTS GLOBAIS
-// ============================================================
 window.approveSignup = approveSignup;
 window.rejectSignup = rejectSignup;
 window.deleteSignup = deleteSignup;
