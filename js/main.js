@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v11.4 - Blindagem do Cadastro)
+// SSOT - MAIN (v11.3 - Correção Cadastro Público)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -26,6 +26,7 @@ import * as Schedule from './schedule.js';
 import * as Dashboard from './dashboard.js';
 import * as Trash from './trash.js';
 import * as Fleet from './fleet.js';
+import * as FleetExcel from './fleet-excel.js'; // ✅ NOVO: Importação/Exportação Excel da Frota
 import * as Reports from './reports.js';
 import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
@@ -46,8 +47,7 @@ function init() {
     db = getDatabase(app);
     auth = getAuth(app);
 
-    // ✅ BLINDAGEM: Salva o db globalmente e no contexto
-    window._db = db;
+    // ✅ CORREÇÃO: Informa o banco de dados para o módulo de cadastro antes do login
     Signups.setSignupsContext(db, null, false);
 
     window._addHistoryInternal = (action, num, details) => History.addHistory(action, num, details).catch(() => {});
@@ -275,9 +275,11 @@ async function enterSystem() {
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
     Fleet.setFleetContext(db, currentUser);
+    FleetExcel.setFleetExcelContext(db, currentUser); // ✅ NOVO: contexto do Excel
+    FleetExcel.initFleetExcel();                       // ✅ NOVO: inicializa botões/aba
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
-    Signups.setSignupsContext(db, currentUser, isAdmin);
+    Signups.setSignupsContext(db, currentUser, isAdmin); // Atualiza com o admin logado
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
 
@@ -443,6 +445,7 @@ export function gotoAdminTab(tabId) {
         case 'admin-usuarios': Users.updateUsersTable(); Signups.subscribeSignups(); break;
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
         case 'admin-servicos': updateNetworkStatus(); break;
+        case 'admin-frota': FleetExcel.initFleetExcel(); break; // ✅ NOVO: garante aba Excel pronta
     }
 }
 
