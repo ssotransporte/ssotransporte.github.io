@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v11.3 - Correção Cadastro Público)
+// SSOT - MAIN (v12.0 - Áreas: Operações / Solicitações)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -25,8 +25,7 @@ import * as Requests from './requests.js';
 import * as Schedule from './schedule.js';
 import * as Dashboard from './dashboard.js';
 import * as Trash from './trash.js';
-import * as Fleet from './fleet.js';
-import * as FleetExcel from './fleet-excel.js'; // ✅ NOVO: Importação/Exportação Excel da Frota
+import * as FleetExcel from './fleet-excel.js';
 import * as Reports from './reports.js';
 import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
@@ -40,14 +39,19 @@ let isResuming = false;
 let _loginInProgress = false;
 let _enterSystemDone = false;
 let _pendingDeepLink = null;
+let _areaMode = null; // 'operacoes' | 'solicitacoes' | null
 
+const AREA_KEY = 'ssot_area_';
+
+// ============================================================
+// INIT
+// ============================================================
 function init() {
     console.log(`[SSOT] Inicializando v${APP_VERSION}...`);
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
     auth = getAuth(app);
 
-    // ✅ CORREÇÃO: Informa o banco de dados para o módulo de cadastro antes do login
     Signups.setSignupsContext(db, null, false);
 
     window._addHistoryInternal = (action, num, details) => History.addHistory(action, num, details).catch(() => {});
@@ -83,6 +87,9 @@ function init() {
     });
 }
 
+// ============================================================
+// SIDEBAR MOBILE
+// ============================================================
 function setupMobileSidebar() {
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
     const mainNav = document.getElementById('main-nav');
@@ -110,6 +117,9 @@ function closeMobileSidebar() {
 window.openModal = (id) => document.getElementById(id)?.classList.add('active');
 window.closeModal = (id) => document.getElementById(id)?.classList.remove('active');
 
+// ============================================================
+// TABS DO FORMULÁRIO
+// ============================================================
 function setupFormTabs() {
     document.querySelectorAll('.form-tab').forEach(tab => {
         tab.addEventListener('click', function () {
@@ -132,6 +142,9 @@ window.goToFormTab = function (tabName) {
     document.getElementById('user-request-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
+// ============================================================
+// TABS USUÁRIOS
+// ============================================================
 function setupUsersTabs() {
     document.addEventListener('click', function (e) {
         const tab = e.target.closest('[data-users-tab]');
@@ -155,6 +168,9 @@ function setupUsersTabs() {
     });
 }
 
+// ============================================================
+// EXPORTS GLOBAIS
+// ============================================================
 function setupGlobalExports() {
     window.goToLogin = goToLoginFn;
     window.goToRequerimento = goToRequerimentoFn;
@@ -180,8 +196,48 @@ function setupGlobalExports() {
     window.openNotifAdminModal = () => Notifications.openNotifAdminModal();
     window.closeNotifAdminModal = () => Notifications.closeNotifAdminModal();
     window.openProfileTab = openProfileTab;
+    window.selectArea = selectArea;
+    window.switchArea = switchArea;
 }
 
+// ============================================================
+// SELEÇÃO DE ÁREA (NOVO)
+// ============================================================
+function showAreaSelectModal() {
+    const btn = document.getElementById('area-switch-btn');
+    if (btn) btn.classList.add('hidden');
+    window.openModal('area-select-modal');
+}
+
+function selectArea(mode) {
+    if (mode !== 'operacoes' && mode !== 'solicitacoes') return;
+    if (!currentUser) return;
+
+    _areaMode = mode;
+    sessionStorage.setItem(AREA_KEY + currentUser.uid, mode);
+    window.closeModal('area-select-modal');
+
+    // Atualiza UI
+    const btn = document.getElementById('area-switch-btn');
+    if (btn) btn.classList.remove('hidden');
+
+    // Breadcrumb mostra a área
+    const bc = document.getElementById('breadcrumb-area');
+    if (bc) bc.textContent = mode === 'operacoes' ? 'Operações' : 'Solicitações';
+
+    renderAdminMenu();
+}
+
+function switchArea() {
+    if (!currentUser) return;
+    sessionStorage.removeItem(AREA_KEY + currentUser.uid);
+    _areaMode = null;
+    showAreaSelectModal();
+}
+
+// ============================================================
+// LOGIN / LOGOUT
+// ============================================================
 async function handleUserLoggedIn(user) {
     try {
         if (currentUser && currentUser.uid === user.uid) return;
@@ -255,6 +311,9 @@ function showResumeModal(fbUser, data) {
     };
 }
 
+// ============================================================
+// ENTRAR NO SISTEMA
+// ============================================================
 async function enterSystem() {
     _enterSystemDone = true;
     document.getElementById('current-user').textContent = currentUser.name;
@@ -274,35 +333,42 @@ async function enterSystem() {
     Schedule.setScheduleContext(db, currentUser);
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
-    Fleet.setFleetContext(db, currentUser);
-    FleetExcel.setFleetExcelContext(db, currentUser); // ✅ NOVO: contexto do Excel
-    FleetExcel.initFleetExcel();                       // ✅ NOVO: inicializa botões/aba
+    FleetExcel.setFleetExcelContext(db, currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
-    Signups.setSignupsContext(db, currentUser, isAdmin); // Atualiza com o admin logado
+    Signups.setSignupsContext(db, currentUser, isAdmin);
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
 
     if (isAdmin) {
         document.getElementById('user-area').classList.add('hidden');
         document.getElementById('admin-area').classList.remove('hidden');
-        renderAdminMenu();
+
+        // ✅ NOVO: verificar se já tem área salva
+        const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
+        if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
+            _areaMode = savedArea;
+            const bc = document.getElementById('breadcrumb-area');
+            if (bc) bc.textContent = savedArea === 'operacoes' ? 'Operações' : 'Solicitações';
+            const btn = document.getElementById('area-switch-btn');
+            if (btn) btn.classList.remove('hidden');
+            renderAdminMenu();
+        } else {
+            _areaMode = null;
+            showAreaSelectModal();
+            // Preenche o menu com padrão (solicitações) enquanto escolhe
+            renderAdminMenu();
+        }
     } else {
         document.getElementById('admin-area').classList.add('hidden');
         document.getElementById('user-area').classList.remove('hidden');
+        document.getElementById('area-switch-btn')?.classList.add('hidden');
         renderUserMenu();
         prefillUserForm();
     }
 
     activateSubscribers();
     Session.startSessionWatch(() => doLogout(true));
-
-    setTimeout(() => {
-        if (isAdmin) {
-            const tab = sessionStorage.getItem(SESSION_STORAGE_KEY + '_' + currentUser.uid) || 'admin-dashboard';
-            gotoAdminTab(tab);
-        }
-    }, 250);
 
     if (_pendingDeepLink) {
         const id = _pendingDeepLink; _pendingDeepLink = null;
@@ -324,6 +390,9 @@ async function enterSystem() {
     showNotification('Bem-vindo(a)', `Olá, ${currentUser.name}!`, 'success');
 }
 
+// ============================================================
+// SUBSCRIBERS
+// ============================================================
 function activateSubscribers() {
     if (subscribersActive) return;
     subscribersActive = true;
@@ -333,9 +402,6 @@ function activateSubscribers() {
         Reports.setReportsContext(requests, currentUser);
     });
     Schedule.subscribeSlots();
-    Fleet.subscribeFleet(() => {
-        Fleet.renderFleetLists();
-    });
     Notifications.subscribeNotifications();
     if (isAdmin) {
         History.subscribeHistory();
@@ -352,12 +418,14 @@ function deactivateSubscribers() {
     Schedule.unsubscribeSlots();
     History.unsubscribeHistory();
     Trash.unsubscribeTrash();
-    Fleet.unsubscribeFleet();
     Signups.unsubscribeSignups();
     Notifications.unsubscribeNotifications();
     Dashboard.destroyDashboardCharts();
 }
 
+// ============================================================
+// MENUS
+// ============================================================
 function renderUserMenu() {
     const menu = document.getElementById('top-menu-list');
     menu.innerHTML = `
@@ -389,30 +457,59 @@ function gotoUserTab(tabId) {
     if (tabId === 'user-perfil') { Profile.refreshProfileState(); Profile.populateProfileForm(); }
 }
 
+// ✅ NOVO: menu adaptativo por área
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
-    menu.innerHTML = `
-        <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
-        <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
-        <li><a href="#" data-tab="admin-usuarios"><svg class="si si-fw"><use href="#i-users-cog"/></svg> Usuários</a></li>
-        <li><a href="#" data-tab="admin-agenda"><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Agenda</a></li>
-        <li><a href="#" data-tab="admin-frota"><svg class="si si-fw"><use href="#i-truck"/></svg> Frota</a></li>
-        <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
-        <li><a href="#" data-tab="admin-historico"><svg class="si si-fw"><use href="#i-history"/></svg> Histórico</a></li>
-        <li><a href="#" data-tab="admin-lixeira"><svg class="si si-fw"><use href="#i-trash"/></svg> Lixeira</a></li>
-        <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
-        <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
-    `;
+    if (!menu) return;
+
+    const isOperacoes = _areaMode === 'operacoes';
+
+    if (isOperacoes) {
+        menu.innerHTML = `
+            <li><a href="#" data-tab="admin-frota"><svg class="si si-fw"><use href="#i-route"/></svg> Frota</a></li>
+            <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
+            <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
+            <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
+            <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+        `;
+    } else {
+        menu.innerHTML = `
+            <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
+            <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
+            <li><a href="#" data-tab="admin-usuarios"><svg class="si si-fw"><use href="#i-users-cog"/></svg> Usuários</a></li>
+            <li><a href="#" data-tab="admin-agenda"><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Agenda</a></li>
+            <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
+            <li><a href="#" data-tab="admin-historico"><svg class="si si-fw"><use href="#i-history"/></svg> Histórico</a></li>
+            <li><a href="#" data-tab="admin-lixeira"><svg class="si si-fw"><use href="#i-trash"/></svg> Lixeira</a></li>
+            <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
+            <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+        `;
+    }
+
     menu.querySelectorAll('a').forEach(a => {
         a.addEventListener('click', e => {
             e.preventDefault(); gotoAdminTab(a.getAttribute('data-tab')); closeMobileSidebar();
         });
     });
-    gotoAdminTab('admin-dashboard');
+
+    // Guia inicial por área
+    if (isOperacoes) gotoAdminTab('admin-frota');
+    else gotoAdminTab('admin-dashboard');
 }
 
+// ✅ NOVO: navegação com validação de área
 export function gotoAdminTab(tabId) {
     if (!tabId) return;
+
+    // Validação: se estiver em Operações, não permite guias de Solicitações
+    const solicitacoesOnly = ['admin-solicitacoes', 'admin-usuarios', 'admin-agenda', 'admin-historico', 'admin-lixeira'];
+    if (_areaMode === 'operacoes' && solicitacoesOnly.includes(tabId)) {
+        tabId = 'admin-frota';
+    }
+    if (_areaMode !== 'operacoes' && tabId === 'admin-frota') {
+        tabId = 'admin-dashboard';
+    }
+
     document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
     const target = document.getElementById(tabId + '-tab');
     if (target) target.classList.add('active');
@@ -429,7 +526,7 @@ export function gotoAdminTab(tabId) {
         else subtitle.classList.add('hidden');
     }
     if (currentUser) sessionStorage.setItem(SESSION_STORAGE_KEY + '_' + currentUser.uid, tabId);
-    
+
     switch (tabId) {
         case 'admin-dashboard':
             setTimeout(() => {
@@ -445,7 +542,9 @@ export function gotoAdminTab(tabId) {
         case 'admin-usuarios': Users.updateUsersTable(); Signups.subscribeSignups(); break;
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
         case 'admin-servicos': updateNetworkStatus(); break;
-        case 'admin-frota': FleetExcel.initFleetExcel(); break; // ✅ NOVO: garante aba Excel pronta
+        case 'admin-frota':
+            FleetExcel.initFleetExcel();
+            break;
     }
 }
 
@@ -461,10 +560,17 @@ function prefillUserForm() {
     set('u-ramal', currentUser.ramal); set('u-setor', currentUser.setor); set('u-cargo', currentUser.cargo);
 }
 
+// ============================================================
+// LOGOUT
+// ============================================================
 async function doLogout(silent = false) {
     if (currentUser && !currentUser.isGuest) {
         try { await History.addHistory('Logout', '-', `Usuário ${currentUser.name}`); } catch (e) {}
     }
+
+    // Limpa área escolhida
+    if (currentUser) sessionStorage.removeItem(AREA_KEY + currentUser.uid);
+    _areaMode = null;
 
     Session.stopSessionWatch();
     deactivateSubscribers();
@@ -487,6 +593,9 @@ async function doLogout(silent = false) {
     }
 }
 
+// ============================================================
+// NAVEGAÇÃO LOGIN
+// ============================================================
 function goToLoginFn(mode) {
     window._loginMode = mode;
     document.getElementById('screen-select').classList.add('hidden');
@@ -528,6 +637,9 @@ function togglePassFn(id, el) {
     else { p.type = 'password'; if (use) use.setAttribute('href', '#i-eye'); }
 }
 
+// ============================================================
+// LISTENERS
+// ============================================================
 function setupEventListeners() {
     document.getElementById('login-form')?.addEventListener('submit', handleLoginSubmit);
     document.getElementById('google-login-btn')?.addEventListener('click', handleGoogleLogin);
@@ -656,10 +768,11 @@ function setupEventListeners() {
     document.getElementById('close-pdf-modal-btn')?.addEventListener('click', closePdfModal);
     document.getElementById('download-pdf')?.addEventListener('click', () => { Reports.exportReportPDF(false); setTimeout(closePdfModal, 1500); });
 
+    // ✅ NOVO: não permite fechar modal de área por clique fora
     document.querySelectorAll('.modal-overlay').forEach(m => {
         m.addEventListener('click', function (e) {
             if (e.target === this) {
-                if (this.id === 'session-modal' || this.id === 'resume-modal') return;
+                if (this.id === 'session-modal' || this.id === 'resume-modal' || this.id === 'area-select-modal') return;
                 this.classList.remove('active');
             }
         });
@@ -668,7 +781,7 @@ function setupEventListeners() {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal-overlay.active').forEach(m => {
-                if (m.id !== 'session-modal' && m.id !== 'resume-modal') m.classList.remove('active');
+                if (m.id !== 'session-modal' && m.id !== 'resume-modal' && m.id !== 'area-select-modal') m.classList.remove('active');
             });
         }
     });
@@ -677,6 +790,9 @@ function setupEventListeners() {
     window.addEventListener('offline', updateNetworkStatus);
 }
 
+// ============================================================
+// LOGIN SUBMIT
+// ============================================================
 async function handleLoginSubmit(e) {
     e.preventDefault();
     const email = document.getElementById('username')?.value.trim() || '';
@@ -771,7 +887,7 @@ async function handleGoogleLogin() {
         await Auth.logoutUser(); 
         _loginInProgress = false;
         
-        goToRequerimentoFn(); // Leva para a tela de cadastro
+        goToRequerimentoFn();
         document.getElementById('r-nome').value = googleUser.displayName || '';
         document.getElementById('r-email').value = email;
         
@@ -931,10 +1047,13 @@ async function handleSendNotification() {
     }
 }
 
+// ============================================================
+// BACKUP
+// ============================================================
 function handleBackup() {
     const backup = {
         meta: { app: 'SSOT', version: APP_VERSION, timestamp: new Date().toISOString(), createdBy: currentUser?.name || 'Sistema' },
-        data: { requests: Requests.getRequests(), vehicles: Fleet.getVehicles(), drivers: Fleet.getDrivers(), users: Users.getUsers(), trash: Trash.getTrash(), signups: Signups.getSignups(), notifications: Notifications.getNotifications() }
+        data: { requests: Requests.getRequests(), users: Users.getUsers(), trash: Trash.getTrash(), signups: Signups.getSignups(), notifications: Notifications.getNotifications() }
     };
     downloadJSON(backup, `backup_ssot_${new Date().toISOString().slice(0, 10)}`);
     History.addHistory('Backup Realizado', '-', `Por: ${currentUser?.name}`);
@@ -958,8 +1077,6 @@ async function handleImportBackup(file) {
         };
         await importCollection('requests', payload.requests, 'id');
         await importCollection('users', payload.users, 'uid');
-        await importCollection('vehicles', payload.vehicles, 'id');
-        await importCollection('drivers', payload.drivers, 'id');
         await History.addHistory('Backup Importado', '-', `${imported} registros`);
         showNotification('Importado', `${imported} registros.`, 'success');
     } catch (err) {
