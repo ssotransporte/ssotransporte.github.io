@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v11.2)
+// SSOT - MAIN (v11.3 - Correção Cadastro Público)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -45,6 +45,9 @@ function init() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
     auth = getAuth(app);
+
+    // ✅ CORREÇÃO: Informa o banco de dados para o módulo de cadastro antes do login
+    Signups.setSignupsContext(db, null, false);
 
     window._addHistoryInternal = (action, num, details) => History.addHistory(action, num, details).catch(() => {});
     window._getUsersForNotif = () => Users.getUsers();
@@ -273,7 +276,7 @@ async function enterSystem() {
     Fleet.setFleetContext(db, currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
-    Signups.setSignupsContext(db, currentUser, isAdmin);
+    Signups.setSignupsContext(db, currentUser, isAdmin); // Atualiza com o admin logado
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
 
@@ -328,7 +331,6 @@ function activateSubscribers() {
     });
     Schedule.subscribeSlots();
     Fleet.subscribeFleet(() => {
-        // ✅ Atualiza os modais de Origem/Destino
         Fleet.renderFleetLists();
     });
     Notifications.subscribeNotifications();
@@ -455,7 +457,6 @@ function prefillUserForm() {
     set('u-ramal', currentUser.ramal); set('u-setor', currentUser.setor); set('u-cargo', currentUser.cargo);
 }
 
-// ✅ AQUI ESTÁ A CORREÇÃO DA DESCONEXÃO
 async function doLogout(silent = false) {
     if (currentUser && !currentUser.isGuest) {
         try { await History.addHistory('Logout', '-', `Usuário ${currentUser.name}`); } catch (e) {}
@@ -471,7 +472,6 @@ async function doLogout(silent = false) {
     _loginInProgress = false;
     _enterSystemDone = false;
 
-    // ✅ Força o logout no Firebase independente de ser silencioso ou não
     try { await Auth.logoutUser(); } catch (e) {}
 
     document.getElementById('app-container')?.classList.add('hidden');
