@@ -127,16 +127,20 @@
     </div>
 </div>
 
-<!-- ✅ NOVO: TELA DE SELEÇÃO DE ÁREA -->
-<div class="modal-overlay" id="area-select-modal">
-    <div class="modal modal-large" style="max-width:900px;">
-        <div class="modal-header modal-header-info">
-            <h3><svg class="si si-fw"><use href="#i-menu"/></svg> Selecione a Área de Trabalho</h3>
+<!-- ✅ TELA DE SELEÇÃO DE ÁREA (fundo azul) -->
+<div class="modal-overlay area-select-overlay" id="area-select-modal">
+    <div class="modal area-select-modal-custom">
+        <div class="area-select-header">
+            <div class="area-select-logo">
+                <svg class="si si-3x"><use href="#i-car"/></svg>
+            </div>
+            <h2>SSOT</h2>
+            <p>Sistema de Solicitações e Operações de Transporte</p>
         </div>
-        <div class="modal-body">
-            <p class="area-select-intro">
-                Você tem acesso a mais de uma área. Escolha em qual deseja trabalhar agora.
-                Pode trocar a qualquer momento pelo botão <strong>"Trocar Área"</strong> no topo.
+        <div class="area-select-body">
+            <p class="area-select-prompt">
+                <svg class="si si-fw"><use href="#i-menu"/></svg>
+                Escolha em qual área deseja trabalhar
             </p>
             <div class="area-cards-grid">
                 <button type="button" class="area-card area-card-operacoes" onclick="selectArea('operacoes')">
@@ -144,16 +148,16 @@
                         <svg class="si si-3x"><use href="#i-route"/></svg>
                     </div>
                     <h3>Operações</h3>
-                    <p>Frota, veículos, abastecimentos, serviços, checklist</p>
-                    <span class="area-card-badge">Gestão da Frota</span>
+                    <p>Gestão da frota, abastecimentos, serviços, checklist e viagens</p>
+                    <span class="area-card-cta">Entrar <svg class="si si-fw"><use href="#i-arrow-right"/></svg></span>
                 </button>
                 <button type="button" class="area-card area-card-solicitacoes" onclick="selectArea('solicitacoes')">
                     <div class="area-card-icon">
                         <svg class="si si-3x"><use href="#i-clipboard"/></svg>
                     </div>
                     <h3>Solicitações</h3>
-                    <p>Pedidos de transporte, usuários, agenda, relatórios</p>
-                    <span class="area-card-badge">Gestão de Pedidos</span>
+                    <p>Pedidos de transporte, usuários, agenda e relatórios</p>
+                    <span class="area-card-cta">Entrar <svg class="si si-fw"><use href="#i-arrow-right"/></svg></span>
                 </button>
             </div>
         </div>
@@ -355,7 +359,6 @@
                 <p id="page-subtitle" class="page-subtitle hidden"></p>
             </div>
             <div class="header-right">
-                <!-- ✅ NOVO: botão trocar área -->
                 <button class="btn btn-secondary btn-sm area-switch-btn hidden" id="area-switch-btn" onclick="switchArea()">
                     <svg class="si"><use href="#i-repeat"/></svg> <span>Trocar Área</span>
                 </button>
@@ -1076,7 +1079,7 @@
     </div>
 </div>
 
-<!-- MODAIS FROTA (legado — só usados se o usuário ainda tiver os botões originais) -->
+<!-- MODAIS FROTA LEGADO -->
 <div class="modal-overlay" id="modal-gerenciar-veiculos">
     <div class="modal modal-large">
         <div class="modal-header"><h3>Gerenciar Veículos</h3><button class="modal-close" onclick="closeModal('modal-gerenciar-veiculos')">&times;</button></div>
@@ -1110,7 +1113,7 @@
     </div>
 </div>
 
-<!-- ✅ NOVO: MODAL VER/EDITAR/INCLUIR CRUD FROTA -->
+<!-- MODAL VER REGISTRO -->
 <div class="modal-overlay" id="fleet-view-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1126,6 +1129,7 @@
     </div>
 </div>
 
+<!-- MODAL EDITAR/INCLUIR -->
 <div class="modal-overlay" id="fleet-crud-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1299,4 +1303,4 @@
 
 <script type="module" src="js/main.js"></script>
 </body>
-                                </html>
+</html>
