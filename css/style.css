@@ -2024,3 +2024,303 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
     .access-btn { padding: 14px 16px; }
     .access-btn .access-text h4 { font-size: 0.95rem; }
 }
+/* ============================================================
+   FROTA v3.0 — DASHBOARD, RELATÓRIOS E MOBILE FIX
+   (Adicionado no final — sobrescreve regras anteriores quando necessário)
+   ============================================================ */
+
+/* ---------- 1) KPIs do Dashboard da Frota ---------- */
+.fleet-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+.fleet-kpi-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #3498db;
+    border-radius: 8px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+.fleet-kpi-card::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle, rgba(52,152,219,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.fleet-kpi-card:hover {
+    box-shadow: 0 6px 16px rgba(52,152,219,0.14);
+    transform: translateY(-2px);
+}
+.fleet-kpi-label {
+    font-size: 0.7rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+}
+.fleet-kpi-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.1;
+    letter-spacing: -0.3px;
+}
+.fleet-kpi-sub {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    margin-top: 5px;
+    font-weight: 500;
+}
+.fleet-kpi-blue   { border-left-color: #3498db; }
+.fleet-kpi-green  { border-left-color: #27ae60; }
+.fleet-kpi-orange { border-left-color: #d68910; }
+.fleet-kpi-purple { border-left-color: #9b59b6; }
+.fleet-kpi-teal   { border-left-color: #1abc9c; }
+.fleet-kpi-red    { border-left-color: #c0392b; }
+
+/* ---------- 2) Gráficos do Dashboard da Frota ---------- */
+.fleet-dashboard-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+}
+.fleet-dashboard-charts .chart-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    border: 1px solid #eef1f4;
+    transition: box-shadow 0.2s ease;
+}
+.fleet-dashboard-charts .chart-card:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+.fleet-dashboard-charts .chart-wrapper {
+    position: relative;
+    height: 240px;
+}
+
+/* ---------- 3) Filtros de Relatórios ---------- */
+.fleet-report-filters {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #eaf4fc 100%);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+.fleet-report-filters .form-group {
+    margin: 0;
+    flex: 1 1 160px;
+    min-width: 140px;
+}
+.fleet-report-filters .form-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 4px;
+}
+.fleet-report-header {
+    background: #fff;
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 14px;
+}
+
+/* ---------- 4) Tabela de dados — visual refinado ---------- */
+.frota-data-table {
+    background: #fff;
+    font-size: 0.8rem;
+}
+.frota-data-table thead th {
+    background: linear-gradient(180deg, #eaf4fc 0%, #d4e8f7 100%);
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding: 10px 12px;
+}
+.frota-data-table tbody tr {
+    transition: background 0.15s ease;
+}
+.frota-data-table tbody tr:hover {
+    background: #eaf4fc;
+}
+.frota-data-table td {
+    padding: 9px 12px;
+    color: #2c3e50;
+}
+.frota-table-container {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* ---------- 5) FIX DO HEADER MOBILE ---------- */
+@media (max-width: 900px) {
+    /* Header mais compacto */
+    .header {
+        padding: 10px 14px !important;
+    }
+    .header-left h1 {
+        font-size: 1.05rem !important;
+    }
+    .page-subtitle {
+        font-size: 0.72rem !important;
+    }
+    .header-right {
+        width: 100% !important;
+        justify-content: flex-end !important;
+        gap: 6px !important;
+        margin-top: 8px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    /* Botão "Trocar Área" vira apenas ícone */
+    .area-switch-btn {
+        padding: 7px 10px !important;
+        font-size: 0 !important;
+        min-width: 34px;
+        justify-content: center;
+    }
+    .area-switch-btn svg {
+        margin: 0 !important;
+        width: 16px;
+        height: 16px;
+    }
+    .area-switch-btn span {
+        display: none !important;
+    }
+
+    /* Avatar e nome mais compactos */
+    .user-info {
+        gap: 6px !important;
+        padding: 2px 6px !important;
+    }
+    .user-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.78rem !important;
+    }
+    .user-details {
+        display: none !important;
+    }
+
+    /* Logout apenas ícone */
+    .logout {
+        padding: 7px 10px !important;
+        font-size: 0 !important;
+        gap: 0 !important;
+        min-width: 34px;
+        justify-content: center;
+    }
+    .logout svg {
+        width: 16px;
+        height: 16px;
+    }
+    .logout span {
+        display: none !important;
+    }
+
+    /* KPIs da frota em 2 colunas */
+    .fleet-kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    .fleet-kpi-value {
+        font-size: 1.3rem !important;
+    }
+    .fleet-kpi-label {
+        font-size: 0.65rem !important;
+    }
+
+    /* Gráficos em 1 coluna */
+    .fleet-dashboard-charts {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .fleet-dashboard-charts .chart-wrapper {
+        height: 220px !important;
+    }
+
+    /* Filtros de relatório empilhados */
+    .fleet-report-filters {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 12px !important;
+    }
+    .fleet-report-filters .form-group {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .fleet-kpi-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .fleet-kpi-value {
+        font-size: 1.45rem !important;
+    }
+    .header {
+        padding: 8px 10px !important;
+    }
+    .user-avatar {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 0.72rem !important;
+    }
+    .area-switch-btn,
+    .logout {
+        padding: 6px 8px !important;
+        min-width: 30px;
+    }
+    .frota-data-table td,
+    .frota-data-table th {
+        padding: 6px 8px !important;
+        font-size: 0.72rem !important;
+    }
+}
+
+/* ---------- 6) Tema escuro — Frota dashboard/relatórios ---------- */
+body.dark-theme .fleet-kpi-card,
+body.dark-theme .fleet-report-filters,
+body.dark-theme .fleet-report-header,
+body.dark-theme .fleet-dashboard-charts .chart-card {
+    background: #2a2a2a !important;
+    border-color: #3a3a3a !important;
+    color: #e0e0e0 !important;
+}
+body.dark-theme .fleet-kpi-value {
+    color: #e0e0e0 !important;
+}
+body.dark-theme .fleet-kpi-label,
+body.dark-theme .fleet-kpi-sub {
+    color: #b0b0b0 !important;
+}
+body.dark-theme .frota-data-table {
+    background: #2a2a2a !important;
+}
+body.dark-theme .frota-data-table thead th {
+    background: linear-gradient(180deg, #2a2a2a 0%, #333 100%) !important;
+    color: #e0e0e0 !important;
+    border-bottom-color: #3498db !important;
+}
+body.dark-theme .frota-data-table tbody tr:hover {
+    background: #333 !important;
+}
+body.dark-theme .frota-data-table td {
+    color: #e0e0e0 !important;
+    border-color: #3a3a3a !important;
+}
