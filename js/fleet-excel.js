@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - FROTA EXCEL (v2 — Sub-abas + CRUD completo)
+// SSOT - FROTA EXCEL (v2.1 — Layout reformulado + importação)
 // ============================================================
 
 import { showNotification, escapeHtml } from './utils.js';
@@ -10,48 +10,24 @@ const STORAGE_KEY = 'ssot_fleet_excel_v1';
 const PAGE_SIZE = 100;
 
 const SHEETS_CONFIG = {
-    'Veículos':       { key: 'veiculos',       titleRow: false },
-    'Abastecimentos': { key: 'abastecimentos', titleRow: false },
-    'Serviços':       { key: 'servicos',       titleRow: false },
-    'Despesas':       { key: 'despesas',       titleRow: false },
-    'Leituras':       { key: 'leituras',       titleRow: false },
-    'Percursos':      { key: 'percursos',      titleRow: false },
-    'Checklist':      { key: 'checklist',      titleRow: true  }
+    'Veículos':       { key: 'veiculos',       titleRow: false, icon: 'i-car' },
+    'Abastecimentos': { key: 'abastecimentos', titleRow: false, icon: 'i-truck' },
+    'Serviços':       { key: 'servicos',       titleRow: false, icon: 'i-cog' },
+    'Despesas':       { key: 'despesas',       titleRow: false, icon: 'i-file-text' },
+    'Leituras':       { key: 'leituras',       titleRow: false, icon: 'i-clock' },
+    'Percursos':      { key: 'percursos',      titleRow: false, icon: 'i-route' },
+    'Checklist':      { key: 'checklist',      titleRow: true,  icon: 'i-check-circle' }
 };
 
 const ABAS = {
-    importar: {
-        label: 'Importar / Exportar', icon: 'i-upload',
-        sheetKey: null, sheetName: null
-    },
-    viagens: {
-        label: 'Viagens', icon: 'i-route',
-        sheetKey: 'percursos', sheetName: 'Percursos', primary: true
-    },
-    veiculos: {
-        label: 'Veículos', icon: 'i-car',
-        sheetKey: 'veiculos', sheetName: 'Veículos'
-    },
-    abastecimentos: {
-        label: 'Abastecimentos', icon: 'i-truck',
-        sheetKey: 'abastecimentos', sheetName: 'Abastecimentos'
-    },
-    servicos: {
-        label: 'Serviços', icon: 'i-cog',
-        sheetKey: 'servicos', sheetName: 'Serviços'
-    },
-    despesas: {
-        label: 'Despesas', icon: 'i-file-text',
-        sheetKey: 'despesas', sheetName: 'Despesas'
-    },
-    leituras: {
-        label: 'Leituras', icon: 'i-clock',
-        sheetKey: 'leituras', sheetName: 'Leituras'
-    },
-    checklist: {
-        label: 'Checklist', icon: 'i-check-circle',
-        sheetKey: 'checklist', sheetName: 'Checklist'
-    }
+    importar:       { label: 'Importar / Exportar', icon: 'i-upload',       sheetKey: null,             sheetName: null },
+    viagens:        { label: 'Viagens',             icon: 'i-route',        sheetKey: 'percursos',      sheetName: 'Percursos' },
+    veiculos:       { label: 'Veículos',            icon: 'i-car',          sheetKey: 'veiculos',       sheetName: 'Veículos' },
+    abastecimentos: { label: 'Abastecimentos',      icon: 'i-truck',        sheetKey: 'abastecimentos', sheetName: 'Abastecimentos' },
+    servicos:       { label: 'Serviços',            icon: 'i-cog',          sheetKey: 'servicos',       sheetName: 'Serviços' },
+    despesas:       { label: 'Despesas',            icon: 'i-file-text',    sheetKey: 'despesas',       sheetName: 'Despesas' },
+    leituras:       { label: 'Leituras',            icon: 'i-clock',        sheetKey: 'leituras',       sheetName: 'Leituras' },
+    checklist:      { label: 'Checklist',           icon: 'i-check-circle', sheetKey: 'checklist',      sheetName: 'Checklist' }
 };
 
 let _currentUser = null;
@@ -83,20 +59,20 @@ export function initFleetExcel() {
 }
 
 function bindGlobals() {
-    window.fleetExcelSwitchTab  = switchTab;
-    window.fleetExcelSearch     = debounceSearch;
-    window.fleetExcelPage       = changePage;
-    window.fleetExcelView       = viewRow;
-    window.fleetExcelEdit       = editRow;
-    window.fleetExcelInsert     = insertRow;
-    window.fleetExcelDelete     = deleteRow;
-    window.fleetExcelImport     = triggerImport;
-    window.fleetExcelExport     = exportFleetExcel;
-    window.fleetExcelReset      = resetFleetExcel;
+    window.fleetExcelSwitchTab = switchTab;
+    window.fleetExcelSearch    = debounceSearch;
+    window.fleetExcelPage      = changePage;
+    window.fleetExcelView      = viewRow;
+    window.fleetExcelEdit      = editRow;
+    window.fleetExcelInsert    = insertRow;
+    window.fleetExcelDelete    = deleteRow;
+    window.fleetExcelImport    = triggerImport;
+    window.fleetExcelExport    = exportFleetExcel;
+    window.fleetExcelReset     = resetFleetExcel;
 }
 
 // ============================================================
-// RENDER — sub-abas
+// SUB-TABS
 // ============================================================
 function renderSubTabs() {
     const container = document.getElementById('frota-subtabs');
@@ -124,13 +100,18 @@ function renderActivePanel() {
 }
 
 // ============================================================
-// PAINEL: IMPORTAR/EXPORTAR
+// PAINEL: IMPORTAR/EXPORTAR (reformulado)
 // ============================================================
 function renderImportPanel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
+    const hasData = total > 0;
+
     const stats = Object.entries(SHEETS_CONFIG).map(([name, cfg]) => {
         const count = _data[cfg.key]?.rows?.length || 0;
-        return `<tr><td>${escapeHtml(name)}</td><td><strong>${count}</strong></td></tr>`;
+        return `<tr>
+            <td><svg class="si" style="color:#3498db;vertical-align:-2px;margin-right:6px;"><use href="#${cfg.icon}"/></svg>${escapeHtml(name)}</td>
+            <td style="text-align:right;font-weight:700;color:${count > 0 ? '#27ae60' : '#adb5bd'};">${count}</td>
+        </tr>`;
     }).join('');
 
     return `
@@ -144,46 +125,56 @@ function renderImportPanel() {
                     <button class="btn btn-primary btn-sm" onclick="window.fleetExcelImport()">
                         <svg class="si"><use href="#i-upload"/></svg> Importar Excel
                     </button>
-                    <button class="btn btn-success btn-sm" onclick="window.fleetExcelExport()">
+                    <button class="btn btn-success btn-sm" onclick="window.fleetExcelExport()" ${!hasData ? 'disabled' : ''}>
                         <svg class="si"><use href="#i-download"/></svg> Exportar Excel
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="window.fleetExcelReset()">
+                    <button class="btn btn-danger btn-sm" onclick="window.fleetExcelReset()" ${!hasData ? 'disabled' : ''}>
                         <svg class="si"><use href="#i-broom"/></svg> Zerar Dados
                     </button>
                 </div>
             </div>
             <div class="card-body">
                 <input type="file" id="fleet-file-input" accept=".xlsx,.xls" hidden>
-                <div class="info-grid" style="margin-bottom:20px;">
-                    <div class="info-item">
-                        <div class="info-label">Total de Registros</div>
-                        <div class="info-value">${total}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Status</div>
-                        <div class="info-value">${total > 0 ? '✅ Carregado' : '— Sem dados'}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Armazenamento</div>
-                        <div class="info-value">Navegador</div>
-                    </div>
-                </div>
+
+                ${hasData
+                    ? `<div class="fleet-import-summary">
+                        <div class="fleet-import-stat">
+                            <div class="fleet-import-stat-value">${total}</div>
+                            <div class="fleet-import-stat-label">Total de Registros</div>
+                        </div>
+                        <div class="fleet-import-stat">
+                            <div class="fleet-import-stat-value">${Object.keys(SHEETS_CONFIG).length}</div>
+                            <div class="fleet-import-stat-label">Abas Carregadas</div>
+                        </div>
+                        <div class="fleet-import-stat">
+                            <div class="fleet-import-stat-value" style="color:#27ae60;">✓</div>
+                            <div class="fleet-import-stat-label">Status: Pronto</div>
+                        </div>
+                       </div>`
+                    : `<div class="fleet-empty-state">
+                        <svg class="si si-3x"><use href="#i-file-excel"/></svg>
+                        <h3>Nenhum arquivo importado</h3>
+                        <p>Clique em <strong>"Importar Excel"</strong> para carregar o arquivo do Drivvo.<br>
+                        Serão lidas ${Object.keys(SHEETS_CONFIG).length} abas automaticamente.</p>
+                       </div>`}
+
+                ${hasData ? `
                 <div class="section-title">
                     <svg class="si si-fw"><use href="#i-file-excel"/></svg> Registros por Aba
                 </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>Aba</th><th>Registros</th></tr></thead>
+                        <thead><tr><th>Aba</th><th style="text-align:right;">Registros</th></tr></thead>
                         <tbody>${stats}</tbody>
                     </table>
-                </div>
+                </div>` : ''}
             </div>
         </div>
     `;
 }
 
 // ============================================================
-// PAINEL: DADOS (CRUD)
+// PAINEL: DADOS
 // ============================================================
 function renderDataPanel(key, aba) {
     const sheetData = _data[aba.sheetKey] || { headers: [], rows: [] };
@@ -231,12 +222,12 @@ function renderDataPanel(key, aba) {
                         <p>${_searchTerm ? 'Nenhum resultado para a busca.' : 'Importe um arquivo ou clique em <strong>Incluir</strong>.'}</p>
                        </div>`
                     : `
-                <div class="table-responsive">
-                    <table class="table fleet-crud-table">
+                <div class="frota-table-container">
+                    <table class="frota-data-table">
                         <thead>
                             <tr>
                                 ${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
-                                <th class="table-actions-col">Ações</th>
+                                <th style="width:140px;text-align:right;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -246,13 +237,13 @@ function renderDataPanel(key, aba) {
                                     <tr>
                                         ${headers.map((_, j) => {
                                             const raw = row[j] ?? '';
-                                            const short = String(raw).length > 45
-                                                ? String(raw).slice(0, 45) + '…'
+                                            const short = String(raw).length > 60
+                                                ? String(raw).slice(0, 60) + '…'
                                                 : raw;
                                             return `<td title="${escapeHtml(raw)}">${escapeHtml(short)}</td>`;
                                         }).join('')}
-                                        <td class="table-actions-col">
-                                            <div class="action-buttons" style="justify-content:flex-end;">
+                                        <td style="text-align:right;white-space:nowrap;">
+                                            <div class="action-buttons" style="justify-content:flex-end;gap:4px;">
                                                 <button class="btn btn-primary btn-sm" title="Ver"
                                                         onclick="window.fleetExcelView('${key}', ${realIndex})">
                                                     <svg class="si"><use href="#i-eye"/></svg>
@@ -328,7 +319,7 @@ function changePage(p) {
 }
 
 // ============================================================
-// CRUD — VER
+// CRUD — VISUALIZAR
 // ============================================================
 function viewRow(abaKey, index) {
     const aba = ABAS[abaKey];
@@ -420,15 +411,18 @@ function detectInputType(header, value) {
 
 function buildInputHtml(id, type, value) {
     if (type === 'date') {
-        const [d, m, y] = value.split('/');
+        const [d, m, y] = String(value).split('/');
         return `<input type="date" class="form-control" id="${id}" value="${y}-${m}-${d}">`;
     }
     if (type === 'time') {
-        return `<input type="time" class="form-control" id="${id}" value="${value.substring(0, 5)}">`;
+        return `<input type="time" class="form-control" id="${id}" value="${String(value).substring(0, 5)}">`;
     }
     return `<input type="text" class="form-control" id="${id}" value="${escapeHtml(value)}">`;
 }
 
+// ============================================================
+// CRUD — SUBMIT
+// ============================================================
 async function handleCrudSubmit(e) {
     e.preventDefault();
     if (!_editingKey) return;
@@ -462,12 +456,12 @@ async function handleCrudSubmit(e) {
     saveToStorage();
     window.closeModal('fleet-crud-modal');
 
-    _searchTerm = '';
-    _page = Math.floor(Math.max(0, (sheetData.rows.length - 1)) / PAGE_SIZE);
+    _editingKey = null;
+    _editingIndex = -1;
+
     renderSubTabs();
     renderActivePanel();
     bindPanelActions();
-    updateStats();
 }
 
 // ============================================================
@@ -479,20 +473,18 @@ async function deleteRow(abaKey, index) {
     const row = sheetData?.rows?.[index];
     if (!row) return;
 
-    const preview = row.slice(0, 3).filter(Boolean).join(' · ') || '(linha sem dados)';
-
+    const firstCell = row[0] ?? 'registro';
     const ok = await sstConfirm(
-        `Excluir este registro de "${aba.label}"?\n\nPrévia: ${preview}\n\nEsta ação NÃO pode ser desfeita.`,
-        'Excluir Registro',
+        `Excluir o registro "${firstCell}" de ${aba.label}?`,
+        'Confirmar exclusão',
         'danger'
     );
     if (!ok) return;
 
     sheetData.rows.splice(index, 1);
     saveToStorage();
-
-    showNotification('Excluído', 'Registro removido.', 'success');
-    try { await addHistory('Frota Excel Exclusão', '-', `${aba.label} linha ${index + 1}`); } catch (e) {}
+    showNotification('Excluído', 'Registro removido com sucesso.', 'success');
+    try { await addHistory('Frota Excel Exclusão', '-', `${aba.label} removido`); } catch (e) {}
 
     renderSubTabs();
     renderActivePanel();
@@ -501,217 +493,288 @@ async function deleteRow(abaKey, index) {
 }
 
 // ============================================================
-// IMPORTAR / EXPORTAR / ZERAR
+// IMPORTAÇÃO EXCEL
 // ============================================================
 function triggerImport() {
-    if (!window.XLSX) {
-        sstAlert('Biblioteca Excel não carregada. Recarregue com Ctrl+F5.', 'Erro', 'danger');
-        return;
+    let input = document.getElementById('fleet-file-input');
+    if (!input) {
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = 'fleet-file-input';
+        input.accept = '.xlsx,.xls';
+        input.hidden = true;
+        document.body.appendChild(input);
     }
-    const input = document.getElementById('fleet-file-input');
-    if (input) input.click();
+    input.value = '';
+    input.onchange = handleFileImport;
+    input.click();
 }
 
-function bindPanelActions() {
-    const input = document.getElementById('fleet-file-input');
-    if (input && !input.dataset.bound) {
-        input.dataset.bound = 'true';
-        input.addEventListener('change', async (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = '';
-            if (file) await handleFleetExcelFile(file);
-        });
-    }
-}
+async function handleFileImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-async function handleFleetExcelFile(file) {
-    if (!window.XLSX) {
-        await sstAlert('Biblioteca Excel não carregada.', 'Erro', 'danger');
+    if (typeof XLSX === 'undefined') {
+        sstAlert('Biblioteca XLSX não carregada. Recarregue a página.', 'Erro', 'danger');
         return;
-    }
-
-    const hasData = Object.values(_data).some(d => (d?.rows?.length || 0) > 0);
-    if (hasData) {
-        const ok = await sstConfirm('Já existem dados importados. Deseja SOBRESCREVER?', 'Sobrescrever', 'warning');
-        if (!ok) return;
     }
 
     try {
-        const buffer = await file.arrayBuffer();
-        const wb = XLSX.read(buffer, { type: 'array' });
-        const newData = {};
-        const missing = [];
+        showNotification('Processando', `Lendo "${file.name}"...`, 'info');
 
-        Object.entries(SHEETS_CONFIG).forEach(([sheetName, cfg]) => {
-            const ws = wb.Sheets[sheetName];
-            if (!ws) {
-                missing.push(sheetName);
-                newData[cfg.key] = { headers: [], rows: [], titleRow: '' };
-                return;
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+
+        const newData = {};
+        let totalRows = 0;
+        const notFound = [];
+
+        for (const [sheetName, cfg] of Object.entries(SHEETS_CONFIG)) {
+            let sheet = workbook.Sheets[sheetName];
+
+            // Busca tolerante (acentos, espaços, case)
+            if (!sheet) {
+                const norm = normalizeName(sheetName);
+                const found = workbook.SheetNames.find(n => normalizeName(n) === norm);
+                if (found) sheet = workbook.Sheets[found];
             }
-            const raw = XLSX.utils.sheet_to_json(ws, {
-                header: 1, defval: '', raw: false, blankrows: false
+
+            if (!sheet) {
+                notFound.push(sheetName);
+                newData[cfg.key] = { headers: [], rows: [] };
+                continue;
+            }
+
+            const parsed = XLSX.utils.sheet_to_json(sheet, {
+                header: 1,
+                defval: '',
+                raw: false,
+                blankrows: false
             });
 
-            let startIdx = 0, titleRow = '';
-            if (cfg.titleRow && raw.length > 0) {
-                const first = raw[0].filter(c => String(c).trim() !== '');
-                if (first.length === 1) {
-                    titleRow = String(first[0]);
-                    startIdx = 1;
-                }
+            if (parsed.length === 0) {
+                newData[cfg.key] = { headers: [], rows: [] };
+                continue;
             }
 
-            const headers = (raw[startIdx] || []).map(h => String(h ?? ''));
-            const rows = [];
-            for (let i = startIdx + 1; i < raw.length; i++) {
-                const row = raw[i] || [];
-                if (!row.some(c => String(c).trim() !== '')) continue;
-                const normalized = [];
-                for (let j = 0; j < headers.length; j++) {
-                    normalized.push(row[j] != null ? String(row[j]) : '');
-                }
-                rows.push(normalized);
+            let headers = parsed[0];
+            let rows = parsed.slice(1);
+
+            if (cfg.titleRow) {
+                headers = parsed[1] || parsed[0];
+                rows = parsed.slice(2);
             }
-            newData[cfg.key] = { headers, rows, titleRow };
-        });
+
+            headers = headers.map(h => String(h ?? '').trim()).filter(h => h.length > 0);
+            rows = rows
+                .map(r => headers.map((_, i) => String(r[i] ?? '').trim()))
+                .filter(r => r.some(c => c !== ''));
+
+            newData[cfg.key] = { headers, rows };
+            totalRows += rows.length;
+        }
+
+        if (totalRows === 0) {
+            sstAlert(
+                'Nenhuma linha de dados encontrada no arquivo. Verifique se o arquivo é o export do Drivvo.',
+                'Arquivo vazio',
+                'warning'
+            );
+            return;
+        }
 
         _data = newData;
         saveToStorage();
 
-        _activeAba = 'viagens';
-        _searchTerm = '';
-        _page = 0;
+        showNotification(
+            'Importado',
+            `${totalRows} registro(s) importado(s) de ${file.name}.`,
+            'success'
+        );
+        try { await addHistory('Frota Excel Importação', '-', `${totalRows} registros de ${file.name}`); } catch (e) {}
+
+        if (notFound.length > 0) {
+            sstAlert(
+                `As seguintes abas não foram encontradas: ${notFound.join(', ')}`,
+                'Aviso de importação',
+                'warning'
+            );
+        }
+
+        // Vai para a primeira aba com dados
+        const firstWithData = Object.entries(ABAS).find(([k, a]) =>
+            a.sheetKey && (newData[a.sheetKey]?.rows?.length || 0) > 0
+        );
+        if (firstWithData) _activeAba = firstWithData[0];
 
         renderSubTabs();
         renderActivePanel();
         bindPanelActions();
         updateStats();
 
-        const total = Object.values(newData).reduce((s, d) => s + d.rows.length, 0);
-        showNotification('Importado', `${total} registros em ${Object.keys(SHEETS_CONFIG).length} abas.`, 'success', 4500);
-
-        if (missing.length > 0) {
-            setTimeout(() => showNotification('Aviso',
-                `Abas não encontradas: ${missing.join(', ')}`, 'warning', 6000), 800);
-        }
-
-        try { await addHistory('Frota Excel Importado', '-', `${total} registros`); } catch (e) {}
     } catch (err) {
-        console.error('[FleetExcel]', err);
-        await sstAlert('Erro ao ler o arquivo: ' + (err.message || ''), 'Erro', 'danger');
+        console.error('Import error:', err);
+        sstAlert(`Erro ao importar: ${err.message}`, 'Falha na importação', 'danger');
+    } finally {
+        e.target.value = '';
     }
 }
 
+function normalizeName(name) {
+    return String(name)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '')
+        .toLowerCase();
+}
+
+// ============================================================
+// EXPORTAÇÃO EXCEL
+// ============================================================
 async function exportFleetExcel() {
-    if (!window.XLSX) {
-        await sstAlert('Biblioteca Excel não carregada.', 'Erro', 'danger');
-        return;
-    }
-    const hasData = Object.values(_data).some(d => (d?.rows?.length || 0) > 0);
-    if (!hasData) {
-        await sstAlert('Não há dados para exportar.', 'Sem Dados', 'warning');
-        return;
-    }
-    try {
-        const wb = XLSX.utils.book_new();
-        Object.entries(SHEETS_CONFIG).forEach(([sheetName, cfg]) => {
-            const d = _data[cfg.key];
-            if (!d || (d.headers.length === 0 && d.rows.length === 0)) return;
-            const aoa = [];
-            if (d.titleRow) aoa.push([d.titleRow]);
-            aoa.push(d.headers);
-            d.rows.forEach(r => aoa.push(r));
-            const ws = XLSX.utils.aoa_to_sheet(aoa);
-            XLSX.utils.book_append_sheet(wb, ws, sheetName);
-        });
-        const stamp = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(wb, `drivvo_frota_${stamp}.xlsx`);
-        showNotification('Exportado', 'Arquivo Excel gerado!', 'success');
-        try { await addHistory('Frota Excel Exportado', '-', `Arquivo em ${stamp}`); } catch (e) {}
-    } catch (err) {
-        console.error('[FleetExcel]', err);
-        await sstAlert('Erro ao gerar o arquivo: ' + (err.message || ''), 'Erro', 'danger');
-    }
-}
-
-async function resetFleetExcel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
     if (total === 0) {
-        await sstAlert('Não há dados para zerar.', 'Aviso', 'info');
+        sstAlert('Não há dados para exportar.', 'Vazio', 'warning');
         return;
     }
+
+    if (typeof XLSX === 'undefined') {
+        sstAlert('Biblioteca XLSX não carregada. Recarregue a página.', 'Erro', 'danger');
+        return;
+    }
+
+    try {
+        const wb = XLSX.utils.book_new();
+
+        for (const [sheetName, cfg] of Object.entries(SHEETS_CONFIG)) {
+            const sd = _data[cfg.key];
+            if (!sd || !sd.headers?.length) continue;
+            const aoa = [sd.headers, ...sd.rows];
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+        }
+
+        const fileName = `frota_ssot_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        showNotification('Exportado', `Arquivo "${fileName}" gerado.`, 'success');
+        try { await addHistory('Frota Excel Exportação', '-', fileName); } catch (e) {}
+    } catch (err) {
+        console.error('Export error:', err);
+        sstAlert(`Erro ao exportar: ${err.message}`, 'Falha na exportação', 'danger');
+    }
+}
+
+// ============================================================
+// RESET
+// ============================================================
+async function resetFleetExcel() {
     const ok = await sstConfirm(
-        `Zerar TODOS os dados importados?\n\nSerão removidos ${total} registros.\n\nEsta ação NÃO pode ser desfeita.`,
-        'Zerar Dados', 'danger'
+        'Tem certeza que deseja zerar TODOS os dados importados? Esta ação não pode ser desfeita.',
+        'Zerar dados da frota',
+        'danger'
     );
     if (!ok) return;
 
-    Object.values(SHEETS_CONFIG).forEach(cfg => {
-        _data[cfg.key] = { headers: [], rows: [], titleRow: '' };
-    });
-    saveToStorage();
-
+    _data = {};
+    _activeAba = 'importar';
     _searchTerm = '';
     _page = 0;
+
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+
+    showNotification('Zerado', 'Todos os dados da frota foram removidos.', 'success');
+    try { await addHistory('Frota Excel Reset', '-', 'Dados zerados'); } catch (e) {}
+
     renderSubTabs();
     renderActivePanel();
     bindPanelActions();
     updateStats();
-
-    showNotification('Zerado', 'Todos os dados foram removidos.', 'success');
-    try { await addHistory('Frota Excel Zerado', '-', `${total} registros removidos`); } catch (e) {}
 }
 
 // ============================================================
 // STORAGE
 // ============================================================
+function loadFromStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+            _data = {};
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        _data = parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+        console.warn('Falha ao ler storage da frota:', e);
+        _data = {};
+    }
+}
+
 function saveToStorage() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(_data));
-    } catch (err) {
-        if (err.name === 'QuotaExceededError' || err.code === 22) {
-            showNotification('Aviso', 'Arquivo grande: não foi possível salvar. Os dados ficam só nesta sessão.', 'warning', 8000);
-        } else console.warn('[FleetExcel]', err);
-    }
-}
-
-function loadFromStorage() {
-    _data = {};
-    Object.values(SHEETS_CONFIG).forEach(cfg => {
-        _data[cfg.key] = { headers: [], rows: [], titleRow: '' };
-    });
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        Object.values(SHEETS_CONFIG).forEach(cfg => {
-            if (parsed[cfg.key]) {
-                _data[cfg.key] = {
-                    headers: parsed[cfg.key].headers || [],
-                    rows: parsed[cfg.key].rows || [],
-                    titleRow: parsed[cfg.key].titleRow || ''
-                };
-            }
-        });
-    } catch (err) {
-        console.warn('[FleetExcel]', err);
+    } catch (e) {
+        console.warn('Falha ao salvar storage da frota:', e);
+        // Provavelmente excedeu quota
+        if (e.name === 'QuotaExceededError') {
+            sstAlert(
+                'Espaço de armazenamento local cheio. Considere exportar e depois zerar os dados.',
+                'Armazenamento cheio',
+                'warning'
+            );
+        }
     }
 }
 
 // ============================================================
-// STATS
+// HELPERS
 // ============================================================
 function updateStats() {
-    const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
-    const viagens = _data.percursos?.rows?.length || 0;
-    const abast = _data.abastecimentos?.rows?.length || 0;
-    const veiculos = _data.veiculos?.rows?.length || 0;
+    // Atualiza contadores de forma leve (se existirem elementos com classe .tab-count)
+    const tabs = document.querySelectorAll('#frota-subtabs .tab-inner');
+    tabs.forEach(tab => {
+        const onclick = tab.getAttribute('onclick') || '';
+        const match = onclick.match(/'([^']+)'/);
+        if (!match) return;
+        const key = match[1];
+        const aba = ABAS[key];
+        if (!aba || !aba.sheetKey) return;
+        const count = _data[aba.sheetKey]?.rows?.length || 0;
+        let badge = tab.querySelector('.tab-count');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'tab-count';
+            tab.appendChild(badge);
+        }
+        badge.textContent = count;
+    });
+}
 
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('fleet-stat-total', total);
-    set('fleet-stat-viagens', viagens);
-    set('fleet-stat-abastecimentos', abast);
-    set('fleet-stat-veiculos', veiculos);
-    set('fleet-excel-total', total);
+function bindPanelActions() {
+    // Rebind do input file caso a aba importar esteja ativa
+    if (_activeAba === 'importar') {
+        const input = document.getElementById('fleet-file-input');
+        if (input) {
+            input.onchange = handleFileImport;
+        }
+    }
+}
+
+// ============================================================
+// EXPORTS AUXILIARES (opcional — para uso externo)
+// ============================================================
+export function getFleetExcelData() {
+    return _data;
+}
+
+export function getFleetActiveTab() {
+    return _activeAba;
+}
+
+export function reloadFleetExcel() {
+    loadFromStorage();
+    renderSubTabs();
+    renderActivePanel();
+    bindPanelActions();
+    updateStats();
 }
