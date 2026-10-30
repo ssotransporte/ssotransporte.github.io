@@ -1097,6 +1097,11 @@
     </div>
 </div>
 
+    <!-- Painel Frota Excel (adicionar dentro da aba Frota) -->
+<div class="frota-excel-panel">
+    <div id="frota-subtabs"></div>
+    <div id="frota-panels"></div>
+</div>
 <div class="modal-overlay" id="modal-gerenciar-motoristas">
     <div class="modal modal-large">
         <div class="modal-header"><h3>Gerenciar Motoristas</h3><button class="modal-close" onclick="closeModal('modal-gerenciar-motoristas')">&times;</button></div>
@@ -1302,5 +1307,44 @@
 <div class="notification-panel" id="notification-panel"></div>
 
 <script type="module" src="js/main.js"></script>
+<!-- Modal: Visualizar -->
+<div class="modal-overlay hidden" id="fleet-view-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="fleet-view-title">Visualizar</div>
+            <button class="modal-close" onclick="window.closeModal('fleet-view-modal')">
+                <svg class="si"><use href="#i-x"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="fleet-view-content"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="window.closeModal('fleet-view-modal')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Incluir / Editar -->
+<div class="modal-overlay hidden" id="fleet-crud-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="fleet-crud-title">Editar</div>
+            <button class="modal-close" onclick="window.closeModal('fleet-crud-modal')">
+                <svg class="si"><use href="#i-x"/></svg>
+            </button>
+        </div>
+        <form id="fleet-crud-form">
+            <div class="modal-body">
+                <div id="fleet-crud-fields"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        onclick="window.closeModal('fleet-crud-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>
