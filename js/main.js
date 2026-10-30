@@ -2,6 +2,10 @@
 // SSOT - MAIN (v12.0 - Áreas: Operações / Solicitações)
 // ============================================================
 
+import { initFleetExcel } from './fleet-excel.js';
+
+// após login / DB pronto:
+initFleetExcel();
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, get, ref, set, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
