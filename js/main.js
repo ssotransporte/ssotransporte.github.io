@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v12.1 - Áreas: Operações / Solicitações)
+// SSOT - MAIN (v13.0 - Rotas separadas: Operações / Solicitações)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -31,16 +31,6 @@ import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
 import * as Profile from './profile.js';
 
-// ✅ CORRIGIDO: as linhas abaixo foram REMOVIDAS do topo
-//    (elas executavam initFleetExcel() antes do DOM e do login existirem)
-//
-// import { initFleetExcel } from './fleet-excel.js';
-// initFleetExcel();
-//
-// A inicialização correta agora acontece APENAS em:
-//   - enterSystem()  → setFleetExcelContext(db, currentUser)
-//   - gotoAdminTab('admin-frota') → FleetExcel.initFleetExcel()
-
 let app, db, auth;
 let currentUser = null;
 let isAdmin = false;
@@ -52,6 +42,32 @@ let _pendingDeepLink = null;
 let _areaMode = null; // 'operacoes' | 'solicitacoes' | null
 
 const AREA_KEY = 'ssot_area_';
+
+// ============================================================
+// ROTEAMENTO POR HASH
+// ============================================================
+function getAreaFromHash() {
+    const hash = window.location.hash;
+    if (hash === '#/operacoes') return 'operacoes';
+    if (hash === '#/solicitacoes') return 'solicitacoes';
+    return null;
+}
+
+function setAreaHash(area) {
+    window.location.hash = `#/${area}`;
+}
+
+function clearAreaHash() {
+    window.location.hash = '';
+}
+
+window.addEventListener('hashchange', () => {
+    const area = getAreaFromHash();
+    if (area && currentUser && isAdmin) {
+        _areaMode = area;
+        renderAdminMenu();
+    }
+});
 
 // ============================================================
 // INIT
@@ -227,6 +243,9 @@ function selectArea(mode) {
     sessionStorage.setItem(AREA_KEY + currentUser.uid, mode);
     window.closeModal('area-select-modal');
 
+    // Redireciona para a URL correspondente
+    setAreaHash(mode);
+
     // Atualiza UI
     const btn = document.getElementById('area-switch-btn');
     if (btn) btn.classList.remove('hidden');
@@ -242,6 +261,7 @@ function switchArea() {
     if (!currentUser) return;
     sessionStorage.removeItem(AREA_KEY + currentUser.uid);
     _areaMode = null;
+    clearAreaHash();
     showAreaSelectModal();
 }
 
@@ -343,7 +363,7 @@ async function enterSystem() {
     Schedule.setScheduleContext(db, currentUser);
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
-    FleetExcel.setFleetExcelContext(db, currentUser);   // ✅ contexto do FleetExcel
+    FleetExcel.setFleetExcelContext(db, currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
     Signups.setSignupsContext(db, currentUser, isAdmin);
@@ -354,20 +374,30 @@ async function enterSystem() {
         document.getElementById('user-area').classList.add('hidden');
         document.getElementById('admin-area').classList.remove('hidden');
 
-        // ✅ Verificar se já tem área salva
-        const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
-        if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
-            _areaMode = savedArea;
+        // Verifica o hash para decidir a área
+        const hashArea = getAreaFromHash();
+        if (hashArea) {
+            _areaMode = hashArea;
             const bc = document.getElementById('breadcrumb-area');
-            if (bc) bc.textContent = savedArea === 'operacoes' ? 'Operações' : 'Solicitações';
+            if (bc) bc.textContent = hashArea === 'operacoes' ? 'Operações' : 'Solicitações';
             const btn = document.getElementById('area-switch-btn');
             if (btn) btn.classList.remove('hidden');
             renderAdminMenu();
         } else {
-            _areaMode = null;
-            showAreaSelectModal();
-            // Preenche o menu com padrão (solicitações) enquanto escolhe
-            renderAdminMenu();
+            // Verifica se tem área salva
+            const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
+            if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
+                _areaMode = savedArea;
+                setAreaHash(savedArea);
+                const bc = document.getElementById('breadcrumb-area');
+                if (bc) bc.textContent = savedArea === 'operacoes' ? 'Operações' : 'Solicitações';
+                const btn = document.getElementById('area-switch-btn');
+                if (btn) btn.classList.remove('hidden');
+                renderAdminMenu();
+            } else {
+                _areaMode = null;
+                showAreaSelectModal();
+            }
         }
     } else {
         document.getElementById('admin-area').classList.add('hidden');
@@ -467,7 +497,7 @@ function gotoUserTab(tabId) {
     if (tabId === 'user-perfil') { Profile.refreshProfileState(); Profile.populateProfileForm(); }
 }
 
-// ✅ Menu adaptativo por área
+// ✅ MENU ADAPTATIVO POR ÁREA
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
@@ -475,14 +505,16 @@ function renderAdminMenu() {
     const isOperacoes = _areaMode === 'operacoes';
 
     if (isOperacoes) {
-        menu.innerHTML = `
-            <li><a href="#" data-tab="admin-frota"><svg class="si si-fw"><use href="#i-route"/></svg> Frota</a></li>
-            <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
-            <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
-            <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
-            <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
-        `;
+        // Menu da Frota (controlado pelo fleet-excel.js)
+        FleetExcel.renderMainMenu();
+        // Garante que o painel da Frota está ativo
+        document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
+        const target = document.getElementById('admin-frota-tab');
+        if (target) target.classList.add('active');
+        const title = document.getElementById('page-title');
+        if (title) title.textContent = 'Frota';
     } else {
+        // Menu de Solicitações (manual)
         menu.innerHTML = `
             <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
             <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
@@ -494,29 +526,28 @@ function renderAdminMenu() {
             <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
             <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
         `;
-    }
 
-    menu.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', e => {
-            e.preventDefault(); gotoAdminTab(a.getAttribute('data-tab')); closeMobileSidebar();
+        menu.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault(); gotoAdminTab(a.getAttribute('data-tab')); closeMobileSidebar();
+            });
         });
-    });
 
-    // Guia inicial por área
-    if (isOperacoes) gotoAdminTab('admin-frota');
-    else gotoAdminTab('admin-dashboard');
+        // Ativa a primeira aba (Dashboard)
+        gotoAdminTab('admin-dashboard');
+    }
 }
 
-// ✅ Navegação com validação de área
+// ✅ NAVEGAÇÃO ENTRE ABAS (valida área)
 export function gotoAdminTab(tabId) {
     if (!tabId) return;
 
     // Validação: se estiver em Operações, não permite guias de Solicitações
-    const solicitacoesOnly = ['admin-solicitacoes', 'admin-usuarios', 'admin-agenda', 'admin-historico', 'admin-lixeira'];
+    const solicitacoesOnly = ['admin-solicitacoes', 'admin-usuarios', 'admin-agenda', 'admin-historico', 'admin-lixeira', 'admin-dashboard', 'admin-relatorios'];
     if (_areaMode === 'operacoes' && solicitacoesOnly.includes(tabId)) {
         tabId = 'admin-frota';
     }
-    if (_areaMode !== 'operacoes' && tabId === 'admin-frota') {
+    if (_areaMode === 'solicitacoes' && tabId === 'admin-frota') {
         tabId = 'admin-dashboard';
     }
 
@@ -553,7 +584,6 @@ export function gotoAdminTab(tabId) {
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
         case 'admin-servicos': updateNetworkStatus(); break;
         case 'admin-frota':
-            // ✅ Inicializa o Frota Excel APENAS quando a aba é aberta
             try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Erro ao iniciar Frota Excel:', e); }
             break;
     }
@@ -582,6 +612,7 @@ async function doLogout(silent = false) {
     // Limpa área escolhida
     if (currentUser) sessionStorage.removeItem(AREA_KEY + currentUser.uid);
     _areaMode = null;
+    clearAreaHash();
 
     Session.stopSessionWatch();
     deactivateSubscribers();
