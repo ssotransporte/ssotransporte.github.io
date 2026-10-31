@@ -1,6 +1,5 @@
 // ============================================================
-// SSOT · FROTA EXCEL — v5.0 (FINAL · estável · testado)
-// Integrado com utils.js / dialogs.js / history.js / main.js
+// SSOT · FROTA EXCEL — v5.1 (Menu superior integrado)
 // ============================================================
 
 import { showNotification, escapeHtml } from './utils.js';
@@ -37,7 +36,7 @@ const ABAS = {
 let _currentUser   = null;
 let _data          = {};
 let _visibleCols   = {};
-let _activeAba     = 'importar';
+let _activeAba     = 'viagens';
 let _initialized   = false;
 let _searchTerm    = '';
 let _page          = 0;
@@ -46,14 +45,12 @@ let _editingIndex  = -1;
 let _searchTimer   = null;
 
 // ============================================================
-// HELPERS DE MODAL (compatível com main.js + fallback)
+// HELPERS DE MODAL
 // ============================================================
 function openModalSafe(id) {
     const el = document.getElementById(id);
-    if (!el) { console.warn('[FleetExcel] modal ausente:', id); return; }
-    // Remove 'hidden' (a classe 'hidden' no seu CSS tem display:none !important)
+    if (!el) return;
     el.classList.remove('hidden');
-    // Usa o openModal do main.js se existir
     if (typeof window.openModal === 'function') {
         try { window.openModal(id); return; } catch (e) {}
     }
@@ -79,7 +76,6 @@ export function setFleetExcelContext(db, currentUser) {
 }
 
 export function initFleetExcel(target) {
-    // Se ainda não há DOM, espera
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => initFleetExcel(target), { once: true });
         return;
@@ -87,7 +83,7 @@ export function initFleetExcel(target) {
 
     const container = findOrCreateMount(target);
     if (!container) {
-        console.error('[FleetExcel] Nenhum container encontrado. Verifique se #admin-frota-tab contém <div id="frota-subtabs"></div> e <div id="frota-panels"></div>');
+        console.error('[FleetExcel] #admin-frota-tab não encontrado.');
         return;
     }
 
@@ -99,7 +95,7 @@ export function initFleetExcel(target) {
         bindGlobals();
     }
 
-    renderSubTabs();
+    // Se houver uma aba ativa, renderiza o painel dela
     renderActivePanel();
     updateStats();
 }
@@ -111,26 +107,16 @@ function findOrCreateMount(target) {
         container = typeof target === 'string'
             ? document.querySelector(target)
             : target;
-        if (!container) {
-            console.error(`[FleetExcel] Container "${target}" não encontrado.`);
-            return null;
-        }
+        if (!container) return null;
     }
 
     if (!container) {
-        // Preferência: #admin-frota-tab (sua estrutura)
         container = document.getElementById('admin-frota-tab');
-    }
-    if (!container) {
-        container = document.getElementById('frota-panels')?.parentElement;
     }
 
     if (!container) return null;
 
-    // Cria os containers internos se ainda não existirem
-    if (!document.getElementById('frota-subtabs')) {
-        container.insertAdjacentHTML('afterbegin', '<div class="tabs-inner frota-subtabs" id="frota-subtabs"></div>');
-    }
+    // Garante que o painel existe (mas NÃO cria mais #frota-subtabs)
     if (!document.getElementById('frota-panels')) {
         container.insertAdjacentHTML('beforeend', '<div id="frota-panels"></div>');
     }
@@ -153,6 +139,89 @@ function bindGlobals() {
     window.fleetColToggle      = toggleColumn;
     window.fleetColShowAll     = showAllColumns;
     window.fleetColHideAll     = hideAllColumns;
+}
+
+// ============================================================
+// MENU SUPERIOR (novo)
+// ============================================================
+export function renderMainMenu() {
+    const menu = document.getElementById('top-menu-list');
+    if (!menu) return;
+
+    const fleetItems = [
+        { key: 'viagens',        label: 'Viagens',        icon: 'i-route' },
+        { key: 'veiculos',       label: 'Veículos',       icon: 'i-car' },
+        { key: 'abastecimentos', label: 'Abastecimentos', icon: 'i-truck' },
+        { key: 'servicos',       label: 'Serviços',       icon: 'i-cog' },
+        { key: 'despesas',       label: 'Despesas',       icon: 'i-file-text' },
+        { key: 'leituras',       label: 'Leituras',       icon: 'i-clock' },
+        { key: 'checklist',      label: 'Checklist',      icon: 'i-check-circle' },
+        { key: 'importar',       label: 'Importar/Exportar', icon: 'i-upload' }
+    ];
+
+    let html = '';
+    fleetItems.forEach(item => {
+        html += `<li><a href="#" data-fleet-tab="${item.key}"><svg class="si si-fw"><use href="#${item.icon}"/></svg> ${item.label}</a></li>`;
+    });
+
+    // Itens adicionais do sistema
+    html += `
+        <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
+        <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
+        <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
+        <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+    `;
+
+    menu.innerHTML = html;
+
+    // Listeners das abas da frota
+    menu.querySelectorAll('[data-fleet-tab]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabKey = a.getAttribute('data-fleet-tab');
+            // Ativa o painel da frota
+            if (typeof window.gotoAdminTab === 'function') {
+                window.gotoAdminTab('admin-frota');
+            }
+            // Troca a sub-aba
+            switchTab(tabKey);
+        });
+    });
+
+    // Listeners dos itens do sistema
+    menu.querySelectorAll('[data-tab]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = a.getAttribute('data-tab');
+            if (typeof window.gotoAdminTab === 'function') {
+                window.gotoAdminTab(tabId);
+            }
+        });
+    });
+
+    // Ativa a aba atual (ou a primeira)
+    setActiveMenuLink(_activeAba || 'viagens');
+}
+
+function setActiveMenuLink(key) {
+    const menu = document.getElementById('top-menu-list');
+    if (!menu) return;
+    menu.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+    const activeLink = menu.querySelector(`[data-fleet-tab="${key}"]`);
+    if (activeLink) activeLink.classList.add('active');
+}
+
+// ============================================================
+// NAVEGAÇÃO ENTRE SUB-ABAS
+// ============================================================
+function switchTab(key) {
+    if (!ABAS[key]) return;
+    _activeAba = key;
+    _searchTerm = '';
+    _page = 0;
+
+    setActiveMenuLink(key);
+    renderActivePanel();
 }
 
 // ============================================================
@@ -179,25 +248,8 @@ function getVisibleIdx(sheetKey, headersLength) {
 }
 
 // ============================================================
-// SUB-TABS + PAINEL ATIVO
+// PAINEL ATIVO
 // ============================================================
-function renderSubTabs() {
-    const container = document.getElementById('frota-subtabs');
-    if (!container) return;
-
-    container.innerHTML = Object.entries(ABAS).map(([key, aba]) => {
-        const count = aba.sheetKey ? (_data[aba.sheetKey]?.rows?.length || 0) : null;
-        return `
-            <button class="tab-inner ${_activeAba === key ? 'active' : ''}"
-                    onclick="window.fleetExcelSwitchTab('${key}')">
-                <svg class="si"><use href="#${aba.icon}"/></svg>
-                ${escapeHtml(aba.label)}
-                ${count !== null ? `<span class="tab-count">${count}</span>` : ''}
-            </button>
-        `;
-    }).join('');
-}
-
 function renderActivePanel() {
     const container = document.getElementById('frota-panels');
     if (!container) return;
@@ -211,7 +263,7 @@ function renderActivePanel() {
 }
 
 // ============================================================
-// PAINEL — IMPORTAR / EXPORTAR
+// PAINEL IMPORTAR / EXPORTAR
 // ============================================================
 function renderImportPanel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
@@ -284,7 +336,7 @@ function renderImportPanel() {
 }
 
 // ============================================================
-// PAINEL — DADOS (tabela + colunas + paginação)
+// PAINEL DADOS
 // ============================================================
 function renderDataPanel(key, aba) {
     const sheetData = _data[aba.sheetKey] || { headers: [], rows: [] };
@@ -488,17 +540,8 @@ function hideAllColumns(abaKey) {
 }
 
 // ============================================================
-// NAVEGAÇÃO
+// PAGINAÇÃO / SEARCH
 // ============================================================
-function switchTab(key) {
-    if (!ABAS[key]) return;
-    _activeAba = key;
-    _searchTerm = '';
-    _page = 0;
-    renderSubTabs();
-    renderActivePanel();
-}
-
 function debounceSearch(value) {
     _searchTerm = value || '';
     _page = 0;
@@ -521,7 +564,7 @@ function changePage(p) {
 }
 
 // ============================================================
-// CRUD — Visualizar
+// CRUD
 // ============================================================
 function viewRow(abaKey, index) {
     const aba = ABAS[abaKey];
@@ -546,9 +589,6 @@ function viewRow(abaKey, index) {
     openModalSafe('fleet-view-modal');
 }
 
-// ============================================================
-// CRUD — Editar / Incluir
-// ============================================================
 function editRow(abaKey, index) {
     _editingKey = abaKey;
     _editingIndex = index;
@@ -653,13 +693,9 @@ async function handleCrudSubmit(e) {
     closeModalSafe('fleet-crud-modal');
     _editingKey = null;
     _editingIndex = -1;
-    renderSubTabs();
     renderActivePanel();
 }
 
-// ============================================================
-// CRUD — Excluir
-// ============================================================
 async function deleteRow(abaKey, index) {
     const aba = ABAS[abaKey];
     const sheetData = _data[aba.sheetKey];
@@ -680,7 +716,6 @@ async function deleteRow(abaKey, index) {
     showNotification('Excluído', 'Registro removido.', 'success');
     try { await addHistory('Frota Excel Exclusão', '-', `${aba.label} removido`); } catch (err) {}
 
-    renderSubTabs();
     renderActivePanel();
     updateStats();
 }
@@ -778,9 +813,11 @@ async function handleFileImport(e) {
         const firstWithData = Object.entries(ABAS).find(([k, a]) =>
             a.sheetKey && (newData[a.sheetKey]?.rows?.length || 0) > 0
         );
-        if (firstWithData) _activeAba = firstWithData[0];
+        if (firstWithData) {
+            _activeAba = firstWithData[0];
+            setActiveMenuLink(_activeAba);
+        }
 
-        renderSubTabs();
         renderActivePanel();
         updateStats();
 
@@ -845,7 +882,7 @@ async function resetFleetExcel() {
 
     _data = {};
     _visibleCols = {};
-    _activeAba = 'importar';
+    _activeAba = 'viagens';
     _searchTerm = '';
     _page = 0;
 
@@ -855,7 +892,7 @@ async function resetFleetExcel() {
     showNotification('Zerado', 'Dados da frota removidos.', 'success');
     try { await addHistory('Frota Excel Reset', '-', 'Dados zerados'); } catch (err) {}
 
-    renderSubTabs();
+    setActiveMenuLink(_activeAba);
     renderActivePanel();
     updateStats();
 }
@@ -887,23 +924,12 @@ function saveToStorage() {
 }
 
 // ============================================================
-// HELPERS — badges de contagem
+// HELPERS
 // ============================================================
 function updateStats() {
-    const tabs = document.querySelectorAll('#frota-subtabs .tab-inner');
-    tabs.forEach(tab => {
-        const onclick = tab.getAttribute('onclick') || '';
-        const match = onclick.match(/'([^']+)'/);
-        if (!match) return;
-        const aba = ABAS[match[1]];
-        if (!aba || !aba.sheetKey) return;
-        const count = _data[aba.sheetKey]?.rows?.length || 0;
-        let badge = tab.querySelector('.tab-count');
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'tab-count';
-            tab.appendChild(badge);
-        }
-        badge.textContent = count;
-    });
+    // Atualiza os contadores no menu superior (se existirem badges)
+    const menu = document.getElementById('top-menu-list');
+    if (!menu) return;
+    // Como o menu superior não tem badges visuais por padrão,
+    // deixamos a função preparada para o futuro.
 }
