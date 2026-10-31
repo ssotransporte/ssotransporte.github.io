@@ -127,39 +127,66 @@
     </div>
 </div>
 
-<!-- TELA DE SELEÇÃO DE ÁREA -->
+<!-- ✅ TELA DE SELEÇÃO DE ÁREA (redesenhada — layout corporativo) -->
 <div class="modal-overlay area-select-overlay" id="area-select-modal">
     <div class="modal area-select-modal-custom">
         <div class="area-select-header">
-            <div class="area-select-logo">
-                <svg class="si si-3x"><use href="#i-car"/></svg>
+            <div class="area-select-brand">
+                <svg class="si si-lg"><use href="#i-car"/></svg>
+                <span>SSOT</span>
             </div>
-            <h2>SSOT</h2>
+            <h2>Selecione o módulo</h2>
             <p>Sistema de Solicitações e Operações de Transporte</p>
         </div>
         <div class="area-select-body">
-            <p class="area-select-prompt">
-                <svg class="si si-fw"><use href="#i-menu"/></svg>
-                Escolha em qual área deseja trabalhar
-            </p>
             <div class="area-cards-grid">
                 <button type="button" class="area-card area-card-operacoes" onclick="selectArea('operacoes')">
-                    <div class="area-card-icon">
-                        <svg class="si si-3x"><use href="#i-route"/></svg>
+                    <div class="area-card-head">
+                        <div class="area-card-icon">
+                            <svg class="si si-lg"><use href="#i-route"/></svg>
+                        </div>
+                        <div class="area-card-title">
+                            <h3>Operações</h3>
+                            <span>Gestão da frota</span>
+                        </div>
                     </div>
-                    <h3>Operações</h3>
-                    <p>Gestão da frota, abastecimentos, serviços, checklist e viagens</p>
-                    <span class="area-card-cta">Entrar <svg class="si si-fw"><use href="#i-arrow-right"/></svg></span>
+                    <ul class="area-card-features">
+                        <li>Viagens e percursos</li>
+                        <li>Veículos e abastecimentos</li>
+                        <li>Serviços e despesas</li>
+                        <li>Checklist e leituras</li>
+                    </ul>
+                    <span class="area-card-cta">
+                        Acessar módulo
+                        <svg class="si"><use href="#i-arrow-right"/></svg>
+                    </span>
                 </button>
+
                 <button type="button" class="area-card area-card-solicitacoes" onclick="selectArea('solicitacoes')">
-                    <div class="area-card-icon">
-                        <svg class="si si-3x"><use href="#i-clipboard"/></svg>
+                    <div class="area-card-head">
+                        <div class="area-card-icon">
+                            <svg class="si si-lg"><use href="#i-clipboard"/></svg>
+                        </div>
+                        <div class="area-card-title">
+                            <h3>Solicitações</h3>
+                            <span>Pedidos de transporte</span>
+                        </div>
                     </div>
-                    <h3>Solicitações</h3>
-                    <p>Pedidos de transporte, usuários, agenda e relatórios</p>
-                    <span class="area-card-cta">Entrar <svg class="si si-fw"><use href="#i-arrow-right"/></svg></span>
+                    <ul class="area-card-features">
+                        <li>Nova solicitação</li>
+                        <li>Aprovações e status</li>
+                        <li>Usuários e cadastros</li>
+                        <li>Agenda e relatórios</li>
+                    </ul>
+                    <span class="area-card-cta">
+                        Acessar módulo
+                        <svg class="si"><use href="#i-arrow-right"/></svg>
+                    </span>
                 </button>
             </div>
+            <p class="area-select-footer">
+                Você pode trocar de módulo a qualquer momento pelo botão <strong>Trocar Área</strong> no topo.
+            </p>
         </div>
     </div>
 </div>
@@ -887,7 +914,7 @@
                 </div>
             </div>
 
-            <!-- ✅ FROTA — As sub-abas agora vão para o MENU SUPERIOR (via JS) -->
+            <!-- FROTA (as sub-abas ficam no menu superior) -->
             <div class="tab-content" id="admin-frota-tab">
                 <div id="frota-panels"></div>
             </div>
