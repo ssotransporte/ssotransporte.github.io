@@ -1,6 +1,6 @@
 /* ============================================================
    SSOT — SISTEMA DE SOLICITAÇÕES E OPERAÇÕES DE TRANSPORTE
-   v13.0 — CSS final consolidado (Frota Excel integrada)
+   v16.0 — CSS consolidado (base + Frota Excel + Mobile UX)
    ============================================================ */
 
 /* ============================================================
@@ -550,7 +550,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     flex-shrink: 0;
     overflow: hidden;
 }
-.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .user-details h4 { font-size: 0.9rem; margin-bottom: 2px; font-weight: 600; color: var(--color-secondary); }
 .user-details p { font-size: 0.73rem; color: var(--color-gray-600); }
 .logout {
@@ -1120,7 +1120,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   19. FROTA — PAINEL DE IMPORTAÇÃO (CARD RESUMO)
+   19. FROTA — PAINEL DE IMPORTAÇÃO
    ============================================================ */
 .fleet-import-summary {
     display: grid;
@@ -1156,7 +1156,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   20. FROTA — TABELA DE DADOS IMPORTADOS (REFORMULADA)
+   20. FROTA — TABELA DE DADOS IMPORTADOS
    ============================================================ */
 .frota-table-container {
     overflow: auto;
@@ -1171,6 +1171,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     width: 100%;
     font-size: 0.78rem;
     white-space: nowrap;
+    background: #fff;
 }
 .frota-data-table th,
 .frota-data-table td {
@@ -1205,12 +1206,8 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     text-align: center;
     font-weight: 500;
 }
-.frota-row-count strong {
-    color: var(--color-primary-dark);
-    font-weight: 700;
-}
+.frota-row-count strong { color: var(--color-primary-dark); font-weight: 700; }
 
-/* Loading */
 .fleet-excel-loading {
     display: flex;
     align-items: center;
@@ -1230,204 +1227,204 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   21. ÁREA — TELA DE SELEÇÃO (FUNDO AZUL)
+   21. ÁREA — TELA DE SELEÇÃO (redesign corporativo)
    ============================================================ */
 .area-select-overlay {
-    background: linear-gradient(135deg, #2980b9 0%, #2c3e50 100%) !important;
-    backdrop-filter: blur(0px) !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(6px) !important;
 }
+
 .area-select-modal-custom {
     background: #fff !important;
-    max-width: 900px !important;
-    border-radius: 12px !important;
+    max-width: 780px !important;
+    width: 92% !important;
+    border-radius: 10px !important;
     overflow: hidden !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35) !important;
     border: none !important;
 }
+
 .area-select-header {
-    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+    background: #1a252f;
     color: #fff;
-    padding: 32px 24px 26px;
-    text-align: center;
+    padding: 28px 32px 24px;
+    text-align: left;
     position: relative;
-    overflow: hidden;
+    border-bottom: 3px solid var(--color-primary, #3498db);
 }
-.area-select-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -30%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(52,152,219,0.25) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-.area-select-header::after {
-    content: '';
-    position: absolute;
-    bottom: -50%;
-    left: -20%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(52,152,219,0.15) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-.area-select-logo {
+.area-select-brand {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 70px;
-    height: 70px;
-    background: rgba(52,152,219,0.2);
-    border: 2px solid rgba(52,152,219,0.5);
-    border-radius: 50%;
-    color: #fff;
-    margin-bottom: 12px;
-    position: relative;
-    z-index: 1;
-}
-.area-select-header h2 {
-    font-size: 1.8rem;
+    gap: 10px;
+    font-size: 0.95rem;
     font-weight: 700;
-    letter-spacing: 3px;
-    margin-bottom: 4px;
-    position: relative;
-    z-index: 1;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 18px;
+}
+.area-select-brand svg { color: var(--color-primary, #3498db); }
+.area-select-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: -0.2px;
 }
 .area-select-header p {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.75);
-    position: relative;
-    z-index: 1;
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.6);
+    font-weight: 400;
 }
+
 .area-select-body {
-    padding: 28px 24px 30px;
+    padding: 28px 32px 24px;
     background: #fff;
 }
-.area-select-prompt {
-    text-align: center;
-    font-size: 0.95rem;
-    color: var(--color-gray-700);
-    margin-bottom: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-weight: 500;
-}
-.area-select-prompt svg { color: var(--color-primary); }
 
 .area-cards-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    gap: 16px;
+    margin-bottom: 20px;
 }
+
 .area-card {
     background: #fff;
-    border: 2px solid var(--color-gray-200);
+    border: 1.5px solid var(--color-gray-200, #e9ecef);
     border-radius: 8px;
-    padding: 28px 22px 22px;
-    text-align: center;
+    padding: 20px;
+    text-align: left;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
     font-family: inherit;
-    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    overflow: hidden;
+    gap: 14px;
+    position: relative;
 }
-.area-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    transition: background 0.2s ease;
-}
-.area-card-operacoes::before { background: #d68910; }
-.area-card-solicitacoes::before { background: #3498db; }
-
 .area-card:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 10px 24px rgba(52,152,219,0.15);
-    transform: translateY(-4px);
+    border-color: var(--color-primary, #3498db);
+    box-shadow: 0 8px 20px rgba(52,152,219,0.12);
+    transform: translateY(-2px);
 }
-.area-card-operacoes:hover { border-color: #d68910; box-shadow: 0 10px 24px rgba(214,137,16,0.18); }
-.area-card-solicitacoes:hover { border-color: #3498db; }
+.area-card-operacoes:hover { border-color: #d68910; box-shadow: 0 8px 20px rgba(214,137,16,0.12); }
 
+.area-card-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
 .area-card-icon {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 8px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease;
+    flex-shrink: 0;
 }
-.area-card:hover .area-card-icon { transform: scale(1.08); }
-.area-card-operacoes .area-card-icon { background: #fef0d3; color: #b9770e; }
-.area-card-solicitacoes .area-card-icon { background: #eaf4fc; color: #2980b9; }
-
-.area-card h3 {
-    font-size: 1.3rem;
-    color: var(--color-secondary);
-    margin-bottom: 4px;
+.area-card-operacoes .area-card-icon {
+    background: #fef3dd;
+    color: #b9770e;
+}
+.area-card-solicitacoes .area-card-icon {
+    background: #e3f0fa;
+    color: #2471a3;
+}
+.area-card-title h3 {
+    font-size: 1.05rem;
     font-weight: 700;
+    color: var(--color-secondary, #2c3e50);
+    margin: 0;
+    line-height: 1.2;
 }
-.area-card p {
-    font-size: 0.85rem;
-    color: var(--color-gray-600);
-    line-height: 1.55;
-    margin-bottom: 14px;
-    max-width: 260px;
+.area-card-title span {
+    font-size: 0.78rem;
+    color: var(--color-gray-600, #7f8c8d);
+    font-weight: 500;
 }
+
+.area-card-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid var(--color-gray-100, #f1f3f5);
+    padding-top: 12px;
+}
+.area-card-features li {
+    font-size: 0.82rem;
+    color: var(--color-gray-700, #555);
+    padding-left: 18px;
+    position: relative;
+    line-height: 1.4;
+}
+.area-card-features li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary, #3498db);
+}
+.area-card-operacoes .area-card-features li::before { background: #d68910; }
+
 .area-card-cta {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    border-radius: var(--radius-round);
-    font-size: 0.82rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.2s ease;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--color-gray-100, #f1f3f5);
+    color: var(--color-secondary, #2c3e50);
+    transition: background 0.18s ease, color 0.18s ease;
+    margin-top: auto;
 }
-.area-card-operacoes .area-card-cta { background: #fef0d3; color: #b9770e; }
-.area-card-solicitacoes .area-card-cta { background: #eaf4fc; color: #2980b9; }
-.area-card:hover .area-card-cta { transform: translateX(3px); }
-.area-card-operacoes:hover .area-card-cta { background: #d68910; color: #fff; }
-.area-card-solicitacoes:hover .area-card-cta { background: #3498db; color: #fff; }
-
-@media (max-width: 640px) {
-    .area-cards-grid { grid-template-columns: 1fr; gap: 14px; }
-    .area-card { padding: 22px 18px; }
-    .area-select-header { padding: 24px 18px 20px; }
-    .area-select-header h2 { font-size: 1.5rem; }
-    .area-select-body { padding: 20px 16px 24px; }
-    .area-card p { font-size: 0.82rem; }
+.area-card:hover .area-card-cta {
+    background: var(--color-secondary, #2c3e50);
+    color: #fff;
+}
+.area-card-operacoes:hover .area-card-cta {
+    background: #d68910;
+    color: #fff;
+}
+.area-card-solicitacoes:hover .area-card-cta {
+    background: #2471a3;
+    color: #fff;
 }
 
-/* Botão trocar área no header */
+.area-select-footer {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--color-gray-600, #7f8c8d);
+    margin: 0;
+    padding-top: 4px;
+}
+.area-select-footer strong {
+    color: var(--color-gray-700, #555);
+    font-weight: 600;
+}
+
 .area-switch-btn {
     display: inline-flex !important;
     align-items: center;
     gap: 6px;
     background: #fff !important;
-    border: 1px solid var(--color-gray-300) !important;
-    color: var(--color-gray-700) !important;
+    border: 1px solid var(--color-gray-300, #dee2e6) !important;
+    color: var(--color-gray-700, #555) !important;
     font-size: 0.82rem;
 }
 .area-switch-btn:hover {
-    border-color: var(--color-primary) !important;
-    color: var(--color-primary) !important;
-    background: var(--color-primary-light) !important;
+    border-color: var(--color-primary, #3498db) !important;
+    color: var(--color-primary, #3498db) !important;
+    background: var(--color-primary-light, #eaf4fc) !important;
 }
 .area-switch-btn.hidden { display: none !important; }
 
@@ -1460,8 +1457,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 .profile-pic-preview:hover { border-color: var(--color-primary); }
 .profile-pic-preview img { width: 100%; height: 100%; object-fit: cover; }
 .profile-pic-btn { min-width: 140px; justify-content: center; }
-.user-avatar { overflow: hidden; position: relative; }
-.user-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
 /* ============================================================
    23. DIVERSOS
@@ -1521,7 +1516,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   24. MODAIS (CORRIGIDO — .hidden sobrepõe .active)
+   24. MODAIS (regras críticas para .hidden vs .active)
    ============================================================ */
 .modal-overlay {
     position: fixed;
@@ -1539,15 +1534,11 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     overflow-y: auto;
 }
 .modal-overlay.active { opacity: 1; visibility: visible; }
-
-/* ✅ REGRA CRÍTICA: garante que .hidden sempre prevaleça sobre .active */
 .modal-overlay.hidden {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;
 }
-/* ✅ Quando o main.js chama openModal() apenas com .active (sem remover .hidden),
-   essa regra força a exibição */
 .modal-overlay.active:not(.hidden) { display: flex !important; }
 
 .modal {
@@ -1858,7 +1849,8 @@ body.dark-theme .chart-header h3,
 body.dark-theme .widget-header h3,
 body.dark-theme .section-title,
 body.dark-theme .fleet-stat-value,
-body.dark-theme .area-card h3 { color: #e0e0e0; }
+body.dark-theme .area-card h3,
+body.dark-theme .area-card-title h3 { color: #e0e0e0; }
 body.dark-theme .table th { background: #333; color: #e0e0e0; border-bottom-color: #444; }
 body.dark-theme .table td { border-bottom-color: #3a3a3a; }
 body.dark-theme .table tbody tr:hover { background: #333; }
@@ -1873,8 +1865,18 @@ body.dark-theme .fleet-crud-table th,
 body.dark-theme .fleet-crud-table td { border-bottom-color: #3a3a3a; }
 body.dark-theme .frota-data-table th,
 body.dark-theme .frota-data-table td { border-color: #444; }
-body.dark-theme .frota-data-table thead th { background: #333; color: #e0e0e0; }
+body.dark-theme .frota-data-table thead th { background: #333; color: #e0e0e0; border-bottom-color: #3498db; }
 body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626; }
+body.dark-theme .frota-data-table tbody tr:hover { background: #333; }
+body.dark-theme .area-select-header { background: #0f1720; }
+body.dark-theme .area-select-body { background: #2a2a2a; }
+body.dark-theme .area-card { border-color: #3a3a3a; }
+body.dark-theme .area-card-title h3 { color: #e0e0e0; }
+body.dark-theme .area-card-title span { color: #b0b0b0; }
+body.dark-theme .area-card-features { border-top-color: #3a3a3a; }
+body.dark-theme .area-card-features li { color: #d0d0d0; }
+body.dark-theme .area-card-cta { background: #3a3a3a; color: #e0e0e0; }
+body.dark-theme .area-select-footer { color: #b0b0b0; }
 
 /* ============================================================
    29. FORM TABS
@@ -1937,7 +1939,7 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
 #admin-filter-priority option[value="urgente"] { color: #c0392b; font-weight: 700; }
 
 /* ============================================================
-   31. RESPONSIVO
+   31. RESPONSIVO BASE
    ============================================================ */
 @media (max-width: 900px) {
     .mobile-menu-btn { display: block; }
@@ -2037,10 +2039,8 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
 }
 
 /* ============================================================
-   FROTA v3.0 — DASHBOARD, RELATÓRIOS E MOBILE FIX
+   32. FROTA v3.0 — DASHBOARD E RELATÓRIOS
    ============================================================ */
-
-/* ---------- 1) KPIs do Dashboard da Frota ---------- */
 .fleet-kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -2099,7 +2099,6 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
 .fleet-kpi-teal   { border-left-color: #1abc9c; }
 .fleet-kpi-red    { border-left-color: #c0392b; }
 
-/* ---------- 2) Gráficos do Dashboard da Frota ---------- */
 .fleet-dashboard-charts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -2114,15 +2113,9 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
     border: 1px solid #eef1f4;
     transition: box-shadow 0.2s ease;
 }
-.fleet-dashboard-charts .chart-card:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-}
-.fleet-dashboard-charts .chart-wrapper {
-    position: relative;
-    height: 240px;
-}
+.fleet-dashboard-charts .chart-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+.fleet-dashboard-charts .chart-wrapper { position: relative; height: 240px; }
 
-/* ---------- 3) Filtros de Relatórios ---------- */
 .fleet-report-filters {
     display: flex;
     gap: 12px;
@@ -2153,105 +2146,6 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
     margin-bottom: 14px;
 }
 
-/* ---------- 4) Tabela de dados — visual refinado ---------- */
-.frota-data-table {
-    background: #fff;
-    font-size: 0.8rem;
-}
-.frota-data-table thead th {
-    background: linear-gradient(180deg, #eaf4fc 0%, #d4e8f7 100%);
-    color: #2c3e50;
-    border-bottom: 2px solid #3498db;
-    padding: 10px 12px;
-}
-.frota-data-table tbody tr {
-    transition: background 0.15s ease;
-}
-.frota-data-table tbody tr:hover {
-    background: #eaf4fc;
-}
-.frota-data-table td {
-    padding: 9px 12px;
-    color: #2c3e50;
-}
-.frota-table-container {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-/* ---------- 5) FIX DO HEADER MOBILE ---------- */
-@media (max-width: 900px) {
-    .header { padding: 10px 14px !important; }
-    .header-left h1 { font-size: 1.05rem !important; }
-    .page-subtitle { font-size: 0.72rem !important; }
-    .header-right {
-        width: 100% !important;
-        justify-content: flex-end !important;
-        gap: 6px !important;
-        margin-top: 8px !important;
-        flex-wrap: nowrap !important;
-    }
-    .area-switch-btn {
-        padding: 7px 10px !important;
-        font-size: 0 !important;
-        min-width: 34px;
-        justify-content: center;
-    }
-    .area-switch-btn svg { margin: 0 !important; width: 16px; height: 16px; }
-    .area-switch-btn span { display: none !important; }
-    .user-info { gap: 6px !important; padding: 2px 6px !important; }
-    .user-avatar {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 0.78rem !important;
-    }
-    .user-details { display: none !important; }
-    .logout {
-        padding: 7px 10px !important;
-        font-size: 0 !important;
-        gap: 0 !important;
-        min-width: 34px;
-        justify-content: center;
-    }
-    .logout svg { width: 16px; height: 16px; }
-    .logout span { display: none !important; }
-    .fleet-kpi-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
-    }
-    .fleet-kpi-value { font-size: 1.3rem !important; }
-    .fleet-kpi-label { font-size: 0.65rem !important; }
-    .fleet-dashboard-charts {
-        grid-template-columns: 1fr !important;
-        gap: 12px !important;
-    }
-    .fleet-dashboard-charts .chart-wrapper { height: 220px !important; }
-    .fleet-report-filters {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        padding: 12px !important;
-    }
-    .fleet-report-filters .form-group {
-        width: 100% !important;
-        min-width: 100% !important;
-    }
-}
-
-@media (max-width: 520px) {
-    .fleet-kpi-grid { grid-template-columns: 1fr !important; }
-    .fleet-kpi-value { font-size: 1.45rem !important; }
-    .header { padding: 8px 10px !important; }
-    .user-avatar {
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 0.72rem !important;
-    }
-    .area-switch-btn,
-    .logout { padding: 6px 8px !important; min-width: 30px; }
-    .frota-data-table td,
-    .frota-data-table th { padding: 6px 8px !important; font-size: 0.72rem !important; }
-}
-
-/* ---------- 6) Tema escuro — Frota dashboard/relatórios ---------- */
 body.dark-theme .fleet-kpi-card,
 body.dark-theme .fleet-report-filters,
 body.dark-theme .fleet-report-header,
@@ -2263,23 +2157,10 @@ body.dark-theme .fleet-dashboard-charts .chart-card {
 body.dark-theme .fleet-kpi-value { color: #e0e0e0 !important; }
 body.dark-theme .fleet-kpi-label,
 body.dark-theme .fleet-kpi-sub { color: #b0b0b0 !important; }
-body.dark-theme .frota-data-table { background: #2a2a2a !important; }
-body.dark-theme .frota-data-table thead th {
-    background: linear-gradient(180deg, #2a2a2a 0%, #333 100%) !important;
-    color: #e0e0e0 !important;
-    border-bottom-color: #3498db !important;
-}
-body.dark-theme .frota-data-table tbody tr:hover { background: #333 !important; }
-body.dark-theme .frota-data-table td {
-    color: #e0e0e0 !important;
-    border-color: #3a3a3a !important;
-}
 
 /* ============================================================
-   FROTA EXCEL v5.0 — ESTILOS ESPECÍFICOS (consolidado)
+   33. FROTA EXCEL v5.0 — SUB-TABS ESPECÍFICOS
    ============================================================ */
-
-/* Sub-tabs container (integra com .tabs-inner existente) */
 #frota-subtabs {
     display: flex;
     flex-wrap: wrap;
@@ -2290,7 +2171,6 @@ body.dark-theme .frota-data-table td {
     border-radius: 10px;
     border: 1px solid var(--color-gray-200);
 }
-
 #frota-subtabs .tab-inner {
     display: inline-flex;
     align-items: center;
@@ -2307,18 +2187,15 @@ body.dark-theme .frota-data-table td {
     white-space: nowrap;
     font-family: inherit;
 }
-
 #frota-subtabs .tab-inner:hover {
     background: var(--color-gray-200);
     color: var(--color-gray-800);
 }
-
 #frota-subtabs .tab-inner.active {
     background: var(--color-primary);
     color: #fff;
     box-shadow: 0 2px 6px rgba(52, 152, 219, 0.35);
 }
-
 #frota-subtabs .tab-inner .tab-count {
     display: inline-flex;
     align-items: center;
@@ -2332,13 +2209,11 @@ body.dark-theme .frota-data-table td {
     background: rgba(0, 0, 0, 0.08);
     color: inherit;
 }
-
 #frota-subtabs .tab-inner.active .tab-count {
     background: rgba(255, 255, 255, 0.28);
     color: #fff;
 }
 
-/* Painel de colunas */
 .fleet-cols-panel {
     background: var(--color-gray-50);
     border: 1px solid var(--color-gray-200);
@@ -2390,7 +2265,6 @@ body.dark-theme .frota-data-table td {
     color: var(--color-gray-800);
 }
 
-/* Ações da linha (Ver / Editar / Excluir) */
 .fleet-actions-col {
     width: 1%;
     white-space: nowrap;
@@ -2400,15 +2274,9 @@ body.dark-theme .frota-data-table td {
     display: inline-flex;
     gap: 4px;
 }
-.fleet-row-actions .btn {
-    padding: 4px 8px;
-}
-.fleet-row-actions .btn svg {
-    width: 12px;
-    height: 12px;
-}
+.fleet-row-actions .btn { padding: 4px 8px; }
+.fleet-row-actions .btn svg { width: 12px; height: 12px; }
 
-/* Modal de visualização — grid de detalhes */
 .fleet-view-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -2434,7 +2302,6 @@ body.dark-theme .frota-data-table td {
     word-break: break-word;
 }
 
-/* Formulário CRUD — grid de campos */
 #fleet-crud-fields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -2449,67 +2316,309 @@ body.dark-theme .frota-data-table td {
     display: block;
 }
 
-/* Empty state (garante consistência) */
-.fleet-empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--color-gray-500);
-}
-.fleet-empty-state .si-3x {
-    width: 56px;
-    height: 56px;
-    color: var(--color-gray-400);
-    margin-bottom: 12px;
-}
-.fleet-empty-state h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--color-gray-700);
-    margin: 0 0 6px;
-}
-.fleet-empty-state p {
-    font-size: 13px;
-    margin: 0;
-    line-height: 1.5;
-}
-
-/* Responsivo da Frota Excel */
 @media (max-width: 640px) {
-    #frota-subtabs {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-    }
-    .fleet-import-summary {
-        grid-template-columns: 1fr;
-    }
-    #fleet-crud-fields {
-        grid-template-columns: 1fr;
-    }
-    .fleet-cols-list {
-        grid-template-columns: 1fr;
-    }
+    #frota-subtabs { overflow-x: auto; flex-wrap: nowrap; }
+    #fleet-crud-fields { grid-template-columns: 1fr; }
+    .fleet-cols-list { grid-template-columns: 1fr; }
+    .fleet-view-grid { grid-template-columns: 1fr; }
 }
 
-/* Tema escuro — Frota Excel */
 body.dark-theme #frota-subtabs {
     background: #333;
     border-color: #444;
 }
 body.dark-theme #frota-subtabs .tab-inner { color: #ccc; }
 body.dark-theme #frota-subtabs .tab-inner:hover { background: #444; color: #fff; }
-body.dark-theme .fleet-cols-panel {
-    background: #2a2a2a;
-    border-color: #3a3a3a;
-}
-body.dark-theme .fleet-col-check {
-    background: #333;
-    border-color: #444;
-    color: #e0e0e0;
-}
-body.dark-theme .fleet-view-item {
-    background: #333;
-    border-color: #444;
-}
+body.dark-theme .fleet-cols-panel { background: #2a2a2a; border-color: #3a3a3a; }
+body.dark-theme .fleet-col-check { background: #333; border-color: #444; color: #e0e0e0; }
+body.dark-theme .fleet-view-item { background: #333; border-color: #444; }
 body.dark-theme .fleet-view-value { color: #e0e0e0; }
 body.dark-theme .fleet-empty-state h3 { color: #e0e0e0; }
 body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
+
+/* ============================================================
+   34. MOBILE UX v1.0 — Melhorias gerais para celular
+   ============================================================ */
+@media (max-width: 640px) {
+    .top-menu {
+        padding: 0 10px !important;
+        min-height: 52px;
+    }
+    .top-menu-brand { font-size: 0.9rem; letter-spacing: 1.5px; }
+    .top-menu-icons .top-icon { width: 32px; height: 32px; }
+
+    .main-content { padding: 12px 10px !important; }
+
+    .header {
+        padding: 12px 14px !important;
+        margin-bottom: 12px;
+        gap: 8px;
+    }
+    .header-left h1 { font-size: 1.05rem !important; }
+    .breadcrumb { font-size: 0.68rem; }
+    .page-subtitle { font-size: 0.72rem; }
+
+    .header-right {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .user-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.8rem !important;
+    }
+    .user-details { display: none !important; }
+
+    .area-switch-btn,
+    .logout {
+        min-width: 34px;
+        height: 34px;
+        padding: 6px !important;
+        font-size: 0 !important;
+        justify-content: center;
+        gap: 0 !important;
+    }
+    .area-switch-btn svg,
+    .logout svg { width: 16px; height: 16px; }
+    .area-switch-btn span,
+    .logout span { display: none !important; }
+}
+
+@media (max-width: 900px) {
+    .top-menu-nav {
+        width: 280px !important;
+        padding-top: 6px;
+    }
+    .top-menu-nav a {
+        padding: 13px 18px !important;
+        font-size: 0.9rem !important;
+    }
+    .top-menu-nav a svg {
+        margin-right: 10px !important;
+        width: 18px !important;
+        height: 18px !important;
+    }
+    .top-menu-nav ul { padding: 6px 0 !important; }
+}
+
+@media (max-width: 640px) {
+    .btn { padding: 10px 16px; font-size: 0.88rem; }
+    .btn-sm { padding: 8px 12px; font-size: 0.8rem; }
+    .action-buttons .btn { min-height: 38px; }
+}
+
+@media (max-width: 640px) {
+    .form-control {
+        padding: 12px 14px;
+        font-size: 0.95rem;
+        min-height: 44px;
+    }
+    select.form-control { height: 44px; }
+    textarea.form-control { min-height: 90px; }
+
+    .form-row { gap: 10px; }
+    .form-col { min-width: 100%; flex: 1 1 100%; }
+
+    .form-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 14px;
+    }
+    .form-tab {
+        white-space: nowrap;
+        padding: 10px 14px !important;
+        font-size: 0.82rem !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .table-responsive {
+        border: 1px solid var(--color-gray-200, #e9ecef);
+        border-radius: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .table th,
+    .table td {
+        padding: 9px 11px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap;
+    }
+    .table th {
+        font-size: 0.7rem !important;
+        letter-spacing: 0.3px;
+    }
+}
+
+@media (max-width: 640px) {
+    .card { padding: 14px !important; margin-bottom: 12px; }
+    .card-header {
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .card-header-title h2 { font-size: 0.98rem; }
+    .card-header-count { font-size: 0.68rem; padding: 2px 8px; }
+    .card-body { padding: 0; }
+    .section-title {
+        font-size: 0.85rem;
+        margin: 16px 0 10px;
+    }
+}
+
+@media (max-width: 640px) {
+    .modal-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+    .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 14px 14px 0 0 !important;
+        max-height: 94vh !important;
+        margin: 0 !important;
+    }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    .modal-header {
+        padding: 14px 16px;
+        border-radius: 14px 14px 0 0;
+    }
+    .modal-header h3 { font-size: 0.98rem; }
+    .modal-body { padding: 16px; }
+    .modal-footer {
+        padding: 12px 16px;
+        border-radius: 0;
+        position: sticky;
+        bottom: 0;
+        background: var(--color-gray-50, #f8f9fa);
+        border-top: 1px solid var(--color-gray-200, #e9ecef);
+    }
+    .modal-footer .btn { flex: 1; }
+    .modal-close { font-size: 1.8rem; padding: 0 6px; }
+
+    .modal-fullscreen {
+        border-radius: 14px 14px 0 0 !important;
+        max-height: 94vh !important;
+        height: 94vh !important;
+    }
+    .modal-fullscreen .modal-body {
+        padding: 14px !important;
+        gap: 14px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .filter-bar > * { width: 100%; max-width: 100%; }
+    .filter-select { max-width: 100% !important; }
+}
+
+@media (max-width: 640px) {
+    .tabs-inner,
+    .frota-subtabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        box-sizing: border-box;
+        scrollbar-width: none;
+    }
+    .tabs-inner::-webkit-scrollbar,
+    .frota-subtabs::-webkit-scrollbar { display: none; }
+    .tab-inner {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+        padding: 7px 12px;
+    }
+}
+
+@media (max-width: 640px) {
+    .notification-panel {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        top: 12px !important;
+        right: 12px !important;
+        left: 12px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .charts-grid { grid-template-columns: 1fr; gap: 12px; }
+    .chart-wrapper { height: 210px !important; }
+    .chart-card { padding: 12px !important; }
+    .widget-card { padding: 12px !important; }
+    .widgets-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+
+@media (max-width: 640px) {
+    .login-card {
+        padding: 24px 18px 18px !important;
+        border-radius: 8px;
+    }
+    .login-header h2 { font-size: 1.5rem; }
+    .login-logo { font-size: 2.2rem; }
+    .access-btn { padding: 13px 14px; }
+    .access-btn .access-icon { width: 40px; height: 40px; }
+    .access-btn .access-text h4 { font-size: 0.92rem; }
+    .access-btn .access-text p { font-size: 0.75rem; }
+}
+
+@media (max-width: 520px) {
+    .fleet-kpi-grid { grid-template-columns: 1fr !important; }
+    .fleet-import-summary { grid-template-columns: 1fr !important; }
+    .fleet-view-grid { grid-template-columns: 1fr !important; }
+    #fleet-crud-fields { grid-template-columns: 1fr !important; }
+    .info-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Área de seleção — responsivo */
+@media (max-width: 640px) {
+    .area-select-modal-custom {
+        width: 96% !important;
+        max-width: 96% !important;
+        margin: 8px !important;
+        border-radius: 8px !important;
+    }
+    .area-select-header { padding: 20px 20px 18px; }
+    .area-select-header h2 { font-size: 1.2rem; }
+    .area-select-header p { font-size: 0.8rem; }
+    .area-select-brand { margin-bottom: 12px; font-size: 0.85rem; }
+
+    .area-select-body { padding: 18px 16px 16px; }
+
+    .area-cards-grid { grid-template-columns: 1fr; gap: 12px; }
+    .area-card { padding: 16px; gap: 12px; }
+    .area-card-icon { width: 40px; height: 40px; }
+    .area-card-title h3 { font-size: 1rem; }
+    .area-card-features li { font-size: 0.78rem; }
+    .area-card-cta { padding: 10px 12px; font-size: 0.82rem; }
+    .area-select-footer { font-size: 0.72rem; padding-top: 8px; }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+    @media (max-width: 640px) {
+        .modal-footer { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        .notification-panel { top: calc(12px + env(safe-area-inset-top)); }
+    }
+}
+
+@media (max-width: 640px) {
+    .card-header .action-buttons {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .card-header .action-buttons .btn {
+        flex: 1;
+        min-width: 0;
+        justify-content: center;
+        font-size: 0.8rem;
+    }
+}
