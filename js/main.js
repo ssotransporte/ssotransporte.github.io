@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v13.0 - Rotas separadas: Operações / Solicitações)
+// SSOT - MAIN (v14.0 - Menu Operações inline + Rotas por hash)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -40,6 +40,7 @@ let _loginInProgress = false;
 let _enterSystemDone = false;
 let _pendingDeepLink = null;
 let _areaMode = null; // 'operacoes' | 'solicitacoes' | null
+let _fleetCurrentTab = 'viagens'; // sub-aba atual da frota
 
 const AREA_KEY = 'ssot_area_';
 
@@ -58,7 +59,9 @@ function setAreaHash(area) {
 }
 
 function clearAreaHash() {
-    window.location.hash = '';
+    if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
 }
 
 window.addEventListener('hashchange', () => {
@@ -236,6 +239,7 @@ function showAreaSelectModal() {
 }
 
 function selectArea(mode) {
+    console.log('[SSOT] selectArea:', mode);
     if (mode !== 'operacoes' && mode !== 'solicitacoes') return;
     if (!currentUser) return;
 
@@ -374,7 +378,6 @@ async function enterSystem() {
         document.getElementById('user-area').classList.add('hidden');
         document.getElementById('admin-area').classList.remove('hidden');
 
-        // Verifica o hash para decidir a área
         const hashArea = getAreaFromHash();
         if (hashArea) {
             _areaMode = hashArea;
@@ -384,7 +387,6 @@ async function enterSystem() {
             if (btn) btn.classList.remove('hidden');
             renderAdminMenu();
         } else {
-            // Verifica se tem área salva
             const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
             if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
                 _areaMode = savedArea;
@@ -497,24 +499,112 @@ function gotoUserTab(tabId) {
     if (tabId === 'user-perfil') { Profile.refreshProfileState(); Profile.populateProfileForm(); }
 }
 
+// ============================================================
+// MENU DE OPERAÇÕES (montado inline — independe do fleet-excel)
+// ============================================================
+function renderOperacoesMenu() {
+    console.log('[SSOT] renderOperacoesMenu chamado');
+    const menu = document.getElementById('top-menu-list');
+    if (!menu) {
+        console.error('[SSOT] #top-menu-list NÃO ENCONTRADO no DOM!');
+        return;
+    }
+
+    menu.innerHTML = `
+        <li><a href="#" data-fleet-tab="viagens"><svg class="si si-fw"><use href="#i-route"/></svg> Viagens</a></li>
+        <li><a href="#" data-fleet-tab="veiculos"><svg class="si si-fw"><use href="#i-car"/></svg> Veículos</a></li>
+        <li><a href="#" data-fleet-tab="abastecimentos"><svg class="si si-fw"><use href="#i-truck"/></svg> Abastecimentos</a></li>
+        <li><a href="#" data-fleet-tab="servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+        <li><a href="#" data-fleet-tab="despesas"><svg class="si si-fw"><use href="#i-file-text"/></svg> Despesas</a></li>
+        <li><a href="#" data-fleet-tab="leituras"><svg class="si si-fw"><use href="#i-clock"/></svg> Leituras</a></li>
+        <li><a href="#" data-fleet-tab="checklist"><svg class="si si-fw"><use href="#i-check-circle"/></svg> Checklist</a></li>
+        <li><a href="#" data-fleet-tab="importar"><svg class="si si-fw"><use href="#i-upload"/></svg> Importar/Exportar</a></li>
+        <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
+        <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+    `;
+
+    // Listeners das abas da Frota
+    menu.querySelectorAll('[data-fleet-tab]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabKey = a.getAttribute('data-fleet-tab');
+            console.log('[SSOT] Clicou na aba da frota:', tabKey);
+
+            // Ativa a aba admin-frota
+            document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
+            const target = document.getElementById('admin-frota-tab');
+            if (target) target.classList.add('active');
+
+            // Garante que FleetExcel foi inicializado
+            try { FleetExcel.initFleetExcel(); } catch (err) { console.error('[SSOT] initFleetExcel:', err); }
+
+            // Troca a sub-aba
+            _fleetCurrentTab = tabKey;
+            if (typeof window.fleetExcelSwitchTab === 'function') {
+                window.fleetExcelSwitchTab(tabKey);
+            } else {
+                console.warn('[SSOT] window.fleetExcelSwitchTab ainda não definido');
+            }
+
+            // Marca como ativo
+            menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
+            a.classList.add('active');
+
+            // Atualiza título
+            const titles = {
+                viagens: 'Viagens', veiculos: 'Veículos', abastecimentos: 'Abastecimentos',
+                servicos: 'Serviços', despesas: 'Despesas', leituras: 'Leituras',
+                checklist: 'Checklist', importar: 'Importar/Exportar'
+            };
+            const title = document.getElementById('page-title');
+            if (title) title.textContent = titles[tabKey] || 'Frota';
+        });
+    });
+
+    // Listeners dos itens do sistema
+    menu.querySelectorAll('[data-tab]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = a.getAttribute('data-tab');
+            gotoAdminTab(tabId);
+        });
+    });
+
+    // Marca a aba atual como ativa
+    const activeLink = menu.querySelector(`[data-fleet-tab="${_fleetCurrentTab}"]`);
+    if (activeLink) activeLink.classList.add('active');
+
+    // Inicializa o FleetExcel e troca para a sub-aba atual
+    try { FleetExcel.initFleetExcel(); } catch (err) { console.error('[SSOT] initFleetExcel:', err); }
+    setTimeout(() => {
+        if (typeof window.fleetExcelSwitchTab === 'function') {
+            window.fleetExcelSwitchTab(_fleetCurrentTab);
+        }
+    }, 100);
+}
+
 // ✅ MENU ADAPTATIVO POR ÁREA
 function renderAdminMenu() {
+    console.log('[SSOT] renderAdminMenu chamado. Área:', _areaMode);
     const menu = document.getElementById('top-menu-list');
-    if (!menu) return;
+    if (!menu) {
+        console.error('[SSOT] #top-menu-list NÃO ENCONTRADO');
+        return;
+    }
 
-    const isOperacoes = _areaMode === 'operacoes';
+    if (_areaMode === 'operacoes') {
+        console.log('[SSOT] Montando menu de OPERAÇÕES');
+        renderOperacoesMenu();
 
-    if (isOperacoes) {
-        // Menu da Frota (controlado pelo fleet-excel.js)
-        FleetExcel.renderMainMenu();
-        // Garante que o painel da Frota está ativo
+        // Garante que o painel da Frota está visível
         document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
         const target = document.getElementById('admin-frota-tab');
         if (target) target.classList.add('active');
+
         const title = document.getElementById('page-title');
         if (title) title.textContent = 'Frota';
     } else {
-        // Menu de Solicitações (manual)
+        console.log('[SSOT] Montando menu de SOLICITAÇÕES');
         menu.innerHTML = `
             <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
             <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
@@ -533,21 +623,20 @@ function renderAdminMenu() {
             });
         });
 
-        // Ativa a primeira aba (Dashboard)
         gotoAdminTab('admin-dashboard');
     }
 }
 
-// ✅ NAVEGAÇÃO ENTRE ABAS (valida área)
+// ✅ NAVEGAÇÃO ENTRE ABAS
 export function gotoAdminTab(tabId) {
     if (!tabId) return;
 
-    // Validação: se estiver em Operações, não permite guias de Solicitações
+    // Validação de área
     const solicitacoesOnly = ['admin-solicitacoes', 'admin-usuarios', 'admin-agenda', 'admin-historico', 'admin-lixeira', 'admin-dashboard', 'admin-relatorios'];
     if (_areaMode === 'operacoes' && solicitacoesOnly.includes(tabId)) {
         tabId = 'admin-frota';
     }
-    if (_areaMode === 'solicitacoes' && tabId === 'admin-frota') {
+    if (_areaMode !== 'operacoes' && tabId === 'admin-frota') {
         tabId = 'admin-dashboard';
     }
 
@@ -584,7 +673,7 @@ export function gotoAdminTab(tabId) {
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
         case 'admin-servicos': updateNetworkStatus(); break;
         case 'admin-frota':
-            try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Erro ao iniciar Frota Excel:', e); }
+            try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Frota Excel:', e); }
             break;
     }
 }
@@ -609,7 +698,6 @@ async function doLogout(silent = false) {
         try { await History.addHistory('Logout', '-', `Usuário ${currentUser.name}`); } catch (e) {}
     }
 
-    // Limpa área escolhida
     if (currentUser) sessionStorage.removeItem(AREA_KEY + currentUser.uid);
     _areaMode = null;
     clearAreaHash();
@@ -810,7 +898,6 @@ function setupEventListeners() {
     document.getElementById('close-pdf-modal-btn')?.addEventListener('click', closePdfModal);
     document.getElementById('download-pdf')?.addEventListener('click', () => { Reports.exportReportPDF(false); setTimeout(closePdfModal, 1500); });
 
-    // Modal de área NÃO fecha por clique fora
     document.querySelectorAll('.modal-overlay').forEach(m => {
         m.addEventListener('click', function (e) {
             if (e.target === this) {
