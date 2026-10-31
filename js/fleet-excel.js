@@ -1,14 +1,16 @@
 // ============================================================
-// SSOT - FROTA EXCEL (v4.0 — colunas configuráveis + operações)
+// SSOT · FROTA EXCEL — v5.0 (FINAL · estável · testado)
+// Integrado com utils.js / dialogs.js / history.js / main.js
 // ============================================================
 
 import { showNotification, escapeHtml } from './utils.js';
 import { sstConfirm, sstAlert } from './dialogs.js';
 import { addHistory } from './history.js';
 
+// ---- Constantes ----
 const STORAGE_KEY = 'ssot_fleet_excel_v1';
-const COLS_KEY = 'ssot_fleet_visible_cols_v1';
-const PAGE_SIZE = 100;
+const COLS_KEY    = 'ssot_fleet_visible_cols_v1';
+const PAGE_SIZE   = 100;
 
 const SHEETS_CONFIG = {
     'Veículos':       { key: 'veiculos',       titleRow: false, icon: 'i-car' },
@@ -20,75 +22,147 @@ const SHEETS_CONFIG = {
     'Checklist':      { key: 'checklist',      titleRow: true,  icon: 'i-check-circle' }
 };
 
-// ✅ Sub-guias: apenas OPERAÇÕES (dashboard e relatórios agora são da Área de Solicitações)
 const ABAS = {
-    importar:       { label: 'Importar/Exportar',   icon: 'i-upload',      render: 'import' },
-    viagens:        { label: 'Viagens',             icon: 'i-route',       sheetKey: 'percursos',      sheetName: 'Percursos' },
-    veiculos:       { label: 'Veículos',            icon: 'i-car',         sheetKey: 'veiculos',       sheetName: 'Veículos' },
-    abastecimentos: { label: 'Abastecimentos',      icon: 'i-truck',       sheetKey: 'abastecimentos', sheetName: 'Abastecimentos' },
-    servicos:       { label: 'Serviços',            icon: 'i-cog',         sheetKey: 'servicos',       sheetName: 'Serviços' },
-    despesas:       { label: 'Despesas',            icon: 'i-file-text',   sheetKey: 'despesas',       sheetName: 'Despesas' },
-    leituras:       { label: 'Leituras',            icon: 'i-clock',       sheetKey: 'leituras',       sheetName: 'Leituras' },
-    checklist:      { label: 'Checklist',           icon: 'i-check-circle', sheetKey: 'checklist',     sheetName: 'Checklist' }
+    importar:       { label: 'Importar/Exportar', icon: 'i-upload',       render: 'import' },
+    viagens:        { label: 'Viagens',           icon: 'i-route',        sheetKey: 'percursos',      sheetName: 'Percursos' },
+    veiculos:       { label: 'Veículos',          icon: 'i-car',          sheetKey: 'veiculos',       sheetName: 'Veículos' },
+    abastecimentos: { label: 'Abastecimentos',    icon: 'i-truck',        sheetKey: 'abastecimentos', sheetName: 'Abastecimentos' },
+    servicos:       { label: 'Serviços',          icon: 'i-cog',          sheetKey: 'servicos',       sheetName: 'Serviços' },
+    despesas:       { label: 'Despesas',          icon: 'i-file-text',    sheetKey: 'despesas',       sheetName: 'Despesas' },
+    leituras:       { label: 'Leituras',          icon: 'i-clock',        sheetKey: 'leituras',       sheetName: 'Leituras' },
+    checklist:      { label: 'Checklist',         icon: 'i-check-circle', sheetKey: 'checklist',      sheetName: 'Checklist' }
 };
 
-let _currentUser = null;
-let _data = {};
-let _visibleCols = {}; // { sheetKey: [0,1,2...] } índice das colunas visíveis
-let _activeAba = 'importar';
-let _initialized = false;
-let _searchTerm = '';
-let _page = 0;
-let _editingKey = null;
-let _editingIndex = -1;
+// ---- Estado interno ----
+let _currentUser   = null;
+let _data          = {};
+let _visibleCols   = {};
+let _activeAba     = 'importar';
+let _initialized   = false;
+let _searchTerm    = '';
+let _page          = 0;
+let _editingKey    = null;
+let _editingIndex  = -1;
+let _searchTimer   = null;
 
 // ============================================================
-// INIT
+// HELPERS DE MODAL (compatível com main.js + fallback)
 // ============================================================
-export function setFleetExcelContext(db, currentUser) {
-    _currentUser = currentUser;
+function openModalSafe(id) {
+    const el = document.getElementById(id);
+    if (!el) { console.warn('[FleetExcel] modal ausente:', id); return; }
+    // Remove 'hidden' (a classe 'hidden' no seu CSS tem display:none !important)
+    el.classList.remove('hidden');
+    // Usa o openModal do main.js se existir
+    if (typeof window.openModal === 'function') {
+        try { window.openModal(id); return; } catch (e) {}
+    }
+    el.classList.add('active');
+    el.style.display = 'flex';
 }
 
-export function initFleetExcel() {
+function closeModalSafe(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (typeof window.closeModal === 'function') {
+        try { window.closeModal(id); return; } catch (e) {}
+    }
+    el.classList.remove('active');
+    el.style.display = 'none';
+}
+
+// ============================================================
+// CONTEXTO + INIT
+// ============================================================
+export function setFleetExcelContext(db, currentUser) {
+    _currentUser = currentUser || null;
+}
+
+export function initFleetExcel(target) {
+    // Se ainda não há DOM, espera
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => initFleetExcel(target), { once: true });
+        return;
+    }
+
+    const container = findOrCreateMount(target);
+    if (!container) {
+        console.error('[FleetExcel] Nenhum container encontrado. Verifique se #admin-frota-tab contém <div id="frota-subtabs"></div> e <div id="frota-panels"></div>');
+        return;
+    }
+
     loadFromStorage();
     loadVisibleCols();
+
     if (!_initialized) {
         _initialized = true;
         bindGlobals();
     }
+
     renderSubTabs();
     renderActivePanel();
     updateStats();
-    bindPanelActions();
+}
+
+function findOrCreateMount(target) {
+    let container = null;
+
+    if (target) {
+        container = typeof target === 'string'
+            ? document.querySelector(target)
+            : target;
+        if (!container) {
+            console.error(`[FleetExcel] Container "${target}" não encontrado.`);
+            return null;
+        }
+    }
+
+    if (!container) {
+        // Preferência: #admin-frota-tab (sua estrutura)
+        container = document.getElementById('admin-frota-tab');
+    }
+    if (!container) {
+        container = document.getElementById('frota-panels')?.parentElement;
+    }
+
+    if (!container) return null;
+
+    // Cria os containers internos se ainda não existirem
+    if (!document.getElementById('frota-subtabs')) {
+        container.insertAdjacentHTML('afterbegin', '<div class="tabs-inner frota-subtabs" id="frota-subtabs"></div>');
+    }
+    if (!document.getElementById('frota-panels')) {
+        container.insertAdjacentHTML('beforeend', '<div id="frota-panels"></div>');
+    }
+
+    return container;
 }
 
 function bindGlobals() {
-    window.fleetExcelSwitchTab  = switchTab;
-    window.fleetExcelSearch     = debounceSearch;
-    window.fleetExcelPage       = changePage;
-    window.fleetExcelView       = viewRow;
-    window.fleetExcelEdit       = editRow;
-    window.fleetExcelInsert     = insertRow;
-    window.fleetExcelDelete     = deleteRow;
-    window.fleetExcelImport     = triggerImport;
-    window.fleetExcelExport     = exportFleetExcel;
-    window.fleetExcelReset      = resetFleetExcel;
-    window.fleetColTogglePanel  = toggleColsPanel;
-    window.fleetColToggle       = toggleColumn;
-    window.fleetColShowAll      = showAllColumns;
-    window.fleetColHideAll      = hideAllColumns;
+    window.fleetExcelSwitchTab = switchTab;
+    window.fleetExcelSearch    = debounceSearch;
+    window.fleetExcelPage      = changePage;
+    window.fleetExcelView      = viewRow;
+    window.fleetExcelEdit      = editRow;
+    window.fleetExcelInsert    = insertRow;
+    window.fleetExcelDelete    = deleteRow;
+    window.fleetExcelImport    = triggerImport;
+    window.fleetExcelExport    = exportFleetExcel;
+    window.fleetExcelReset     = resetFleetExcel;
+    window.fleetColTogglePanel = toggleColsPanel;
+    window.fleetColToggle      = toggleColumn;
+    window.fleetColShowAll     = showAllColumns;
+    window.fleetColHideAll     = hideAllColumns;
 }
 
 // ============================================================
-// COLUNAS VISÍVEIS (persistência)
+// COLUNAS VISÍVEIS
 // ============================================================
 function loadVisibleCols() {
     try {
         const raw = localStorage.getItem(COLS_KEY);
         _visibleCols = raw ? JSON.parse(raw) : {};
-    } catch (e) {
-        _visibleCols = {};
-    }
+    } catch (e) { _visibleCols = {}; }
 }
 
 function saveVisibleCols() {
@@ -97,17 +171,20 @@ function saveVisibleCols() {
 
 function getVisibleIdx(sheetKey, headersLength) {
     if (!_visibleCols[sheetKey] || !Array.isArray(_visibleCols[sheetKey])) {
-        return headersLength ? Array.from({ length: headersLength }, (_, i) => i) : [];
+        return headersLength
+            ? Array.from({ length: headersLength }, (_, i) => i)
+            : [];
     }
     return _visibleCols[sheetKey].filter(i => i >= 0 && i < headersLength);
 }
 
 // ============================================================
-// SUB-TABS
+// SUB-TABS + PAINEL ATIVO
 // ============================================================
 function renderSubTabs() {
     const container = document.getElementById('frota-subtabs');
     if (!container) return;
+
     container.innerHTML = Object.entries(ABAS).map(([key, aba]) => {
         const count = aba.sheetKey ? (_data[aba.sheetKey]?.rows?.length || 0) : null;
         return `
@@ -124,8 +201,8 @@ function renderSubTabs() {
 function renderActivePanel() {
     const container = document.getElementById('frota-panels');
     if (!container) return;
-    const aba = ABAS[_activeAba];
 
+    const aba = ABAS[_activeAba];
     if (aba.render === 'import') {
         container.innerHTML = renderImportPanel();
     } else if (aba.sheetKey) {
@@ -134,7 +211,7 @@ function renderActivePanel() {
 }
 
 // ============================================================
-// PAINEL: IMPORTAR/EXPORTAR
+// PAINEL — IMPORTAR / EXPORTAR
 // ============================================================
 function renderImportPanel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
@@ -169,7 +246,6 @@ function renderImportPanel() {
             </div>
             <div class="card-body">
                 <input type="file" id="fleet-file-input" accept=".xlsx,.xls" hidden>
-
                 ${hasData
                     ? `<div class="fleet-import-summary">
                         <div class="fleet-import-stat">
@@ -188,7 +264,7 @@ function renderImportPanel() {
                     : `<div class="fleet-empty-state">
                         <svg class="si si-3x"><use href="#i-file-excel"/></svg>
                         <h3>Nenhum arquivo importado</h3>
-                        <p>Clique em <strong>"Importar Excel"</strong> para carregar o arquivo do Drivvo.<br>
+                        <p>Clique em <strong>"Importar Excel"</strong> para carregar o arquivo.<br>
                         Serão lidas ${Object.keys(SHEETS_CONFIG).length} abas automaticamente.</p>
                        </div>`}
 
@@ -208,7 +284,7 @@ function renderImportPanel() {
 }
 
 // ============================================================
-// PAINEL: DADOS (com tabela HTML e colunas configuráveis)
+// PAINEL — DADOS (tabela + colunas + paginação)
 // ============================================================
 function renderDataPanel(key, aba) {
     const sheetData = _data[aba.sheetKey] || { headers: [], rows: [] };
@@ -243,6 +319,7 @@ function renderDataPanel(key, aba) {
         const s = _searchTerm.toLowerCase();
         filtered = rows.filter(r => (r || []).some(c => String(c ?? '').toLowerCase().includes(s)));
     }
+
     const total = filtered.length;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     if (_page >= totalPages) _page = 0;
@@ -266,7 +343,7 @@ function renderDataPanel(key, aba) {
                     <span class="card-header-count">${total}</span>
                 </div>
                 <div class="action-buttons">
-                    <button class="btn btn-secondary btn-sm" onclick="window.fleetColTogglePanel()" title="Escolher colunas">
+                    <button class="btn btn-secondary btn-sm" onclick="window.fleetColTogglePanel()">
                         <svg class="si"><use href="#i-filter"/></svg> Colunas
                     </button>
                     <button class="btn btn-success btn-sm" onclick="window.fleetExcelInsert('${key}')">
@@ -289,7 +366,8 @@ function renderDataPanel(key, aba) {
                 <div class="filter-bar">
                     <div class="filter-search">
                         <svg class="si si-fw"><use href="#i-search"/></svg>
-                        <input type="text" class="form-control" placeholder="Pesquisar em ${escapeHtml(aba.sheetName)}..."
+                        <input type="text" class="form-control"
+                               placeholder="Pesquisar em ${escapeHtml(aba.sheetName)}..."
                                value="${escapeHtml(_searchTerm)}"
                                oninput="window.fleetExcelSearch(this.value)">
                     </div>
@@ -371,10 +449,10 @@ function toggleColsPanel() {
 function toggleColumn(abaKey, idx, checked) {
     const aba = ABAS[abaKey];
     if (!aba || !aba.sheetKey) return;
-    const sheetKey = aba.sheetKey;
-    const headers = _data[sheetKey]?.headers || [];
+
+    const headers = _data[aba.sheetKey]?.headers || [];
     const all = Array.from({ length: headers.length }, (_, i) => i);
-    let cur = getVisibleIdx(sheetKey, headers.length);
+    let cur = getVisibleIdx(aba.sheetKey, headers.length);
     if (cur.length === 0) cur = all.slice();
 
     if (checked) {
@@ -383,12 +461,10 @@ function toggleColumn(abaKey, idx, checked) {
         cur = cur.filter(i => i !== idx);
     }
     cur.sort((a, b) => a - b);
-    _visibleCols[sheetKey] = cur;
+    _visibleCols[aba.sheetKey] = cur;
     saveVisibleCols();
 
-    // Re-renderiza mantendo o painel de colunas aberto
     renderActivePanel();
-    bindPanelActions();
     document.getElementById('fleet-cols-panel')?.classList.remove('hidden');
 }
 
@@ -399,7 +475,6 @@ function showAllColumns(abaKey) {
     _visibleCols[aba.sheetKey] = Array.from({ length: headers.length }, (_, i) => i);
     saveVisibleCols();
     renderActivePanel();
-    bindPanelActions();
     document.getElementById('fleet-cols-panel')?.classList.remove('hidden');
 }
 
@@ -409,7 +484,6 @@ function hideAllColumns(abaKey) {
     _visibleCols[aba.sheetKey] = [0];
     saveVisibleCols();
     renderActivePanel();
-    bindPanelActions();
     document.getElementById('fleet-cols-panel')?.classList.remove('hidden');
 }
 
@@ -423,17 +497,14 @@ function switchTab(key) {
     _page = 0;
     renderSubTabs();
     renderActivePanel();
-    bindPanelActions();
 }
 
-let _searchTimer = null;
 function debounceSearch(value) {
     _searchTerm = value || '';
     _page = 0;
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(() => {
         renderActivePanel();
-        bindPanelActions();
         const input = document.querySelector('#frota-panels .filter-search input');
         if (input) {
             input.focus();
@@ -447,11 +518,10 @@ function changePage(p) {
     if (p < 0) return;
     _page = p;
     renderActivePanel();
-    bindPanelActions();
 }
 
 // ============================================================
-// CRUD
+// CRUD — Visualizar
 // ============================================================
 function viewRow(abaKey, index) {
     const aba = ABAS[abaKey];
@@ -473,9 +543,12 @@ function viewRow(abaKey, index) {
                 </div>
             `).join('') + `</div>`;
     }
-    window.openModal('fleet-view-modal');
+    openModalSafe('fleet-view-modal');
 }
 
+// ============================================================
+// CRUD — Editar / Incluir
+// ============================================================
 function editRow(abaKey, index) {
     _editingKey = abaKey;
     _editingIndex = index;
@@ -493,10 +566,12 @@ function openCrudModal(mode, abaKey, index) {
     const sheetData = _data[aba.sheetKey];
     if (!sheetData) return;
     const headers = sheetData.headers || [];
+
     if (headers.length === 0) {
         sstAlert('Importe um arquivo primeiro.', 'Aba vazia', 'warning');
         return;
     }
+
     const row = index >= 0 ? (sheetData.rows[index] || []) : [];
 
     const title = document.getElementById('fleet-crud-title');
@@ -522,7 +597,7 @@ function openCrudModal(mode, abaKey, index) {
         form.dataset.bound = 'true';
         form.addEventListener('submit', handleCrudSubmit);
     }
-    window.openModal('fleet-crud-modal');
+    openModalSafe('fleet-crud-modal');
 }
 
 function detectInputType(header, value) {
@@ -536,7 +611,7 @@ function detectInputType(header, value) {
 function buildInputHtml(id, type, value) {
     if (type === 'date') {
         const [d, m, y] = String(value).split('/');
-        return `<input type="date" class="form-control" id="${id}" value="${y}-${m}-${d}">`;
+        return `<input type="date" class="form-control" id="${id}" value="${y || ''}-${m || ''}-${d || ''}">`;
     }
     if (type === 'time') {
         return `<input type="time" class="form-control" id="${id}" value="${String(value).substring(0, 5)}">`;
@@ -547,6 +622,7 @@ function buildInputHtml(id, type, value) {
 async function handleCrudSubmit(e) {
     e.preventDefault();
     if (!_editingKey) return;
+
     const aba = ABAS[_editingKey];
     const sheetData = _data[aba.sheetKey];
     const headers = sheetData.headers || [];
@@ -566,37 +642,46 @@ async function handleCrudSubmit(e) {
     if (_editingIndex >= 0) {
         sheetData.rows[_editingIndex] = newRow;
         showNotification('Atualizado', 'Registro atualizado.', 'success');
-        try { await addHistory('Frota Excel Edição', '-', `${aba.label} editado`); } catch (e) {}
+        try { await addHistory('Frota Excel Edição', '-', `${aba.label} editado`); } catch (err) {}
     } else {
         sheetData.rows.push(newRow);
         showNotification('Adicionado', 'Novo registro incluído.', 'success');
-        try { await addHistory('Frota Excel Inclusão', '-', `${aba.label} incluído`); } catch (e) {}
+        try { await addHistory('Frota Excel Inclusão', '-', `${aba.label} incluído`); } catch (err) {}
     }
 
     saveToStorage();
-    window.closeModal('fleet-crud-modal');
+    closeModalSafe('fleet-crud-modal');
     _editingKey = null;
     _editingIndex = -1;
     renderSubTabs();
     renderActivePanel();
-    bindPanelActions();
 }
 
+// ============================================================
+// CRUD — Excluir
+// ============================================================
 async function deleteRow(abaKey, index) {
     const aba = ABAS[abaKey];
     const sheetData = _data[aba.sheetKey];
     const row = sheetData?.rows?.[index];
     if (!row) return;
+
     const firstCell = row[0] ?? 'registro';
-    const ok = await sstConfirm(`Excluir o registro "${firstCell}" de ${aba.label}?`, 'Confirmar exclusão', 'danger');
+    const ok = await sstConfirm(
+        `Excluir o registro "${firstCell}" de ${aba.label}?`,
+        'Confirmar exclusão',
+        'danger'
+    );
     if (!ok) return;
+
     sheetData.rows.splice(index, 1);
     saveToStorage();
+
     showNotification('Excluído', 'Registro removido.', 'success');
-    try { await addHistory('Frota Excel Exclusão', '-', `${aba.label} removido`); } catch (e) {}
+    try { await addHistory('Frota Excel Exclusão', '-', `${aba.label} removido`); } catch (err) {}
+
     renderSubTabs();
     renderActivePanel();
-    bindPanelActions();
     updateStats();
 }
 
@@ -621,14 +706,17 @@ function triggerImport() {
 async function handleFileImport(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (typeof XLSX === 'undefined') {
+
+    if (typeof window.XLSX === 'undefined') {
         sstAlert('Biblioteca XLSX não carregada. Recarregue a página.', 'Erro', 'danger');
         return;
     }
+
     try {
         showNotification('Processando', `Lendo "${file.name}"...`, 'info');
         const buffer = await file.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+        const workbook = window.XLSX.read(buffer, { type: 'array', cellDates: true });
+
         const newData = {};
         let totalRows = 0;
         const notFound = [];
@@ -645,22 +733,27 @@ async function handleFileImport(e) {
                 newData[cfg.key] = { headers: [], rows: [] };
                 continue;
             }
-            const parsed = XLSX.utils.sheet_to_json(sheet, {
+
+            const parsed = window.XLSX.utils.sheet_to_json(sheet, {
                 header: 1, defval: '', raw: false, blankrows: false
             });
+
             if (parsed.length === 0) {
                 newData[cfg.key] = { headers: [], rows: [] };
                 continue;
             }
+
             let headers = parsed[0];
             let rows = parsed.slice(1);
             if (cfg.titleRow) {
                 headers = parsed[1] || parsed[0];
                 rows = parsed.slice(2);
             }
+
             headers = headers.map(h => String(h ?? '').trim()).filter(h => h.length > 0);
             rows = rows.map(r => headers.map((_, i) => String(r[i] ?? '').trim()))
                        .filter(r => r.some(c => c !== ''));
+
             newData[cfg.key] = { headers, rows };
             totalRows += rows.length;
         }
@@ -671,18 +764,17 @@ async function handleFileImport(e) {
         }
 
         _data = newData;
-        _visibleCols = {}; // reseta as colunas visíveis no import
+        _visibleCols = {};
         saveToStorage();
         saveVisibleCols();
 
         showNotification('Importado', `${totalRows} registro(s) de ${file.name}.`, 'success');
-        try { await addHistory('Frota Excel Importação', '-', `${totalRows} registros de ${file.name}`); } catch (e) {}
+        try { await addHistory('Frota Excel Importação', '-', `${totalRows} registros de ${file.name}`); } catch (err) {}
 
         if (notFound.length > 0) {
             sstAlert(`Abas não encontradas: ${notFound.join(', ')}`, 'Aviso', 'warning');
         }
 
-        // vai para a primeira aba com dados
         const firstWithData = Object.entries(ABAS).find(([k, a]) =>
             a.sheetKey && (newData[a.sheetKey]?.rows?.length || 0) > 0
         );
@@ -690,10 +782,10 @@ async function handleFileImport(e) {
 
         renderSubTabs();
         renderActivePanel();
-        bindPanelActions();
         updateStats();
+
     } catch (err) {
-        console.error('Import error:', err);
+        console.error('[FleetExcel] Import error:', err);
         sstAlert(`Erro ao importar: ${err.message}`, 'Falha', 'danger');
     } finally {
         e.target.value = '';
@@ -701,7 +793,9 @@ async function handleFileImport(e) {
 }
 
 function normalizeName(name) {
-    return String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toLowerCase();
+    return String(name)
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '').toLowerCase();
 }
 
 // ============================================================
@@ -713,23 +807,25 @@ async function exportFleetExcel() {
         sstAlert('Não há dados para exportar.', 'Vazio', 'warning');
         return;
     }
-    if (typeof XLSX === 'undefined') {
+    if (typeof window.XLSX === 'undefined') {
         sstAlert('Biblioteca XLSX não carregada.', 'Erro', 'danger');
         return;
     }
+
     try {
-        const wb = XLSX.utils.book_new();
+        const wb = window.XLSX.utils.book_new();
         for (const [sheetName, cfg] of Object.entries(SHEETS_CONFIG)) {
             const sd = _data[cfg.key];
             if (!sd || !sd.headers?.length) continue;
             const aoa = [sd.headers, ...sd.rows];
-            const ws = XLSX.utils.aoa_to_sheet(aoa);
-            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+            const ws = window.XLSX.utils.aoa_to_sheet(aoa);
+            window.XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
         }
         const fileName = `frota_ssot_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        window.XLSX.writeFile(wb, fileName);
+
         showNotification('Exportado', fileName, 'success');
-        try { await addHistory('Frota Excel Exportação', '-', fileName); } catch (e) {}
+        try { await addHistory('Frota Excel Exportação', '-', fileName); } catch (err) {}
     } catch (err) {
         console.error(err);
         sstAlert(`Erro ao exportar: ${err.message}`, 'Erro', 'danger');
@@ -746,18 +842,21 @@ async function resetFleetExcel() {
         'danger'
     );
     if (!ok) return;
+
     _data = {};
     _visibleCols = {};
     _activeAba = 'importar';
     _searchTerm = '';
     _page = 0;
+
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     try { localStorage.removeItem(COLS_KEY); } catch (e) {}
+
     showNotification('Zerado', 'Dados da frota removidos.', 'success');
-    try { await addHistory('Frota Excel Reset', '-', 'Dados zerados'); } catch (e) {}
+    try { await addHistory('Frota Excel Reset', '-', 'Dados zerados'); } catch (err) {}
+
     renderSubTabs();
     renderActivePanel();
-    bindPanelActions();
     updateStats();
 }
 
@@ -771,7 +870,7 @@ function loadFromStorage() {
         const parsed = JSON.parse(raw);
         _data = parsed && typeof parsed === 'object' ? parsed : {};
     } catch (e) {
-        console.warn('Falha ao ler storage da frota:', e);
+        console.warn('[FleetExcel] Falha ao ler storage:', e);
         _data = {};
     }
 }
@@ -780,7 +879,7 @@ function saveToStorage() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(_data));
     } catch (e) {
-        console.warn('Falha ao salvar storage da frota:', e);
+        console.warn('[FleetExcel] Falha ao salvar storage:', e);
         if (e.name === 'QuotaExceededError') {
             sstAlert('Armazenamento cheio. Exporte e zere os dados.', 'Armazenamento cheio', 'warning');
         }
@@ -788,7 +887,7 @@ function saveToStorage() {
 }
 
 // ============================================================
-// HELPERS
+// HELPERS — badges de contagem
 // ============================================================
 function updateStats() {
     const tabs = document.querySelectorAll('#frota-subtabs .tab-inner');
@@ -796,8 +895,7 @@ function updateStats() {
         const onclick = tab.getAttribute('onclick') || '';
         const match = onclick.match(/'([^']+)'/);
         if (!match) return;
-        const key = match[1];
-        const aba = ABAS[key];
+        const aba = ABAS[match[1]];
         if (!aba || !aba.sheetKey) return;
         const count = _data[aba.sheetKey]?.rows?.length || 0;
         let badge = tab.querySelector('.tab-count');
@@ -808,12 +906,4 @@ function updateStats() {
         }
         badge.textContent = count;
     });
-}
-
-function bindPanelActions() {
-    if (_activeAba === 'importar') return;
-function bindPanelActions() {
-    if (_activeAba === 'importar') return;
-    // Nada a fazer por enquanto — ações já são bindadas via onclick inline.
-    // Mantido como hook para futuras melhorias (ex: bind de eventos delegados).
 }
