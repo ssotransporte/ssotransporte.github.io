@@ -1,11 +1,7 @@
 // ============================================================
-// SSOT - MAIN (v12.0 - Áreas: Operações / Solicitações)
+// SSOT - MAIN (v12.1 - Áreas: Operações / Solicitações)
 // ============================================================
 
-import { initFleetExcel } from './fleet-excel.js';
-
-// após login / DB pronto:
-initFleetExcel();
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, get, ref, set, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -34,6 +30,16 @@ import * as Reports from './reports.js';
 import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
 import * as Profile from './profile.js';
+
+// ✅ CORRIGIDO: as linhas abaixo foram REMOVIDAS do topo
+//    (elas executavam initFleetExcel() antes do DOM e do login existirem)
+//
+// import { initFleetExcel } from './fleet-excel.js';
+// initFleetExcel();
+//
+// A inicialização correta agora acontece APENAS em:
+//   - enterSystem()  → setFleetExcelContext(db, currentUser)
+//   - gotoAdminTab('admin-frota') → FleetExcel.initFleetExcel()
 
 let app, db, auth;
 let currentUser = null;
@@ -205,7 +211,7 @@ function setupGlobalExports() {
 }
 
 // ============================================================
-// SELEÇÃO DE ÁREA (NOVO)
+// SELEÇÃO DE ÁREA
 // ============================================================
 function showAreaSelectModal() {
     const btn = document.getElementById('area-switch-btn');
@@ -337,7 +343,7 @@ async function enterSystem() {
     Schedule.setScheduleContext(db, currentUser);
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
-    FleetExcel.setFleetExcelContext(db, currentUser);
+    FleetExcel.setFleetExcelContext(db, currentUser);   // ✅ contexto do FleetExcel
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
     Signups.setSignupsContext(db, currentUser, isAdmin);
@@ -348,7 +354,7 @@ async function enterSystem() {
         document.getElementById('user-area').classList.add('hidden');
         document.getElementById('admin-area').classList.remove('hidden');
 
-        // ✅ NOVO: verificar se já tem área salva
+        // ✅ Verificar se já tem área salva
         const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
         if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
             _areaMode = savedArea;
@@ -461,7 +467,7 @@ function gotoUserTab(tabId) {
     if (tabId === 'user-perfil') { Profile.refreshProfileState(); Profile.populateProfileForm(); }
 }
 
-// ✅ NOVO: menu adaptativo por área
+// ✅ Menu adaptativo por área
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
@@ -501,7 +507,7 @@ function renderAdminMenu() {
     else gotoAdminTab('admin-dashboard');
 }
 
-// ✅ NOVO: navegação com validação de área
+// ✅ Navegação com validação de área
 export function gotoAdminTab(tabId) {
     if (!tabId) return;
 
@@ -547,7 +553,8 @@ export function gotoAdminTab(tabId) {
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
         case 'admin-servicos': updateNetworkStatus(); break;
         case 'admin-frota':
-            FleetExcel.initFleetExcel();
+            // ✅ Inicializa o Frota Excel APENAS quando a aba é aberta
+            try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Erro ao iniciar Frota Excel:', e); }
             break;
     }
 }
@@ -772,7 +779,7 @@ function setupEventListeners() {
     document.getElementById('close-pdf-modal-btn')?.addEventListener('click', closePdfModal);
     document.getElementById('download-pdf')?.addEventListener('click', () => { Reports.exportReportPDF(false); setTimeout(closePdfModal, 1500); });
 
-    // ✅ NOVO: não permite fechar modal de área por clique fora
+    // Modal de área NÃO fecha por clique fora
     document.querySelectorAll('.modal-overlay').forEach(m => {
         m.addEventListener('click', function (e) {
             if (e.target === this) {
