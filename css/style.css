@@ -1,6 +1,6 @@
 /* ============================================================
    SSOT — SISTEMA DE SOLICITAÇÕES E OPERAÇÕES DE TRANSPORTE
-   v12.1 — Tela azul de seleção + importação reformulada
+   v13.0 — CSS final consolidado (Frota Excel integrada)
    ============================================================ */
 
 /* ============================================================
@@ -1521,7 +1521,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   24. MODAIS
+   24. MODAIS (CORRIGIDO — .hidden sobrepõe .active)
    ============================================================ */
 .modal-overlay {
     position: fixed;
@@ -1539,6 +1539,17 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     overflow-y: auto;
 }
 .modal-overlay.active { opacity: 1; visibility: visible; }
+
+/* ✅ REGRA CRÍTICA: garante que .hidden sempre prevaleça sobre .active */
+.modal-overlay.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+/* ✅ Quando o main.js chama openModal() apenas com .active (sem remover .hidden),
+   essa regra força a exibição */
+.modal-overlay.active:not(.hidden) { display: flex !important; }
+
 .modal {
     background: #fff;
     border-radius: var(--radius-md);
@@ -2024,9 +2035,9 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
     .access-btn { padding: 14px 16px; }
     .access-btn .access-text h4 { font-size: 0.95rem; }
 }
+
 /* ============================================================
    FROTA v3.0 — DASHBOARD, RELATÓRIOS E MOBILE FIX
-   (Adicionado no final — sobrescreve regras anteriores quando necessário)
    ============================================================ */
 
 /* ---------- 1) KPIs do Dashboard da Frota ---------- */
@@ -2169,16 +2180,9 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
 
 /* ---------- 5) FIX DO HEADER MOBILE ---------- */
 @media (max-width: 900px) {
-    /* Header mais compacto */
-    .header {
-        padding: 10px 14px !important;
-    }
-    .header-left h1 {
-        font-size: 1.05rem !important;
-    }
-    .page-subtitle {
-        font-size: 0.72rem !important;
-    }
+    .header { padding: 10px 14px !important; }
+    .header-left h1 { font-size: 1.05rem !important; }
+    .page-subtitle { font-size: 0.72rem !important; }
     .header-right {
         width: 100% !important;
         justify-content: flex-end !important;
@@ -2186,38 +2190,21 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
         margin-top: 8px !important;
         flex-wrap: nowrap !important;
     }
-
-    /* Botão "Trocar Área" vira apenas ícone */
     .area-switch-btn {
         padding: 7px 10px !important;
         font-size: 0 !important;
         min-width: 34px;
         justify-content: center;
     }
-    .area-switch-btn svg {
-        margin: 0 !important;
-        width: 16px;
-        height: 16px;
-    }
-    .area-switch-btn span {
-        display: none !important;
-    }
-
-    /* Avatar e nome mais compactos */
-    .user-info {
-        gap: 6px !important;
-        padding: 2px 6px !important;
-    }
+    .area-switch-btn svg { margin: 0 !important; width: 16px; height: 16px; }
+    .area-switch-btn span { display: none !important; }
+    .user-info { gap: 6px !important; padding: 2px 6px !important; }
     .user-avatar {
         width: 32px !important;
         height: 32px !important;
         font-size: 0.78rem !important;
     }
-    .user-details {
-        display: none !important;
-    }
-
-    /* Logout apenas ícone */
+    .user-details { display: none !important; }
     .logout {
         padding: 7px 10px !important;
         font-size: 0 !important;
@@ -2225,36 +2212,19 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
         min-width: 34px;
         justify-content: center;
     }
-    .logout svg {
-        width: 16px;
-        height: 16px;
-    }
-    .logout span {
-        display: none !important;
-    }
-
-    /* KPIs da frota em 2 colunas */
+    .logout svg { width: 16px; height: 16px; }
+    .logout span { display: none !important; }
     .fleet-kpi-grid {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 10px !important;
     }
-    .fleet-kpi-value {
-        font-size: 1.3rem !important;
-    }
-    .fleet-kpi-label {
-        font-size: 0.65rem !important;
-    }
-
-    /* Gráficos em 1 coluna */
+    .fleet-kpi-value { font-size: 1.3rem !important; }
+    .fleet-kpi-label { font-size: 0.65rem !important; }
     .fleet-dashboard-charts {
         grid-template-columns: 1fr !important;
         gap: 12px !important;
     }
-    .fleet-dashboard-charts .chart-wrapper {
-        height: 220px !important;
-    }
-
-    /* Filtros de relatório empilhados */
+    .fleet-dashboard-charts .chart-wrapper { height: 220px !important; }
     .fleet-report-filters {
         flex-direction: column !important;
         align-items: stretch !important;
@@ -2267,30 +2237,18 @@ body.dark-theme .frota-data-table tbody tr:nth-child(even) { background: #262626
 }
 
 @media (max-width: 520px) {
-    .fleet-kpi-grid {
-        grid-template-columns: 1fr !important;
-    }
-    .fleet-kpi-value {
-        font-size: 1.45rem !important;
-    }
-    .header {
-        padding: 8px 10px !important;
-    }
+    .fleet-kpi-grid { grid-template-columns: 1fr !important; }
+    .fleet-kpi-value { font-size: 1.45rem !important; }
+    .header { padding: 8px 10px !important; }
     .user-avatar {
         width: 30px !important;
         height: 30px !important;
         font-size: 0.72rem !important;
     }
     .area-switch-btn,
-    .logout {
-        padding: 6px 8px !important;
-        min-width: 30px;
-    }
+    .logout { padding: 6px 8px !important; min-width: 30px; }
     .frota-data-table td,
-    .frota-data-table th {
-        padding: 6px 8px !important;
-        font-size: 0.72rem !important;
-    }
+    .frota-data-table th { padding: 6px 8px !important; font-size: 0.72rem !important; }
 }
 
 /* ---------- 6) Tema escuro — Frota dashboard/relatórios ---------- */
@@ -2302,42 +2260,35 @@ body.dark-theme .fleet-dashboard-charts .chart-card {
     border-color: #3a3a3a !important;
     color: #e0e0e0 !important;
 }
-body.dark-theme .fleet-kpi-value {
-    color: #e0e0e0 !important;
-}
+body.dark-theme .fleet-kpi-value { color: #e0e0e0 !important; }
 body.dark-theme .fleet-kpi-label,
-body.dark-theme .fleet-kpi-sub {
-    color: #b0b0b0 !important;
-}
-body.dark-theme .frota-data-table {
-    background: #2a2a2a !important;
-}
+body.dark-theme .fleet-kpi-sub { color: #b0b0b0 !important; }
+body.dark-theme .frota-data-table { background: #2a2a2a !important; }
 body.dark-theme .frota-data-table thead th {
     background: linear-gradient(180deg, #2a2a2a 0%, #333 100%) !important;
     color: #e0e0e0 !important;
     border-bottom-color: #3498db !important;
 }
-body.dark-theme .frota-data-table tbody tr:hover {
-    background: #333 !important;
-}
+body.dark-theme .frota-data-table tbody tr:hover { background: #333 !important; }
 body.dark-theme .frota-data-table td {
     color: #e0e0e0 !important;
     border-color: #3a3a3a !important;
 }
+
 /* ============================================================
-   FROTA EXCEL — Estilos (v4.0)
+   FROTA EXCEL v5.0 — ESTILOS ESPECÍFICOS (consolidado)
    ============================================================ */
 
-/* Sub-tabs */
+/* Sub-tabs container (integra com .tabs-inner existente) */
 #frota-subtabs {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 16px;
     padding: 4px;
-    background: var(--surface-2, #f8f9fa);
+    background: var(--color-gray-50);
     border-radius: 10px;
-    border: 1px solid var(--border, #e9ecef);
+    border: 1px solid var(--color-gray-200);
 }
 
 #frota-subtabs .tab-inner {
@@ -2351,18 +2302,19 @@ body.dark-theme .frota-data-table td {
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-secondary, #6c757d);
+    color: var(--color-gray-600);
     transition: all 0.18s ease;
     white-space: nowrap;
+    font-family: inherit;
 }
 
 #frota-subtabs .tab-inner:hover {
-    background: var(--surface-3, #e9ecef);
-    color: var(--text-primary, #212529);
+    background: var(--color-gray-200);
+    color: var(--color-gray-800);
 }
 
 #frota-subtabs .tab-inner.active {
-    background: var(--primary, #3498db);
+    background: var(--color-primary);
     color: #fff;
     box-shadow: 0 2px 6px rgba(52, 152, 219, 0.35);
 }
@@ -2386,138 +2338,15 @@ body.dark-theme .frota-data-table td {
     color: #fff;
 }
 
-/* Painel de importação */
-.fleet-import-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.fleet-import-stat {
-    background: var(--surface-2, #f8f9fa);
-    border: 1px solid var(--border, #e9ecef);
-    border-radius: 10px;
-    padding: 16px;
-    text-align: center;
-}
-
-.fleet-import-stat-value {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--primary, #3498db);
-    line-height: 1.1;
-}
-
-.fleet-import-stat-label {
-    font-size: 12px;
-    color: var(--text-secondary, #6c757d);
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-}
-
-/* Estado vazio */
-.fleet-empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-secondary, #6c757d);
-}
-
-.fleet-empty-state .si-3x {
-    width: 56px;
-    height: 56px;
-    color: var(--border, #ced4da);
-    margin-bottom: 12px;
-}
-
-.fleet-empty-state h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary, #212529);
-    margin: 0 0 6px;
-}
-
-.fleet-empty-state p {
-    font-size: 13px;
-    margin: 0;
-}
-
-/* Tabela de dados da frota */
-.frota-table-container {
-    overflow-x: auto;
-    border: 1px solid var(--border, #e9ecef);
-    border-radius: 10px;
-    background: #fff;
-}
-
-.frota-data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-.frota-data-table thead th {
-    position: sticky;
-    top: 0;
-    background: var(--surface-2, #f8f9fa);
-    padding: 10px 12px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: var(--text-secondary, #6c757d);
-    border-bottom: 2px solid var(--border, #e9ecef);
-    white-space: nowrap;
-}
-
-.frota-data-table tbody td {
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--border, #f1f3f5);
-    color: var(--text-primary, #212529);
-    max-width: 320px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.frota-data-table tbody tr:hover {
-    background: var(--surface-2, #f8f9fa);
-}
-
-.frota-data-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.fleet-actions-col {
-    width: 1%;
-    white-space: nowrap;
-    text-align: right;
-}
-
-.fleet-row-actions {
-    display: inline-flex;
-    gap: 4px;
-}
-
-.fleet-row-actions .btn {
-    padding: 4px 8px;
-}
-
 /* Painel de colunas */
 .fleet-cols-panel {
-    background: var(--surface-2, #f8f9fa);
-    border: 1px solid var(--border, #e9ecef);
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
     border-radius: 10px;
     padding: 14px;
     margin-bottom: 16px;
 }
-
-.fleet-cols-panel.hidden {
-    display: none;
-}
-
+.fleet-cols-panel.hidden { display: none !important; }
 .fleet-cols-header {
     display: flex;
     justify-content: space-between;
@@ -2526,7 +2355,6 @@ body.dark-theme .frota-data-table td {
     flex-wrap: wrap;
     margin-bottom: 12px;
 }
-
 .fleet-cols-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -2534,7 +2362,6 @@ body.dark-theme .frota-data-table td {
     max-height: 280px;
     overflow-y: auto;
 }
-
 .fleet-col-check {
     display: flex;
     align-items: center;
@@ -2542,93 +2369,111 @@ body.dark-theme .frota-data-table td {
     padding: 6px 10px;
     border-radius: 8px;
     background: #fff;
-    border: 1px solid var(--border, #e9ecef);
+    border: 1px solid var(--color-gray-200);
     cursor: pointer;
     font-size: 13px;
     transition: all 0.15s ease;
 }
-
-.fleet-col-check:hover {
-    border-color: var(--primary, #3498db);
-}
-
+.fleet-col-check:hover { border-color: var(--color-primary); }
 .fleet-col-check.checked {
     background: rgba(52, 152, 219, 0.08);
-    border-color: var(--primary, #3498db);
+    border-color: var(--color-primary);
 }
-
 .fleet-col-check input[type="checkbox"] {
     cursor: pointer;
-    accent-color: var(--primary, #3498db);
+    accent-color: var(--color-primary);
 }
-
 .fleet-col-check span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--text-primary, #212529);
+    color: var(--color-gray-800);
 }
 
-/* Paginação */
-.fleet-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    padding: 14px 0 4px;
-    font-size: 13px;
-    color: var(--text-secondary, #6c757d);
+/* Ações da linha (Ver / Editar / Excluir) */
+.fleet-actions-col {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
+.fleet-row-actions {
+    display: inline-flex;
+    gap: 4px;
+}
+.fleet-row-actions .btn {
+    padding: 4px 8px;
+}
+.fleet-row-actions .btn svg {
+    width: 12px;
+    height: 12px;
 }
 
-/* Modal de visualização */
+/* Modal de visualização — grid de detalhes */
 .fleet-view-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 12px;
 }
-
 .fleet-view-item {
-    background: var(--surface-2, #f8f9fa);
-    border: 1px solid var(--border, #e9ecef);
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
     border-radius: 8px;
     padding: 10px 12px;
 }
-
 .fleet-view-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     font-weight: 700;
-    color: var(--text-secondary, #6c757d);
+    color: var(--color-gray-600);
     margin-bottom: 4px;
 }
-
 .fleet-view-value {
     font-size: 14px;
-    color: var(--text-primary, #212529);
+    color: var(--color-secondary);
     word-break: break-word;
 }
 
-/* Formulário CRUD */
+/* Formulário CRUD — grid de campos */
 #fleet-crud-fields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 12px;
 }
-
-#fleet-crud-fields .form-group {
-    margin: 0;
-}
-
+#fleet-crud-fields .form-group { margin: 0; }
 #fleet-crud-fields label {
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-secondary, #6c757d);
+    color: var(--color-gray-600);
     margin-bottom: 4px;
     display: block;
 }
 
-/* Responsivo */
+/* Empty state (garante consistência) */
+.fleet-empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--color-gray-500);
+}
+.fleet-empty-state .si-3x {
+    width: 56px;
+    height: 56px;
+    color: var(--color-gray-400);
+    margin-bottom: 12px;
+}
+.fleet-empty-state h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0 0 6px;
+}
+.fleet-empty-state p {
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Responsivo da Frota Excel */
 @media (max-width: 640px) {
     #frota-subtabs {
         overflow-x: auto;
@@ -2640,4 +2485,31 @@ body.dark-theme .frota-data-table td {
     #fleet-crud-fields {
         grid-template-columns: 1fr;
     }
-   }
+    .fleet-cols-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tema escuro — Frota Excel */
+body.dark-theme #frota-subtabs {
+    background: #333;
+    border-color: #444;
+}
+body.dark-theme #frota-subtabs .tab-inner { color: #ccc; }
+body.dark-theme #frota-subtabs .tab-inner:hover { background: #444; color: #fff; }
+body.dark-theme .fleet-cols-panel {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+body.dark-theme .fleet-col-check {
+    background: #333;
+    border-color: #444;
+    color: #e0e0e0;
+}
+body.dark-theme .fleet-view-item {
+    background: #333;
+    border-color: #444;
+}
+body.dark-theme .fleet-view-value { color: #e0e0e0; }
+body.dark-theme .fleet-empty-state h3 { color: #e0e0e0; }
+body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
