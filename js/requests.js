@@ -1,5 +1,6 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE TRANSPORTE (v11.1)
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v11.2)
+// PDF corrigido: delega para pdf-generator.js (1 página A4)
 // ============================================================
 
 import {
@@ -12,6 +13,7 @@ import {
     getVeiculoText, truncate
 } from './utils.js';
 
+import { generateRequestPDF } from './pdf-generator.js';
 import { addHistory } from './history.js';
 import { sstConfirm } from './dialogs.js';
 
@@ -108,7 +110,6 @@ export async function createRequest(formData) {
     return { ...req, id: newRef.key };
 }
 
-// ✅ Admin criando solicitação para alguém
 export async function createAdminRequest(formData) {
     if (!_currentUser) throw new Error('Usuário não autenticado.');
 
@@ -131,7 +132,7 @@ export async function createAdminRequest(formData) {
         necessidades: formData.necessidades,
         nomesPassageiros: formData.nomesPassageiros,
         observacoes: formData.observacoes,
-        solicitanteUid: _currentUser.uid, // o admin fica registrado como quem criou
+        solicitanteUid: _currentUser.uid,
         solicitanteEmail: formData.email,
         dataSolicitacao: new Date().toISOString().slice(0, 10),
         status: 'pendente',
@@ -192,13 +193,11 @@ export async function moveToTrash(id) {
     if (!ok) return;
 
     try {
-        // ✅ LIBERA O SLOT NA AGENDA INCONDICIONALMENTE (SE HOUVER SAÍDA)
         if (r.saida && r.saida.includes('T')) {
             const [date, time] = r.saida.split('T');
             if (date && time) {
                 try {
                     const schedule = await import('./schedule.js');
-                    // Passa "HH:MM" para a função
                     await schedule.freeSlot(date, time.substring(0, 5));
                 } catch (e) {
                     console.warn('[Requests] Falha ao liberar slot:', e);
@@ -464,7 +463,7 @@ export function viewRequest(id, adminView) {
 
     const modalEl = document.querySelector('#view-request-modal .modal');
     if (modalEl) {
-        modalEl.className = 'modal modal-fullscreen'; 
+        modalEl.className = 'modal modal-fullscreen';
     }
 
     document.getElementById('view-request-modal').classList.add('active');
@@ -516,7 +515,10 @@ export function renderTodayRequestsWidget() {
     `).join('');
 }
 
-// PDF do Comprovante
+// ============================================================
+// PDF DO COMPROVANTE — delega para pdf-generator.js
+// (produz 1 página A4 vetorial, sem "print de tela")
+// ============================================================
 export async function downloadUserRequestPDF(requestId) {
     const r = _requests.find(x => x.id === requestId);
     if (!r) {
@@ -524,93 +526,13 @@ export async function downloadUserRequestPDF(requestId) {
         return;
     }
 
-    if (!window.html2pdf) {
-        showNotification('Erro', 'Biblioteca PDF não carregada. Recarregue com Ctrl+F5.', 'danger');
-        return;
-    }
-
-    const now = new Date();
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Comprovante ${escapeHtml(r.numero)} - SSOT</title>
-<style>
-    @page { size: A4; margin: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; }
-    .a4-container { width: 210mm; min-height: 297mm; padding: 15mm; box-sizing: border-box; margin: 0 auto; background: #fff; }
-    .header { text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 20px; }
-    .header h1 { color: #2c3e50; margin: 0; font-size: 1.4em; }
-    .header p { color: #7f8c8d; margin: 6px 0 0; font-size: 0.85em; }
-    h2 { color: #2c3e50; font-size: 1em; margin-top: 20px; margin-bottom: 8px; border-bottom: 1px solid #dddddd; padding-bottom: 4px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-    .item { padding: 6px 0; border-bottom: 1px solid #eeeeee; }
-    .label { font-size: 0.72em; color: #7f8c8d; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; }
-    .value { font-size: 0.95em; color: #2c3e50; }
-    .full { grid-column: 1 / -1; }
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 0.78em; font-weight: bold; color: #ffffff; background: #d68910; }
-    .footer { margin-top: 30px; text-align: center; font-size: 0.72em; color: #7f8c8d; border-top: 1px solid #eeeeee; padding-top: 15px; }
-    .logo-icon { width: 32px; height: 32px; color: #2c3e50; margin-bottom: 5px; }
-</style>
-</head>
-<body>
-<div class="a4-container">
-<div class="header">
-    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path d="M3 17V11l2-5h14l2 5v6"/><path d="M3 11h18"/></svg>
-    <h1>SSOT - Comprovante de Solicitação</h1>
-    <p>Solicitação <strong>${escapeHtml(r.numero)}</strong></p>
-</div>
-<h2>Dados do Solicitante</h2>
-<div class="grid">
-<div class="item"><div class="label">Nome</div><div class="value">${escapeHtml(r.solicitante)}</div></div>
-<div class="item"><div class="label">E-mail</div><div class="value">${escapeHtml(r.email || '—')}</div></div>
-<div class="item"><div class="label">Ramal</div><div class="value">${escapeHtml(r.ramal || '—')}</div></div>
-<div class="item"><div class="label">Setor</div><div class="value">${escapeHtml(r.setor || '—')}</div></div>
-<div class="item"><div class="label">Cargo</div><div class="value">${escapeHtml(r.cargo || '—')}</div></div>
-<div class="item"><div class="label">Status</div><div class="value"><span class="badge">${getStatusText(r.status)}</span></div></div>
-</div>
-<h2>Detalhes da Viagem</h2>
-<div class="grid">
-<div class="item"><div class="label">Destino</div><div class="value">${escapeHtml(r.destino || '—')}</div></div>
-<div class="item"><div class="label">Origem</div><div class="value">${escapeHtml(r.origem || '—')}</div></div>
-<div class="item"><div class="label">Saída</div><div class="value">${r.saida ? formatDateTime(r.saida) : '—'}</div></div>
-<div class="item"><div class="label">Retorno</div><div class="value">${r.retorno ? formatDateTime(r.retorno) : '—'}</div></div>
-<div class="item"><div class="label">Prioridade</div><div class="value">${escapeHtml(r.prioridade || 'normal')}</div></div>
-<div class="item"><div class="label">Passageiros</div><div class="value">${escapeHtml(String(r.passageiros || '—'))}</div></div>
-<div class="item full"><div class="label">Finalidade</div><div class="value">${escapeHtml(r.finalidade || '—')}</div></div>
-${r.necessidades ? `<div class="item full"><div class="label">Necessidades Especiais</div><div class="value">${escapeHtml(r.necessidades)}</div></div>` : ''}
-${r.nomesPassageiros ? `<div class="item full"><div class="label">Passageiros</div><div class="value">${escapeHtml(r.nomesPassageiros).replace(/\n/g, '<br>')}</div></div>` : ''}
-${r.observacoes ? `<div class="item full"><div class="label">Observações</div><div class="value">${escapeHtml(r.observacoes).replace(/\n/g, '<br>')}</div></div>` : ''}
-</div>
-<div class="footer">
-<p>Emitido em ${now.toLocaleString('pt-BR')}</p>
-<p>SSOT - Sistema de Solicitações e Operações de Transporte</p>
-</div>
-</div>
-</body>
-</html>`;
-
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 999998; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.2rem; font-weight: 600; font-family: 'Segoe UI', Arial, sans-serif;`;
-    overlay.innerHTML = '<div style="text-align:center"><div style="margin-bottom:10px">📄 Gerando PDF...</div><div style="font-size:0.85rem;opacity:0.8;">Aguarde um instante</div></div>';
-    document.body.appendChild(overlay);
-
     try {
-        await window.html2pdf().set({
-            margin: 0,
-            filename: `solicitacao_${r.numero}_${now.toISOString().slice(0, 10)}.pdf`,
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(html).save();
-
-        showNotification('PDF Gerado', 'Comprovante baixado com sucesso!', 'success');
+        await generateRequestPDF(r);
         await addHistory('PDF Baixado', r.numero, `Por: ${_currentUser?.name}`);
+        showNotification('PDF Gerado', 'Comprovante baixado com sucesso!', 'success');
     } catch (err) {
         console.error('[Requests] Erro ao gerar PDF:', err);
         showNotification('Erro', 'Não foi possível gerar o PDF.', 'danger');
-    } finally {
-        overlay.remove();
     }
 }
 

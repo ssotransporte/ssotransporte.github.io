@@ -86,6 +86,7 @@
 <symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
 <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></symbol>
 <symbol id="i-google" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></symbol>
 </svg>
 
@@ -127,7 +128,6 @@
     </div>
 </div>
 
-<!-- ✅ TELA DE SELEÇÃO DE ÁREA (redesenhada — layout corporativo) -->
 <div class="modal-overlay area-select-overlay" id="area-select-modal">
     <div class="modal area-select-modal-custom">
         <div class="area-select-header">
@@ -400,7 +400,6 @@
             </div>
         </div>
 
-        <!-- USUÁRIO -->
         <div id="user-area" class="hidden">
             <div class="tab-content active" id="user-solicitacoes-tab">
                 <div class="card card-elevated">
@@ -648,7 +647,6 @@
             </div>
         </div>
 
-        <!-- ADMIN -->
         <div id="admin-area" class="hidden">
             <div class="tab-content" id="admin-dashboard-tab">
                 <div class="charts-grid">
@@ -789,7 +787,7 @@
             <div class="tab-content" id="admin-solicitacoes-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
-                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-clipboard"/></svg><h2>Solicitações</h2></div>
+                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-clipboard"/></svg><h2>Solicitações</h2><span class="card-header-count" id="admin-requests-count">0</span></div>
                         <div class="action-buttons">
                             <button id="admin-new-request-btn" class="btn btn-primary btn-sm"><svg class="si"><use href="#i-plus-circle"/></svg> Nova Solicitação</button>
                             <button id="admin-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
@@ -890,7 +888,13 @@
                 <div class="card card-elevated">
                     <div class="card-header">
                         <div class="card-header-title"><svg class="si si-fw"><use href="#i-calendar-check"/></svg><h2>Agenda</h2></div>
-                        <div class="action-buttons"><button id="refresh-slots" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button></div>
+                        <div class="action-buttons">
+                            <button id="archive-past-slots" class="btn btn-warning btn-sm" title="Arquivar dias passados">
+                                <svg class="si"><use href="#i-archive"/></svg> Arquivar Dias Passados
+                                <span class="card-header-count hidden" id="archive-count" style="margin-left:6px;background:#e67e22;">0</span>
+                            </button>
+                            <button id="refresh-slots" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="section-title"><svg class="si si-fw"><use href="#i-plus"/></svg> Adicionar Bloco de Horários</div>
@@ -914,7 +918,6 @@
                 </div>
             </div>
 
-            <!-- FROTA (as sub-abas ficam no menu superior) -->
             <div class="tab-content" id="admin-frota-tab">
                 <div id="frota-panels"></div>
             </div>
@@ -1105,7 +1108,6 @@
     </div>
 </div>
 
-<!-- MODAIS FROTA LEGADO -->
 <div class="modal-overlay" id="modal-gerenciar-veiculos">
     <div class="modal modal-large">
         <div class="modal-header"><h3>Gerenciar Veículos</h3><button class="modal-close" onclick="closeModal('modal-gerenciar-veiculos')">&times;</button></div>
@@ -1139,7 +1141,6 @@
     </div>
 </div>
 
-<!-- MODAL VER REGISTRO (Frota Excel) -->
 <div class="modal-overlay" id="fleet-view-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1155,7 +1156,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR/INCLUIR (Frota Excel) -->
 <div class="modal-overlay" id="fleet-crud-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1176,7 +1176,6 @@
     </div>
 </div>
 
-<!-- MODAL NOVA SOLICITAÇÃO (ADMIN) -->
 <div class="modal-overlay" id="admin-new-request-modal">
     <div class="modal modal-large">
         <div class="modal-header"><h3>Nova Solicitação (Admin)</h3><button class="modal-close" onclick="closeModal('admin-new-request-modal')">&times;</button></div>
@@ -1227,7 +1226,6 @@
     </div>
 </div>
 
-<!-- MODAIS GERAIS -->
 <div class="modal-overlay" id="view-request-modal">
     <div class="modal modal-fullscreen">
         <div class="modal-header"><h3 id="view-request-title">Detalhes</h3><button class="modal-close" id="close-view-modal">&times;</button></div>

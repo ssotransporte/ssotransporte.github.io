@@ -1227,21 +1227,24 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   21. ÁREA — TELA DE SELEÇÃO (redesign corporativo)
+   21. ÁREA — TELA DE SELEÇÃO (v2 - AZUL SÓLIDO/GRADIENTE, SEM ANIMAÇÃO)
    ============================================================ */
-.area-select-overlay {
-    background: rgba(15, 23, 42, 0.85) !important;
-    backdrop-filter: blur(6px) !important;
+#area-select-modal.area-select-overlay {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2471a3 55%, #1a5276 100%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
-.area-select-modal-custom {
-    background: #fff !important;
+#area-select-modal .area-select-modal-custom {
+    background: #ffffff !important;
     max-width: 780px !important;
     width: 92% !important;
     border-radius: 10px !important;
     overflow: hidden !important;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.35) !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45) !important;
     border: none !important;
+    animation: none !important;          /* sem animação de entrada */
+    transition: none !important;
 }
 
 .area-select-header {
@@ -1249,8 +1252,8 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     color: #fff;
     padding: 28px 32px 24px;
     text-align: left;
-    position: relative;
-    border-bottom: 3px solid var(--color-primary, #3498db);
+    border-bottom: 3px solid #2471a3;
+    animation: none !important;
 }
 .area-select-brand {
     display: inline-flex;
@@ -1262,12 +1265,12 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     color: rgba(255,255,255,0.85);
     margin-bottom: 18px;
 }
-.area-select-brand svg { color: var(--color-primary, #3498db); }
+.area-select-brand svg { color: #3498db; }
 .area-select-header h2 {
     font-size: 1.5rem;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 6px;
+    margin: 0 0 6px;
     letter-spacing: -0.2px;
 }
 .area-select-header p {
@@ -1288,143 +1291,90 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     margin-bottom: 20px;
 }
 
+/* CARDS — SEM transform, SEM transition */
 .area-card {
     background: #fff;
-    border: 1.5px solid var(--color-gray-200, #e9ecef);
+    border: 1.5px solid #e9ecef;
     border-radius: 8px;
     padding: 20px;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
     font-family: inherit;
     display: flex;
     flex-direction: column;
     gap: 14px;
     position: relative;
+    transition: none !important;         /* sem animação */
+    transform: none !important;
 }
 .area-card:hover {
-    border-color: var(--color-primary, #3498db);
-    box-shadow: 0 8px 20px rgba(52,152,219,0.12);
-    transform: translateY(-2px);
+    transform: none !important;          /* sem animação de hover */
+    transition: none !important;
+    border-color: #2471a3;               /* feedback via cor somente */
+    box-shadow: 0 4px 12px rgba(36,113,163,0.15);
 }
-.area-card-operacoes:hover { border-color: #d68910; box-shadow: 0 8px 20px rgba(214,137,16,0.12); }
+.area-card-operacoes:hover { border-color: #d68910; box-shadow: 0 4px 12px rgba(214,137,16,0.15); }
 
-.area-card-head {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
+.area-card-head { display: flex; align-items: center; gap: 14px; }
 .area-card-icon {
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
 }
-.area-card-operacoes .area-card-icon {
-    background: #fef3dd;
-    color: #b9770e;
-}
-.area-card-solicitacoes .area-card-icon {
-    background: #e3f0fa;
-    color: #2471a3;
-}
+.area-card-operacoes .area-card-icon { background: #fef3dd; color: #b9770e; }
+.area-card-solicitacoes .area-card-icon { background: #e3f0fa; color: #2471a3; }
 .area-card-title h3 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--color-secondary, #2c3e50);
-    margin: 0;
-    line-height: 1.2;
+    font-size: 1.05rem; font-weight: 700; color: #2c3e50;
+    margin: 0; line-height: 1.2;
 }
 .area-card-title span {
-    font-size: 0.78rem;
-    color: var(--color-gray-600, #7f8c8d);
-    font-weight: 500;
+    font-size: 0.78rem; color: #7f8c8d; font-weight: 500;
 }
 
 .area-card-features {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    border-top: 1px solid var(--color-gray-100, #f1f3f5);
-    padding-top: 12px;
+    list-style: none; padding: 12px 0 0; margin: 0;
+    display: flex; flex-direction: column; gap: 6px;
+    border-top: 1px solid #f1f3f5;
 }
 .area-card-features li {
-    font-size: 0.82rem;
-    color: var(--color-gray-700, #555);
-    padding-left: 18px;
-    position: relative;
-    line-height: 1.4;
+    font-size: 0.82rem; color: #555;
+    padding-left: 18px; position: relative; line-height: 1.4;
 }
 .area-card-features li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 7px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-primary, #3498db);
+    content: ''; position: absolute; left: 0; top: 7px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #2471a3;
 }
 .area-card-operacoes .area-card-features li::before { background: #d68910; }
 
+/* CTA — sem animação, feedback só de cor no hover */
 .area-card-cta {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    background: var(--color-gray-100, #f1f3f5);
-    color: var(--color-secondary, #2c3e50);
-    transition: background 0.18s ease, color 0.18s ease;
+    display: inline-flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 10px 14px; border-radius: 6px;
+    font-size: 0.85rem; font-weight: 600;
+    background: #f1f3f5; color: #2c3e50;
     margin-top: auto;
+    transition: none !important;
 }
-.area-card:hover .area-card-cta {
-    background: var(--color-secondary, #2c3e50);
-    color: #fff;
-}
-.area-card-operacoes:hover .area-card-cta {
-    background: #d68910;
-    color: #fff;
-}
-.area-card-solicitacoes:hover .area-card-cta {
-    background: #2471a3;
-    color: #fff;
-}
+.area-card:hover .area-card-cta { background: #2c3e50; color: #fff; }
+.area-card-operacoes:hover .area-card-cta { background: #d68910; color: #fff; }
+.area-card-solicitacoes:hover .area-card-cta { background: #2471a3; color: #fff; }
 
 .area-select-footer {
-    text-align: center;
-    font-size: 0.78rem;
-    color: var(--color-gray-600, #7f8c8d);
-    margin: 0;
-    padding-top: 4px;
+    text-align: center; font-size: 0.78rem;
+    color: #7f8c8d; margin: 0; padding-top: 4px;
 }
-.area-select-footer strong {
-    color: var(--color-gray-700, #555);
-    font-weight: 600;
-}
+.area-select-footer strong { color: #555; font-weight: 600; }
 
 .area-switch-btn {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 6px;
-    background: #fff !important;
-    border: 1px solid var(--color-gray-300, #dee2e6) !important;
-    color: var(--color-gray-700, #555) !important;
-    font-size: 0.82rem;
+    display: inline-flex !important; align-items: center; gap: 6px;
+    background: #fff !important; border: 1px solid #dee2e6 !important;
+    color: #555 !important; font-size: 0.82rem;
 }
 .area-switch-btn:hover {
-    border-color: var(--color-primary, #3498db) !important;
-    color: var(--color-primary, #3498db) !important;
-    background: var(--color-primary-light, #eaf4fc) !important;
+    border-color: #2471a3 !important; color: #2471a3 !important;
+    background: #eaf4fc !important;
 }
 .area-switch-btn.hidden { display: none !important; }
 
@@ -2621,4 +2571,75 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
         justify-content: center;
         font-size: 0.8rem;
     }
+}
+/* ============================================================
+   NOVOS BOTÕES DA FROTA — Filtrar / Pesquisar / Adicionar
+   ============================================================ */
+.fleet-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+}
+.fleet-toolbar .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.fleet-toolbar .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Badge do botão "Arquivar Dias Passados" */
+#archive-past-slots { position: relative; }
+#archive-past-slots .archive-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: #c0392b; color: #fff;
+    font-size: 0.65rem; font-weight: 700;
+    border-radius: 10px;
+    padding: 1px 6px;
+    min-width: 18px; text-align: center; line-height: 1.4;
+}
+#archive-past-slots.has-archive { border-color: #c0392b; }
+
+/* ============================================================
+   RESPONSIVO — Área de seleção + botões em telas pequenas
+   ============================================================ */
+@media (max-width: 640px) {
+    .area-select-modal-custom {
+        width: 96% !important;
+        max-width: 96% !important;
+        margin: 8px !important;
+        border-radius: 8px !important;
+    }
+    .area-select-header { padding: 20px 20px 18px; }
+    .area-select-header h2 { font-size: 1.2rem; }
+    .area-select-header p { font-size: 0.8rem; }
+    .area-select-brand { margin-bottom: 12px; font-size: 0.85rem; }
+    .area-select-body { padding: 18px 16px 16px; }
+    .area-cards-grid { grid-template-columns: 1fr; gap: 12px; }
+    .area-card { padding: 16px; gap: 12px; }
+    .area-card-icon { width: 40px; height: 40px; }
+    .area-card-title h3 { font-size: 1rem; }
+    .area-card-features li { font-size: 0.78rem; }
+    .area-card-cta { padding: 10px 12px; font-size: 0.82rem; }
+    .area-select-footer { font-size: 0.72rem; padding-top: 8px; }
+
+    .fleet-toolbar {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 6px;
+    }
+    .fleet-toolbar .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        justify-content: center;
+        font-size: 0.78rem;
+        padding: 8px 10px;
+    }
+    .fleet-toolbar .btn svg { width: 13px; height: 13px; }
 }
