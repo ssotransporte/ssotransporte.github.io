@@ -1,9 +1,13 @@
 // ============================================================
-// SSOT · Gerador de PDF do comprovante
-// Layout compacto no topo + fontes maiores
+// SSOT · Gerador de PDF v3
+// Correções: sem min-height (evita 2ª página) + CSS no <head>
+// + fontes maiores + layout compacto no topo
 // ============================================================
 
 import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
+
+const PDF_VERSION = 'v3-2024-11-03';
+console.log('[PDF] Módulo carregado:', PDF_VERSION);
 
 const safe = (v, fallback = '—') => {
     if (v === null || v === undefined || v === '') return fallback;
@@ -12,7 +16,168 @@ const safe = (v, fallback = '—') => {
 const e = (v, fallback = '—') => escapeHtml(safe(v, fallback));
 
 // ============================================================
-// Template (classes prefixadas com ssotpdf- para não colidir)
+// CSS injetado no <head> (garante aplicação)
+// ============================================================
+const PDF_CSS_ID = 'ssot-pdf-styles';
+
+function injectStyles() {
+    if (document.getElementById(PDF_CSS_ID)) return;
+    const style = document.createElement('style');
+    style.id = PDF_CSS_ID;
+    style.textContent = `
+      .ssotpdf-doc {
+        width: 210mm !important;
+        height: auto !important;
+        padding: 8mm 10mm !important;
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 14px !important;
+        line-height: 1.35 !important;
+        box-sizing: border-box !important;
+        display: block !important;
+      }
+      .ssotpdf-doc * {
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .ssotpdf-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        border-bottom: 2px solid #1e3a5f !important;
+        padding-bottom: 6px !important;
+        margin-bottom: 8px !important;
+      }
+      .ssotpdf-brand {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+      }
+      .ssotpdf-logo {
+        width: 48px !important;
+        height: 48px !important;
+        background: #1e3a5f !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 26px !important;
+        font-weight: bold !important;
+      }
+      .ssotpdf-brand h1 {
+        font-size: 22px !important;
+        color: #1e3a5f !important;
+        font-weight: bold !important;
+        line-height: 1.1 !important;
+      }
+      .ssotpdf-brand p {
+        font-size: 11px !important;
+        color: #666 !important;
+        margin-top: 3px !important;
+      }
+      .ssotpdf-meta {
+        text-align: right !important;
+        font-size: 11px !important;
+        color: #555 !important;
+      }
+      .ssotpdf-num {
+        font-size: 20px !important;
+        font-weight: bold !important;
+        color: #1e3a5f !important;
+        margin-bottom: 3px !important;
+      }
+      .ssotpdf-badge {
+        display: inline-block !important;
+        padding: 3px 10px !important;
+        border-radius: 10px !important;
+        font-size: 11px !important;
+        font-weight: bold !important;
+        background: #e8eef5 !important;
+        color: #1e3a5f !important;
+      }
+      .ssotpdf-section {
+        font-size: 14px !important;
+        font-weight: bold !important;
+        color: #1e3a5f !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        border-left: 4px solid #1e3a5f !important;
+        padding-left: 8px !important;
+        margin: 10px 0 4px !important;
+        line-height: 1.2 !important;
+      }
+      .ssotpdf-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 2px 14px !important;
+      }
+      .ssotpdf-grid-3 { grid-template-columns: 1fr 1fr 1fr !important; }
+      .ssotpdf-field {
+        padding: 2px 0 !important;
+        border-bottom: 1px dotted #ddd !important;
+      }
+      .ssotpdf-full { grid-column: 1 / -1 !important; }
+      .ssotpdf-label {
+        font-size: 10px !important;
+        color: #777 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3px !important;
+        margin-bottom: 1px !important;
+        font-weight: bold !important;
+      }
+      .ssotpdf-value {
+        font-size: 13px !important;
+        color: #111 !important;
+        font-weight: 500 !important;
+        line-height: 1.3 !important;
+      }
+      .ssotpdf-sig {
+        text-align: center !important;
+        margin-top: 14px !important;
+      }
+      .ssotpdf-sig-line {
+        border-top: 1px solid #333 !important;
+        width: 240px !important;
+        margin: 20px auto 4px !important;
+      }
+      .ssotpdf-sig-label {
+        font-size: 11px !important;
+        color: #555 !important;
+      }
+      .ssotpdf-footer {
+        margin-top: 12px !important;
+        padding-top: 8px !important;
+        border-top: 1px solid #ccc !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        font-size: 10.5px !important;
+        color: #666 !important;
+      }
+      .ssotpdf-qr-wrap {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+      }
+      .ssotpdf-qr-wrap img {
+        width: 70px !important;
+        height: 70px !important;
+        display: block !important;
+      }
+      .ssotpdf-qr-label {
+        font-size: 10px !important;
+        color: #666 !important;
+        max-width: 120px !important;
+      }
+    `;
+    document.head.appendChild(style);
+}
+
+// ============================================================
+// Template
 // ============================================================
 function buildRequestHTML(r) {
     const numero       = e(r.numero);
@@ -41,113 +206,6 @@ function buildRequestHTML(r) {
     const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLink)}`;
 
     return `
-    <style>
-      .ssotpdf-doc,
-      .ssotpdf-doc * {
-        box-sizing: border-box !important;
-        margin: 0;
-        padding: 0;
-      }
-      .ssotpdf-doc {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        width: 210mm !important;
-        min-height: 297mm !important;
-        padding: 10mm 12mm !important;   /* topo mais enxuto */
-        background: #ffffff !important;
-        color: #1a1a1a !important;
-        font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 12px !important;      /* base maior */
-        line-height: 1.4 !important;
-      }
-      .ssotpdf-doc .ssotpdf-header {
-        display: flex !important;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 2px solid #1e3a5f;
-        padding-bottom: 8px;
-        margin-bottom: 10px;
-      }
-      .ssotpdf-doc .ssotpdf-brand { display: flex !important; align-items: center; gap: 10px; }
-      .ssotpdf-doc .ssotpdf-logo {
-        width: 46px; height: 46px;
-        background: #1e3a5f !important;
-        color: #ffffff !important;
-        border-radius: 8px;
-        display: flex !important; align-items: center; justify-content: center;
-        font-size: 24px; font-weight: bold;
-      }
-      .ssotpdf-doc .ssotpdf-brand h1 { font-size: 18px !important; color: #1e3a5f !important; }
-      .ssotpdf-doc .ssotpdf-brand p  { font-size: 10px !important; color: #666 !important; margin-top: 2px; }
-      .ssotpdf-doc .ssotpdf-meta { text-align: right; font-size: 10px !important; color: #555 !important; }
-      .ssotpdf-doc .ssotpdf-meta .ssotpdf-num {
-        font-size: 16px !important; font-weight: bold;
-        color: #1e3a5f !important; margin-bottom: 2px;
-      }
-      .ssotpdf-doc .ssotpdf-badge {
-        display: inline-block !important;
-        padding: 2px 9px;
-        border-radius: 10px;
-        font-size: 10px !important;
-        font-weight: bold;
-        background: #e8eef5 !important;
-        color: #1e3a5f !important;
-      }
-      .ssotpdf-doc .ssotpdf-section {
-        font-size: 12px !important;      /* título de seção maior */
-        font-weight: bold;
-        color: #1e3a5f !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-left: 3px solid #1e3a5f;
-        padding-left: 8px;
-        margin: 10px 0 5px;              /* menos espaço entre seções */
-      }
-      .ssotpdf-doc .ssotpdf-grid {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 4px 12px;                   /* gap vertical menor */
-      }
-      .ssotpdf-doc .ssotpdf-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-      .ssotpdf-doc .ssotpdf-field {
-        padding: 3px 0;                  /* campo mais compacto */
-        border-bottom: 1px dotted #ddd;
-      }
-      .ssotpdf-doc .ssotpdf-field.ssotpdf-full { grid-column: 1 / -1; }
-      .ssotpdf-doc .ssotpdf-label {
-        font-size: 9px !important;       /* label maior */
-        color: #888 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        margin-bottom: 1px;
-      }
-      .ssotpdf-doc .ssotpdf-value {
-        font-size: 11.5px !important;    /* valor maior */
-        color: #111 !important;
-        font-weight: 500;
-      }
-      .ssotpdf-doc .ssotpdf-sig { text-align: center; margin-top: 14px; }
-      .ssotpdf-doc .ssotpdf-sig-line {
-        border-top: 1px solid #333;
-        width: 220px;
-        margin: 22px auto 4px;
-      }
-      .ssotpdf-doc .ssotpdf-sig-label { font-size: 10px !important; color: #555 !important; }
-      .ssotpdf-doc .ssotpdf-footer {
-        margin-top: 14px;                /* footer mais próximo */
-        padding-top: 8px;
-        border-top: 1px solid #ccc;
-        display: flex !important;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 9.5px !important;
-        color: #666 !important;
-      }
-      .ssotpdf-doc .ssotpdf-qr-wrap { display: flex !important; align-items: center; gap: 10px; }
-      .ssotpdf-doc .ssotpdf-qr-wrap img { width: 65px; height: 65px; display: block !important; }
-      .ssotpdf-doc .ssotpdf-qr-label { font-size: 9px !important; color: #666 !important; max-width: 110px; }
-    </style>
     <div class="ssotpdf-doc">
       <div class="ssotpdf-header">
         <div class="ssotpdf-brand">
@@ -208,43 +266,27 @@ function buildRequestHTML(r) {
 }
 
 // ============================================================
-// Geração do PDF (mantida igual)
+// Geração do PDF
 // ============================================================
 export async function generateRequestPDF(request) {
+    console.log('[PDF] generateRequestPDF chamado', PDF_VERSION, '| numero:', request?.numero);
+
     if (!request) { console.error('[PDF] request vazio'); return; }
     if (typeof window.html2pdf === 'undefined') {
-        alert('Biblioteca de PDF não carregada. Recarregue a página (Ctrl+Shift+R).');
+        alert('Biblioteca PDF não carregada. Recarregue com Ctrl+Shift+R.');
         return;
     }
 
+    injectStyles();
+
     const wrapper = document.createElement('div');
     wrapper.id = 'ssot-pdf-render';
-    wrapper.style.cssText = [
-        'position: fixed',
-        'top: 0',
-        'left: 0',
-        'width: 210mm',
-        'background: #ffffff',
-        'z-index: 99990',
-        'pointer-events: none'
-    ].join(';');
+    wrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;background:#fff;z-index:99990;pointer-events:none;';
     wrapper.innerHTML = buildRequestHTML(request);
     document.body.appendChild(wrapper);
 
     const overlay = document.createElement('div');
-    overlay.style.cssText = [
-        'position: fixed',
-        'inset: 0',
-        'z-index: 99999',
-        'background: rgba(0,0,0,0.75)',
-        'display: flex',
-        'align-items: center',
-        'justify-content: center',
-        'color: #ffffff',
-        'font-family: Arial, sans-serif',
-        'font-size: 18px',
-        'font-weight: 600'
-    ].join(';');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;font-size:20px;font-weight:600;';
     overlay.textContent = 'Gerando PDF...';
     document.body.appendChild(overlay);
 
@@ -261,23 +303,16 @@ export async function generateRequestPDF(request) {
         })));
 
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-        await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 100));
 
         const docEl = wrapper.querySelector('.ssotpdf-doc');
-        if (!docEl) throw new Error('Template do PDF não encontrado.');
+        if (!docEl) throw new Error('Template não encontrado.');
 
         const cs = window.getComputedStyle(docEl);
-        console.log('[PDF] display=%s visibility=%s opacity=%s dims=%dx%d',
-            cs.display, cs.visibility, cs.opacity,
-            docEl.offsetWidth, docEl.offsetHeight);
+        console.log('[PDF] Computed: font-size=%s padding=%s display=%s dims=%dx%d',
+            cs.fontSize, cs.padding, cs.display, docEl.offsetWidth, docEl.offsetHeight);
 
-        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) {
-            throw new Error(`Elemento invisível (display=${cs.display}, visibility=${cs.visibility}, opacity=${cs.opacity})`);
-        }
-        if (docEl.offsetWidth < 100 || docEl.offsetHeight < 100) {
-            throw new Error(`Dimensões inválidas: ${docEl.offsetWidth}×${docEl.offsetHeight}`);
-        }
-
+        // ⭐ FIX das 2 páginas: pagebreak avoid-all
         await window.html2pdf().set({
             margin: 0,
             filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
@@ -289,7 +324,8 @@ export async function generateRequestPDF(request) {
                 logging: false,
                 backgroundColor: '#ffffff'
             },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all'] }
         }).from(docEl).save();
 
         console.log('[PDF] Gerado com sucesso.');
