@@ -1,6 +1,6 @@
 // ============================================================
 // SSOT · Gerador de PDF do comprovante
-// Correção: elemento visível no viewport + sem scrollX/Y + CSS isolado
+// Layout compacto no topo + fontes maiores
 // ============================================================
 
 import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
@@ -54,99 +54,99 @@ function buildRequestHTML(r) {
         opacity: 1 !important;
         width: 210mm !important;
         min-height: 297mm !important;
-        padding: 14mm 15mm !important;
+        padding: 10mm 12mm !important;   /* topo mais enxuto */
         background: #ffffff !important;
         color: #1a1a1a !important;
         font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 11px !important;
-        line-height: 1.45 !important;
+        font-size: 12px !important;      /* base maior */
+        line-height: 1.4 !important;
       }
       .ssotpdf-doc .ssotpdf-header {
         display: flex !important;
         align-items: center;
         justify-content: space-between;
         border-bottom: 2px solid #1e3a5f;
-        padding-bottom: 10px;
-        margin-bottom: 14px;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
       }
       .ssotpdf-doc .ssotpdf-brand { display: flex !important; align-items: center; gap: 10px; }
       .ssotpdf-doc .ssotpdf-logo {
-        width: 44px; height: 44px;
+        width: 46px; height: 46px;
         background: #1e3a5f !important;
         color: #ffffff !important;
         border-radius: 8px;
         display: flex !important; align-items: center; justify-content: center;
-        font-size: 22px; font-weight: bold;
+        font-size: 24px; font-weight: bold;
       }
-      .ssotpdf-doc .ssotpdf-brand h1 { font-size: 16px !important; color: #1e3a5f !important; }
-      .ssotpdf-doc .ssotpdf-brand p  { font-size: 9px !important; color: #666 !important; margin-top: 2px; }
-      .ssotpdf-doc .ssotpdf-meta { text-align: right; font-size: 9px !important; color: #555 !important; }
+      .ssotpdf-doc .ssotpdf-brand h1 { font-size: 18px !important; color: #1e3a5f !important; }
+      .ssotpdf-doc .ssotpdf-brand p  { font-size: 10px !important; color: #666 !important; margin-top: 2px; }
+      .ssotpdf-doc .ssotpdf-meta { text-align: right; font-size: 10px !important; color: #555 !important; }
       .ssotpdf-doc .ssotpdf-meta .ssotpdf-num {
-        font-size: 14px !important; font-weight: bold;
+        font-size: 16px !important; font-weight: bold;
         color: #1e3a5f !important; margin-bottom: 2px;
       }
       .ssotpdf-doc .ssotpdf-badge {
         display: inline-block !important;
-        padding: 2px 8px;
+        padding: 2px 9px;
         border-radius: 10px;
-        font-size: 9px !important;
+        font-size: 10px !important;
         font-weight: bold;
         background: #e8eef5 !important;
         color: #1e3a5f !important;
       }
       .ssotpdf-doc .ssotpdf-section {
-        font-size: 11px !important;
+        font-size: 12px !important;      /* título de seção maior */
         font-weight: bold;
         color: #1e3a5f !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         border-left: 3px solid #1e3a5f;
         padding-left: 8px;
-        margin: 14px 0 8px;
+        margin: 10px 0 5px;              /* menos espaço entre seções */
       }
       .ssotpdf-doc .ssotpdf-grid {
         display: grid !important;
         grid-template-columns: 1fr 1fr;
-        gap: 6px 14px;
+        gap: 4px 12px;                   /* gap vertical menor */
       }
       .ssotpdf-doc .ssotpdf-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
       .ssotpdf-doc .ssotpdf-field {
-        padding: 4px 0;
+        padding: 3px 0;                  /* campo mais compacto */
         border-bottom: 1px dotted #ddd;
       }
       .ssotpdf-doc .ssotpdf-field.ssotpdf-full { grid-column: 1 / -1; }
       .ssotpdf-doc .ssotpdf-label {
-        font-size: 8px !important;
+        font-size: 9px !important;       /* label maior */
         color: #888 !important;
         text-transform: uppercase;
         letter-spacing: 0.3px;
         margin-bottom: 1px;
       }
       .ssotpdf-doc .ssotpdf-value {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;    /* valor maior */
         color: #111 !important;
         font-weight: 500;
       }
-      .ssotpdf-doc .ssotpdf-sig { text-align: center; margin-top: 18px; }
+      .ssotpdf-doc .ssotpdf-sig { text-align: center; margin-top: 14px; }
       .ssotpdf-doc .ssotpdf-sig-line {
         border-top: 1px solid #333;
-        width: 200px;
-        margin: 24px auto 4px;
+        width: 220px;
+        margin: 22px auto 4px;
       }
-      .ssotpdf-doc .ssotpdf-sig-label { font-size: 8.5px !important; color: #555 !important; }
+      .ssotpdf-doc .ssotpdf-sig-label { font-size: 10px !important; color: #555 !important; }
       .ssotpdf-doc .ssotpdf-footer {
-        margin-top: 22px;
-        padding-top: 10px;
+        margin-top: 14px;                /* footer mais próximo */
+        padding-top: 8px;
         border-top: 1px solid #ccc;
         display: flex !important;
         justify-content: space-between;
         align-items: center;
-        font-size: 8.5px !important;
+        font-size: 9.5px !important;
         color: #666 !important;
       }
       .ssotpdf-doc .ssotpdf-qr-wrap { display: flex !important; align-items: center; gap: 10px; }
-      .ssotpdf-doc .ssotpdf-qr-wrap img { width: 70px; height: 70px; display: block !important; }
-      .ssotpdf-doc .ssotpdf-qr-label { font-size: 8px !important; color: #666 !important; max-width: 110px; }
+      .ssotpdf-doc .ssotpdf-qr-wrap img { width: 65px; height: 65px; display: block !important; }
+      .ssotpdf-doc .ssotpdf-qr-label { font-size: 9px !important; color: #666 !important; max-width: 110px; }
     </style>
     <div class="ssotpdf-doc">
       <div class="ssotpdf-header">
@@ -208,7 +208,7 @@ function buildRequestHTML(r) {
 }
 
 // ============================================================
-// Geração do PDF
+// Geração do PDF (mantida igual)
 // ============================================================
 export async function generateRequestPDF(request) {
     if (!request) { console.error('[PDF] request vazio'); return; }
@@ -217,7 +217,6 @@ export async function generateRequestPDF(request) {
         return;
     }
 
-    // 1. Wrapper VISÍVEL no viewport, acima de tudo (mas escondido por overlay)
     const wrapper = document.createElement('div');
     wrapper.id = 'ssot-pdf-render';
     wrapper.style.cssText = [
@@ -232,7 +231,6 @@ export async function generateRequestPDF(request) {
     wrapper.innerHTML = buildRequestHTML(request);
     document.body.appendChild(wrapper);
 
-    // 2. Overlay "Gerando PDF..." que cobre tudo enquanto captura
     const overlay = document.createElement('div');
     overlay.style.cssText = [
         'position: fixed',
@@ -251,10 +249,8 @@ export async function generateRequestPDF(request) {
     document.body.appendChild(overlay);
 
     try {
-        // 3. Espera fontes
         try { if (document.fonts?.ready) await document.fonts.ready; } catch (_) {}
 
-        // 4. Espera imagens (QR) com timeout
         const imgs = wrapper.querySelectorAll('img');
         await Promise.all(Array.from(imgs).map(img => new Promise(res => {
             if (img.complete && img.naturalWidth > 0) return res();
@@ -264,11 +260,9 @@ export async function generateRequestPDF(request) {
             setTimeout(done, 3000);
         })));
 
-        // 5. Dois frames para o layout assentar
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         await new Promise(r => setTimeout(r, 150));
 
-        // 6. Verifica dimensões e estilos computados
         const docEl = wrapper.querySelector('.ssotpdf-doc');
         if (!docEl) throw new Error('Template do PDF não encontrado.');
 
@@ -284,7 +278,6 @@ export async function generateRequestPDF(request) {
             throw new Error(`Dimensões inválidas: ${docEl.offsetWidth}×${docEl.offsetHeight}`);
         }
 
-        // 7. Gera o PDF — SEM scrollX/Y/windowWidth/windowHeight
         await window.html2pdf().set({
             margin: 0,
             filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
