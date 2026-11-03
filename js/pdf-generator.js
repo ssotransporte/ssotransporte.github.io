@@ -1,308 +1,253 @@
 // ============================================================
-// SSOT · PDF GENERATOR (v1.0)
-// Gera PDF profissional em 1 página (A4) usando html2pdf
+// SSOT · Gerador de PDF (comprovante de solicitação)
+// Gera 1 página A4 real, sem "print de tela" e sem páginas em branco
 // ============================================================
 
-/**
- * Gera PDF de uma solicitação individual — profissional, 1 página.
- * @param {Object} request — objeto completo da solicitação
- */
-export async function generateRequestPDF(request) {
-    if (!request) { window.alert('Solicitação inválida.'); return; }
+import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
 
+// Helper defensivo: nunca retorna undefined/null, sempre string
+const safe = (v, fallback = '—') => {
+    if (v === null || v === undefined || v === '') return fallback;
+    return String(v);
+};
+
+const e = (v, fallback = '—') => escapeHtml(safe(v, fallback));
+
+// ============================================================
+// Template HTML do comprovante (CSS 100% inline)
+// ============================================================
+function buildRequestHTML(r) {
+    const numero     = e(r.numero);
+    const solicitante = e(r.solicitante);
+    const email      = e(r.email);
+    const ramal      = e(r.ramal);
+    const setor      = e(r.setor);
+    const cargo      = e(r.cargo);
+    const destino    = e(r.destino);
+    const origem     = e(r.origem);
+    const finalidade = e(r.finalidade);
+    const prioridade = e(r.prioridade, 'normal');
+    const saida      = r.saida   ? formatDateTime(r.saida)   : '—';
+    const retorno    = r.retorno ? formatDateTime(r.retorno) : '—';
+    const passageiros = e(r.passageiros, '1');
+    const veiculo    = r.veiculo ? getVeiculoText(r.veiculo) : '—';
+    const necessidades = e(r.necessidades);
+    const nomesPassageiros = e(r.nomesPassageiros, '—').replace(/\n/g, '<br>');
+    const observacoes = e(r.observacoes, '—').replace(/\n/g, '<br>');
+    const status     = e(getStatusText(r.status), 'Pendente');
+    const criadoEm   = r.timestamp ? formatDateTime(r.timestamp) : '—';
+    const emitidoEm = formatDateTime(new Date().toISOString());
+
+    const baseUrl = window.location.origin + window.location.pathname;
+    const deepLink = `${baseUrl}?request=${encodeURIComponent(r.id || '')}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLink)}`;
+
+    return `
+    <style>
+      .pdf-doc, .pdf-doc * { box-sizing: border-box; margin: 0; padding: 0; }
+      .pdf-doc {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 14mm 15mm;
+        background: #ffffff;
+        color: #1a1a1a;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+      .pdf-doc .header {
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 2px solid #1e3a5f;
+        padding-bottom: 10px; margin-bottom: 14px;
+      }
+      .pdf-doc .brand { display: flex; align-items: center; gap: 10px; }
+      .pdf-doc .brand-logo {
+        width: 44px; height: 44px;
+        background: #1e3a5f; color: #fff;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; font-weight: bold;
+      }
+      .pdf-doc .brand-text h1 { font-size: 16px; color: #1e3a5f; }
+      .pdf-doc .brand-text p  { font-size: 9px; color: #666; margin-top: 2px; }
+      .pdf-doc .header-meta { text-align: right; font-size: 9px; color: #555; }
+      .pdf-doc .header-meta .numero {
+        font-size: 14px; font-weight: bold; color: #1e3a5f; margin-bottom: 2px;
+      }
+      .pdf-doc .badge {
+        display: inline-block; padding: 2px 8px; border-radius: 10px;
+        font-size: 9px; font-weight: bold; background: #e8eef5; color: #1e3a5f;
+      }
+      .pdf-doc .section-title {
+        font-size: 11px; font-weight: bold; color: #1e3a5f;
+        text-transform: uppercase; letter-spacing: 0.5px;
+        border-left: 3px solid #1e3a5f;
+        padding-left: 8px; margin: 14px 0 8px;
+      }
+      .pdf-doc .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+      .pdf-doc .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+      .pdf-doc .field { padding: 4px 0; border-bottom: 1px dotted #ddd; }
+      .pdf-doc .field.full { grid-column: 1 / -1; }
+      .pdf-doc .field .label {
+        font-size: 8px; color: #888;
+        text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;
+      }
+      .pdf-doc .field .value { font-size: 10.5px; color: #111; font-weight: 500; }
+      .pdf-doc .footer {
+        margin-top: 22px; padding-top: 10px;
+        border-top: 1px solid #ccc;
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 8.5px; color: #666;
+      }
+      .pdf-doc .qr-wrap { display: flex; align-items: center; gap: 10px; }
+      .pdf-doc .qr-wrap img { width: 70px; height: 70px; display: block; }
+      .pdf-doc .qr-label { font-size: 8px; color: #666; max-width: 110px; }
+      .pdf-doc .sig { text-align: center; margin-top: 18px; }
+      .pdf-doc .sig-line { border-top: 1px solid #333; width: 200px; margin: 24px auto 4px; }
+      .pdf-doc .sig-label { font-size: 8.5px; color: #555; }
+    </style>
+    <div class="pdf-doc">
+      <div class="header">
+        <div class="brand">
+          <div class="brand-logo">S</div>
+          <div class="brand-text">
+            <h1>SSOT</h1>
+            <p>Sistema de Solicitações e Operações de Transporte</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <div class="numero">${numero}</div>
+          <div>Emitido em ${emitidoEm}</div>
+          <div style="margin-top:4px;"><span class="badge">${status}</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">Dados do Solicitante</div>
+      <div class="grid grid-3">
+        <div class="field"><div class="label">Nome</div><div class="value">${solicitante}</div></div>
+        <div class="field"><div class="label">E-mail</div><div class="value">${email}</div></div>
+        <div class="field"><div class="label">Ramal</div><div class="value">${ramal}</div></div>
+        <div class="field"><div class="label">Setor</div><div class="value">${setor}</div></div>
+        <div class="field"><div class="label">Cargo</div><div class="value">${cargo}</div></div>
+        <div class="field"><div class="label">Prioridade</div><div class="value">${prioridade}</div></div>
+      </div>
+
+      <div class="section-title">Detalhes da Viagem</div>
+      <div class="grid">
+        <div class="field"><div class="label">Destino</div><div class="value">${destino}</div></div>
+        <div class="field"><div class="label">Origem</div><div class="value">${origem}</div></div>
+        <div class="field"><div class="label">Saída</div><div class="value">${saida}</div></div>
+        <div class="field"><div class="label">Retorno</div><div class="value">${retorno}</div></div>
+        <div class="field"><div class="label">Passageiros</div><div class="value">${passageiros}</div></div>
+        <div class="field"><div class="label">Veículo</div><div class="value">${veiculo}</div></div>
+        <div class="field full"><div class="label">Finalidade</div><div class="value">${finalidade}</div></div>
+        <div class="field full"><div class="label">Nomes dos Passageiros</div><div class="value">${nomesPassageiros}</div></div>
+        <div class="field full"><div class="label">Necessidades Especiais</div><div class="value">${necessidades}</div></div>
+        <div class="field full"><div class="label">Observações</div><div class="value">${observacoes}</div></div>
+      </div>
+
+      <div class="sig">
+        <div class="sig-line"></div>
+        <div class="sig-label">Assinatura do Solicitante</div>
+      </div>
+
+      <div class="footer">
+        <div class="qr-wrap">
+          <img src="${qrUrl}" alt="QR" crossorigin="anonymous">
+          <div class="qr-label">Escaneie para abrir esta solicitação no sistema.</div>
+        </div>
+        <div style="text-align:right;">
+          <div>Criado em ${criadoEm}</div>
+          <div>Documento gerado pelo SSOT</div>
+        </div>
+      </div>
+    </div>
+    `;
+}
+
+// ============================================================
+// Geração do PDF (A4, 1 página, alta qualidade)
+// ============================================================
+export async function generateRequestPDF(request) {
+    if (!request) {
+        console.error('[PDF] request vazio');
+        return;
+    }
     if (typeof window.html2pdf === 'undefined') {
-        window.alert('Biblioteca de PDF não carregada. Recarregue a página.');
+        alert('Biblioteca de PDF não carregada. Recarregue a página.');
         return;
     }
 
-    const container = buildContainer(request);
-    document.body.appendChild(container);
+    // 1) Cria container REAL, anexado ao DOM, com dimensões reais.
+    //    Posicionado fora da tela (NÃO usar display:none — html2canvas não vê).
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = [
+        'position: fixed',
+        'left: -10000px',
+        'top: 0',
+        'width: 210mm',
+        'background: #ffffff',
+        'z-index: 1',
+        'pointer-events: none'
+    ].join(';');
+    wrapper.innerHTML = buildRequestHTML(request);
+    document.body.appendChild(wrapper);
+
+    // 2) Espera as fontes carregarem (evita texto virar blocos)
+    try {
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+    } catch (_) { /* ignorar */ }
+
+    // 3) Espera o QR Code carregar (com timeout — se falhar, PDF sai sem QR)
+    const img = wrapper.querySelector('img');
+    if (img) {
+        await new Promise((resolve) => {
+            if (img.complete && img.naturalWidth > 0) return resolve();
+            const done = () => resolve();
+            img.addEventListener('load', done, { once: true });
+            img.addEventListener('error', done, { once: true });
+            setTimeout(done, 4000);
+        });
+    }
+
+    // 4) Dá 2 frames para o layout assentar (evita capturar antes do paint)
+    await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+    await new Promise(res => setTimeout(res, 120));
+
+    // 5) Gera o PDF a partir do .pdf-doc (o <style> continua ativo no DOM)
+    const docEl = wrapper.querySelector('.pdf-doc');
+    if (!docEl) {
+        document.body.removeChild(wrapper);
+        throw new Error('Template do PDF não encontrado.');
+    }
 
     try {
         await window.html2pdf().set({
-            margin: [12, 12, 12, 12],
-            filename: `solicitacao_${request.numero || 'SSOT'}.pdf`,
+            margin: 0,
+            filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
-                scale: 3,
+                scale: 2,
                 useCORS: true,
-                letterRendering: true,
+                allowTaint: false,
                 logging: false,
-                windowWidth: 794
+                backgroundColor: '#ffffff',
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: docEl.scrollWidth,
+                windowHeight: docEl.scrollHeight
             },
             jsPDF: {
                 unit: 'mm',
                 format: 'a4',
-                orientation: 'portrait',
-                compress: true
+                orientation: 'portrait'
             },
             pagebreak: { mode: ['css', 'legacy'] }
-        }).from(container).save();
-    } catch (err) {
-        console.error('[PDF]', err);
-        window.alert('Falha ao gerar PDF: ' + err.message);
+        }).from(docEl).save();
     } finally {
-        document.body.removeChild(container);
+        // 6) Sempre limpa o container, mesmo em erro
+        if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
     }
-}
-
-/**
- * Gera PDF de uma lista de solicitações (relatório) — paisagem, tabular.
- */
-export async function generateReportPDF(requests, titulo = 'Relatório de Solicitações') {
-    if (!Array.isArray(requests) || requests.length === 0) {
-        window.alert('Não há dados para exportar.');
-        return;
-    }
-
-    if (typeof window.html2pdf === 'undefined') {
-        window.alert('Biblioteca de PDF não carregada.');
-        return;
-    }
-
-    const container = buildReportContainer(requests, titulo);
-    document.body.appendChild(container);
-
-    try {
-        await window.html2pdf().set({
-            margin: [12, 12, 12, 12],
-            filename: `relatorio_${new Date().toISOString().slice(0, 10)}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2.5, useCORS: true, logging: false, windowWidth: 1123 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-            pagebreak: { mode: ['css', 'legacy'] }
-        }).from(container).save();
-    } catch (err) {
-        console.error('[PDF]', err);
-        window.alert('Falha ao gerar PDF: ' + err.message);
-    } finally {
-        document.body.removeChild(container);
-    }
-}
-
-// ============================================================
-// CONSTRUÇÃO DO HTML (estilo A4)
-// ============================================================
-function buildContainer(request) {
-    const div = document.createElement('div');
-    div.className = 'pdf-a4';
-    div.style.cssText = `
-        width: 210mm;
-        min-height: 297mm;
-        padding: 14mm;
-        box-sizing: border-box;
-        background: #fff;
-        color: #1a1a1a;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 11pt;
-        line-height: 1.4;
-        position: absolute;
-        left: -9999px;
-        top: 0;
-    `;
-
-    const esc = (v) => {
-        if (v === null || v === undefined || v === '') return '—';
-        return String(v)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    };
-    const fmtDate = (v) => {
-        if (!v) return '—';
-        try {
-            if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
-                const d = new Date(v);
-                return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            }
-            if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                const [y, m, d] = v.split('-');
-                return `${d}/${m}/${y}`;
-            }
-            return String(v);
-        } catch (e) { return String(v); }
-    };
-
-    const statusLabel = {
-        pendente: 'Pendente',
-        aprovada: 'Aprovada',
-        recusada: 'Recusada',
-        'em-andamento': 'Em Andamento',
-        concluida: 'Concluída',
-        cancelada: 'Cancelada'
-    }[request.status] || request.status || '—';
-
-    const prioridadeLabel = {
-        baixa: 'Baixa', normal: 'Normal', alta: 'Alta', urgente: 'Urgente'
-    }[request.prioridade] || request.prioridade || 'Normal';
-
-    div.innerHTML = `
-        <header style="border-bottom:3px solid #2c3e50;padding-bottom:10px;margin-bottom:14px;">
-            <table style="width:100%;border-collapse:collapse;">
-                <tr>
-                    <td style="vertical-align:middle;">
-                        <div style="font-size:18pt;font-weight:800;color:#1a252f;letter-spacing:1px;">SSOT</div>
-                        <div style="font-size:9pt;color:#7f8c8d;margin-top:2px;">Sistema de Solicitações e Operações de Transporte</div>
-                    </td>
-                    <td style="text-align:right;vertical-align:middle;">
-                        <div style="font-size:13pt;font-weight:700;color:#2c3e50;">Solicitação nº ${esc(request.numero)}</div>
-                        <div style="font-size:9pt;color:#7f8c8d;margin-top:2px;">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
-                    </td>
-                </tr>
-            </table>
-        </header>
-
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Dados do Solicitante</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:10pt;">
-                <tr>
-                    <td style="padding:4px 0;width:25%;color:#7f8c8d;font-weight:600;">Nome</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.solicitante)}</td>
-                    <td style="padding:4px 0;width:20%;color:#7f8c8d;font-weight:600;">E-mail</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.email)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Setor</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.setor)}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Ramal</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.ramal)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Cargo</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.cargo)}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Prioridade</td>
-                    <td style="padding:4px 0;color:#1a1a1a;font-weight:700;">${esc(prioridadeLabel)}</td>
-                </tr>
-            </table>
-        </section>
-
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Dados da Viagem</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:10pt;">
-                <tr>
-                    <td style="padding:4px 0;width:25%;color:#7f8c8d;font-weight:600;">Origem</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.origem)}</td>
-                    <td style="padding:4px 0;width:20%;color:#7f8c8d;font-weight:600;">Destino</td>
-                    <td style="padding:4px 0;color:#1a1a1a;font-weight:700;">${esc(request.destino)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Finalidade</td>
-                    <td style="padding:4px 0;color:#1a1a1a;" colspan="3">${esc(request.finalidade)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Saída</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(fmtDate(request.saida))}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Retorno</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(fmtDate(request.retorno))}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Passageiros</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${esc(request.passageiros || '1')}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Status</td>
-                    <td style="padding:4px 0;color:#1a1a1a;font-weight:700;">${esc(statusLabel)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Necessidades</td>
-                    <td style="padding:4px 0;color:#1a1a1a;" colspan="3">${esc(request.necessidades)}</td>
-                </tr>
-            </table>
-        </section>
-
-        ${request.nomesPassageiros ? `
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Passageiros</h2>
-            <div style="font-size:10pt;color:#1a1a1a;background:#f8f9fa;padding:8px 10px;border-radius:4px;white-space:pre-wrap;">${esc(request.nomesPassageiros)}</div>
-        </section>` : ''}
-
-        ${request.observacoes ? `
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Observações</h2>
-            <div style="font-size:10pt;color:#1a1a1a;background:#f8f9fa;padding:8px 10px;border-radius:4px;white-space:pre-wrap;">${esc(request.observacoes)}</div>
-        </section>` : ''}
-
-        <footer style="margin-top:22px;padding-top:10px;border-top:1px solid #dee2e6;font-size:8pt;color:#adb5bd;text-align:center;">
-            Documento gerado eletronicamente pelo SSOT · ${new Date().getFullYear()} · ssotransporte
-        </footer>
-    `;
-    return div;
-}
-
-function buildReportContainer(requests, titulo) {
-    const div = document.createElement('div');
-    div.className = 'pdf-a4-landscape';
-    div.style.cssText = `
-        width: 297mm;
-        min-height: 210mm;
-        padding: 12mm;
-        box-sizing: border-box;
-        background: #fff;
-        color: #1a1a1a;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 9pt;
-        line-height: 1.35;
-        position: absolute;
-        left: -9999px;
-        top: 0;
-    `;
-
-    const esc = (v) => (v == null || v === '') ? '—' : String(v)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    const fmt = (v) => {
-        if (!v) return '—';
-        try {
-            if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
-                return new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            }
-            return String(v);
-        } catch (e) { return String(v); }
-    };
-
-    const rows = requests.map((r, i) => `
-        <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f9fa'};">
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;font-weight:600;">${esc(r.numero)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;">${esc(r.solicitante)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;">${esc(r.setor)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;">${esc(r.destino)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;white-space:nowrap;">${esc(fmt(r.saida))}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;">${esc(r.prioridade || 'normal')}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;">${esc(r.status || 'pendente')}</td>
-        </tr>
-    `).join('');
-
-    div.innerHTML = `
-        <header style="border-bottom:3px solid #2c3e50;padding-bottom:8px;margin-bottom:10px;">
-            <table style="width:100%;border-collapse:collapse;">
-                <tr>
-                    <td style="vertical-align:middle;">
-                        <div style="font-size:16pt;font-weight:800;color:#1a252f;letter-spacing:1px;">SSOT</div>
-                        <div style="font-size:8pt;color:#7f8c8d;">Relatório de Transporte</div>
-                    </td>
-                    <td style="text-align:right;vertical-align:middle;">
-                        <div style="font-size:12pt;font-weight:700;color:#2c3e50;">${esc(titulo)}</div>
-                        <div style="font-size:8pt;color:#7f8c8d;">${requests.length} registro(s) · ${new Date().toLocaleString('pt-BR')}</div>
-                    </td>
-                </tr>
-            </table>
-        </header>
-
-        <table style="width:100%;border-collapse:collapse;font-size:9pt;">
-            <thead>
-                <tr style="background:#2c3e50;color:#fff;">
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Nº</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:left;font-weight:700;">Solicitante</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:left;font-weight:700;">Setor</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:left;font-weight:700;">Destino</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Saída</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Prioridade</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Status</th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-        </table>
-
-        <footer style="margin-top:14px;padding-top:8px;border-top:1px solid #dee2e6;font-size:7.5pt;color:#adb5bd;text-align:center;">
-            Documento gerado eletronicamente pelo SSOT · ${new Date().getFullYear()}
-        </footer>
-    `;
-    return div;
 }
