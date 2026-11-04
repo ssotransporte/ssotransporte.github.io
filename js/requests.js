@@ -1,8 +1,6 @@
 // ============================================================
-// SSOT · SOLICITAÇÕES DE TRANSPORTE · v11.5
-// - PDF delegado para pdf-generator.js v6 (QR base64, 1 página A4)
-// - Cache busting no import do PDF
-// - Validações e proteções defensivas
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v11.2)
+// PDF corrigido: delega para pdf-generator.js (1 página A4)
 // ============================================================
 
 import {
@@ -15,18 +13,10 @@ import {
     getVeiculoText, truncate
 } from './utils.js';
 
-// ⭐ Cache busting: o ?v=6 força o browser a baixar o v6 do pdf-generator
-import { generateRequestPDF } from './pdf-generator.js?v=6';
-
+import { generateRequestPDF } from './pdf-generator.js';
 import { addHistory } from './history.js';
 import { sstConfirm } from './dialogs.js';
 
-const MODULE_VERSION = 'v11.5';
-console.log('[Requests] ✅ Módulo carregado:', MODULE_VERSION, 'em', new Date().toISOString());
-
-// ============================================================
-// ESTADO
-// ============================================================
 let _db = null;
 let _currentUser = null;
 let _requests = [];
@@ -42,28 +32,20 @@ export function setRequestsContext(db, currentUser) {
 export function getRequests() { return _requests; }
 export function setRequestsHighlight(id) { _highlightedId = id; }
 
-// ============================================================
-// SUBSCRIBE
-// ============================================================
 export function subscribeRequests(callback) {
     if (!_db) return null;
     if (_unsub) { try { _unsub(); } catch (e) {} }
 
     _unsub = onValue(ref(_db, 'requests'), (snap) => {
-        try {
-            _requests = [];
-            snap.forEach(child => {
-                _requests.push({ ...child.val(), id: child.key });
-            });
-            _nextNumber = computeNextNumber();
-
-            try { if (callback) callback(_requests); } catch (err) { console.error('[Requests] callback:', err); }
-            try { updateAllTables(); } catch (err) { console.error('[Requests] updateAllTables:', err); }
-            try { updateRequestsCount(); } catch (err) { console.error('[Requests] updateRequestsCount:', err); }
-        } catch (err) {
-            console.error('[Requests] Erro no snapshot:', err);
-        }
-    }, (error) => console.error('[Requests] onValue error:', error));
+        _requests = [];
+        snap.forEach(child => {
+            _requests.push({ ...child.val(), id: child.key });
+        });
+        _nextNumber = computeNextNumber();
+        if (callback) callback(_requests);
+        updateAllTables();
+        updateRequestsCount();
+    }, (error) => console.error('[Requests]', error));
 
     return _unsub;
 }
@@ -72,9 +54,6 @@ export function unsubscribeRequests() {
     if (_unsub) { try { _unsub(); } catch (e) {} _unsub = null; }
 }
 
-// ============================================================
-// NUMERAÇÃO
-// ============================================================
 function computeNextNumber() {
     if (_requests.length === 0) return 1;
     let max = 0;
@@ -86,7 +65,7 @@ function computeNextNumber() {
 }
 
 export function generateNextNumero() {
-    return 'SSOT' + String(_nextNumber).padStart(5, '0');
+    return 'SSOT' + _nextNumber.toString().padStart(5, '0');
 }
 
 // ============================================================
@@ -94,9 +73,6 @@ export function generateNextNumero() {
 // ============================================================
 export async function createRequest(formData) {
     if (!_currentUser) throw new Error('Usuário não autenticado.');
-    if (!formData?.destino || !formData?.finalidade) {
-        throw new Error('Destino e finalidade são obrigatórios.');
-    }
 
     const numero = generateNextNumero();
     const req = {
@@ -110,7 +86,7 @@ export async function createRequest(formData) {
         origem: formData.origem || '',
         finalidade: formData.finalidade,
         prioridade: formData.prioridade || 'normal',
-        saida: formData.saida || '',
+        saida: formData.saida,
         retorno: formData.retorno || '',
         passageiros: formData.passageiros || '1',
         veiculo: formData.veiculo || 'carro',
@@ -136,9 +112,6 @@ export async function createRequest(formData) {
 
 export async function createAdminRequest(formData) {
     if (!_currentUser) throw new Error('Usuário não autenticado.');
-    if (!formData?.destino || !formData?.finalidade) {
-        throw new Error('Destino e finalidade são obrigatórios.');
-    }
 
     const numero = generateNextNumero();
     const req = {
@@ -197,7 +170,7 @@ export async function changeRequestStatus(id, newStatus) {
         showNotification('Atualizado',
             `Solicitação ${r.numero}: ${getStatusText(newStatus)}.`, 'success');
     } catch (err) {
-        console.error('[Requests] changeRequestStatus:', err);
+        console.error(err);
         showNotification('Erro', 'Não foi possível atualizar.', 'danger');
     }
 }
@@ -226,9 +199,8 @@ export async function moveToTrash(id) {
                 try {
                     const schedule = await import('./schedule.js');
                     await schedule.freeSlot(date, time.substring(0, 5));
-                    console.log('[Requests] Slot liberado:', date, time.substring(0, 5));
                 } catch (e) {
-                    console.warn('[Requests] Falha ao liberar slot (não bloqueia exclusão):', e);
+                    console.warn('[Requests] Falha ao liberar slot:', e);
                 }
             }
         }
@@ -247,7 +219,7 @@ export async function moveToTrash(id) {
 
         showNotification('Excluída', `Solicitação ${r.numero} movida para lixeira.`, 'success');
     } catch (err) {
-        console.error('[Requests] moveToTrash:', err);
+        console.error(err);
         showNotification('Erro', 'Não foi possível excluir.', 'danger');
     }
 }
@@ -423,99 +395,85 @@ export function setupRequestFilters() {
 // ============================================================
 // VIEW REQUEST
 // ============================================================
-function buildRequestQRUrl(requestId) {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const deepLinkUrl = `${baseUrl}?request=${encodeURIComponent(requestId)}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLinkUrl)}`;
-}
-
 export function viewRequest(id, adminView) {
     const r = _requests.find(x => x.id === id);
-    if (!r) {
-        showNotification('Aviso', 'Solicitação não encontrada (pode ter sido removida).', 'warning');
-        return;
-    }
+    if (!r) return;
 
-    const titleEl = document.getElementById('view-request-title');
-    if (titleEl) titleEl.textContent = `Solicitação ${r.numero}`;
+    document.getElementById('view-request-title').textContent = `Solicitação ${r.numero}`;
 
-    const detailsEl = document.getElementById('request-details');
-    if (detailsEl) {
-        detailsEl.innerHTML = `
-            <div class="detail-group"><div class="detail-label">Nº</div><div class="detail-value"><strong>${escapeHtml(r.numero)}</strong></div></div>
-            <div class="detail-group"><div class="detail-label">Status</div><div class="detail-value"><span class="badge ${getStatusBadgeClass(r.status)}">${getStatusText(r.status)}</span></div></div>
-            <div class="detail-group"><div class="detail-label">Prioridade</div><div class="detail-value"><span class="badge ${getPrioridadeBadgeClass(r.prioridade)}">${r.prioridade || 'normal'}</span></div></div>
-            <div class="detail-group"><div class="detail-label">Solicitante</div><div class="detail-value">${escapeHtml(r.solicitante)}</div></div>
-            <div class="detail-group"><div class="detail-label">E-mail</div><div class="detail-value">${escapeHtml(r.email || '—')}</div></div>
-            <div class="detail-group"><div class="detail-label">Ramal</div><div class="detail-value">${escapeHtml(r.ramal || '—')}</div></div>
-            <div class="detail-group"><div class="detail-label">Setor</div><div class="detail-value">${escapeHtml(r.setor || '—')}</div></div>
-            ${r.cargo ? `<div class="detail-group"><div class="detail-label">Cargo</div><div class="detail-value">${escapeHtml(r.cargo)}</div></div>` : ''}
-            <div class="detail-group"><div class="detail-label">Destino</div><div class="detail-value">${escapeHtml(r.destino)}</div></div>
-            <div class="detail-group"><div class="detail-label">Origem</div><div class="detail-value">${escapeHtml(r.origem || '—')}</div></div>
-            <div class="detail-group detail-full"><div class="detail-label">Finalidade</div><div class="detail-value">${escapeHtml(r.finalidade || '—')}</div></div>
-            <div class="detail-group"><div class="detail-label">Saída</div><div class="detail-value">${r.saida ? formatDateTime(r.saida) : '—'}</div></div>
-            <div class="detail-group"><div class="detail-label">Retorno</div><div class="detail-value">${r.retorno ? formatDateTime(r.retorno) : '—'}</div></div>
-            <div class="detail-group"><div class="detail-label">Passageiros</div><div class="detail-value">${escapeHtml(String(r.passageiros || '—'))}</div></div>
-            ${r.veiculo ? `<div class="detail-group"><div class="detail-label">Veículo</div><div class="detail-value">${getVeiculoText(r.veiculo)}</div></div>` : ''}
-            ${r.necessidades ? `<div class="detail-group detail-full"><div class="detail-label">Necessidades</div><div class="detail-value">${escapeHtml(r.necessidades)}</div></div>` : ''}
-            ${r.nomesPassageiros ? `<div class="detail-group detail-full"><div class="detail-label">Passageiros</div><div class="detail-value">${escapeHtml(r.nomesPassageiros).replace(/\n/g, '<br>')}</div></div>` : ''}
-            ${r.observacoes ? `<div class="detail-group detail-full"><div class="detail-label">Observações</div><div class="detail-value">${escapeHtml(r.observacoes).replace(/\n/g, '<br>')}</div></div>` : ''}
-            <div class="detail-group"><div class="detail-label">Criado em</div><div class="detail-value">${formatDateTime(r.timestamp)}</div></div>
-        `;
-    }
+    document.getElementById('request-details').innerHTML = `
+        <div class="detail-group"><div class="detail-label">Nº</div><div class="detail-value"><strong>${escapeHtml(r.numero)}</strong></div></div>
+        <div class="detail-group"><div class="detail-label">Status</div><div class="detail-value"><span class="badge ${getStatusBadgeClass(r.status)}">${getStatusText(r.status)}</span></div></div>
+        <div class="detail-group"><div class="detail-label">Prioridade</div><div class="detail-value"><span class="badge ${getPrioridadeBadgeClass(r.prioridade)}">${r.prioridade || 'normal'}</span></div></div>
+        <div class="detail-group"><div class="detail-label">Solicitante</div><div class="detail-value">${escapeHtml(r.solicitante)}</div></div>
+        <div class="detail-group"><div class="detail-label">E-mail</div><div class="detail-value">${escapeHtml(r.email || '—')}</div></div>
+        <div class="detail-group"><div class="detail-label">Ramal</div><div class="detail-value">${escapeHtml(r.ramal || '—')}</div></div>
+        <div class="detail-group"><div class="detail-label">Setor</div><div class="detail-value">${escapeHtml(r.setor || '—')}</div></div>
+        ${r.cargo ? `<div class="detail-group"><div class="detail-label">Cargo</div><div class="detail-value">${escapeHtml(r.cargo)}</div></div>` : ''}
+        <div class="detail-group"><div class="detail-label">Destino</div><div class="detail-value">${escapeHtml(r.destino)}</div></div>
+        <div class="detail-group"><div class="detail-label">Origem</div><div class="detail-value">${escapeHtml(r.origem || '—')}</div></div>
+        <div class="detail-group detail-full"><div class="detail-label">Finalidade</div><div class="detail-value">${escapeHtml(r.finalidade || '—')}</div></div>
+        <div class="detail-group"><div class="detail-label">Saída</div><div class="detail-value">${r.saida ? formatDateTime(r.saida) : '—'}</div></div>
+        <div class="detail-group"><div class="detail-label">Retorno</div><div class="detail-value">${r.retorno ? formatDateTime(r.retorno) : '—'}</div></div>
+        <div class="detail-group"><div class="detail-label">Passageiros</div><div class="detail-value">${escapeHtml(String(r.passageiros || '—'))}</div></div>
+        ${r.veiculo ? `<div class="detail-group"><div class="detail-label">Veículo</div><div class="detail-value">${getVeiculoText(r.veiculo)}</div></div>` : ''}
+        ${r.necessidades ? `<div class="detail-group detail-full"><div class="detail-label">Necessidades</div><div class="detail-value">${escapeHtml(r.necessidades)}</div></div>` : ''}
+        ${r.nomesPassageiros ? `<div class="detail-group detail-full"><div class="detail-label">Passageiros</div><div class="detail-value">${escapeHtml(r.nomesPassageiros).replace(/\n/g, '<br>')}</div></div>` : ''}
+        ${r.observacoes ? `<div class="detail-group detail-full"><div class="detail-label">Observações</div><div class="detail-value">${escapeHtml(r.observacoes).replace(/\n/g, '<br>')}</div></div>` : ''}
+        <div class="detail-group"><div class="detail-label">Criado em</div><div class="detail-value">${formatDateTime(r.timestamp)}</div></div>
+    `;
 
     const qr = document.getElementById('view-qr-code');
     if (qr) {
-        qr.innerHTML = `<img src="${buildRequestQRUrl(r.id)}" style="width:100%;height:100%;" alt="QR Code">`;
+        const baseUrl = window.location.origin + window.location.pathname;
+        const deepLinkUrl = `${baseUrl}?request=${encodeURIComponent(r.id)}`;
+        qr.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLinkUrl)}" style="width:100%;height:100%;" alt="QR Code">`;
     }
 
     const footer = document.getElementById('view-modal-footer');
-    if (footer) {
-        footer.innerHTML = '';
+    footer.innerHTML = '';
 
-        if (adminView) {
-            let buttons = '';
-            if (r.status === 'pendente') {
-                buttons += `
-                    <button class="btn btn-success" onclick="changeStatus('${r.id}', 'aprovada')"><svg class="si"><use href="#i-check"/></svg> Aprovar</button>
-                    <button class="btn btn-warning" onclick="changeStatus('${r.id}', 'recusada')"><svg class="si"><use href="#i-x"/></svg> Recusar</button>
-                `;
-            }
-            if (r.status === 'aprovada') {
-                buttons += `<button class="btn btn-primary" onclick="changeStatus('${r.id}', 'em-andamento')"><svg class="si"><use href="#i-play"/></svg> Iniciar</button>`;
-            }
-            if (r.status === 'em-andamento') {
-                buttons += `<button class="btn btn-info" onclick="changeStatus('${r.id}', 'concluida')"><svg class="si"><use href="#i-flag"/></svg> Concluir</button>`;
-            }
+    if (adminView) {
+        let buttons = '';
+        if (r.status === 'pendente') {
             buttons += `
-                <button class="btn btn-danger" onclick="deleteRequest('${r.id}')"><svg class="si"><use href="#i-trash"/></svg> Excluir</button>
-                <button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>
+                <button class="btn btn-success" onclick="changeStatus('${r.id}', 'aprovada')"><svg class="si"><use href="#i-check"/></svg> Aprovar</button>
+                <button class="btn btn-warning" onclick="changeStatus('${r.id}', 'recusada')"><svg class="si"><use href="#i-x"/></svg> Recusar</button>
             `;
-            footer.innerHTML = buttons;
-        } else {
-            let buttons = `<button class="btn btn-success" onclick="window.downloadUserRequestPDF('${r.id}')"><svg class="si"><use href="#i-file-pdf"/></svg> Baixar PDF</button>`;
-            if (r.status === 'pendente') {
-                buttons += `<button class="btn btn-danger" onclick="changeStatus('${r.id}', 'cancelada')"><svg class="si"><use href="#i-ban"/></svg> Cancelar</button>`;
-            }
-            buttons += `<button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>`;
-            footer.innerHTML = buttons;
         }
+        if (r.status === 'aprovada') {
+            buttons += `<button class="btn btn-primary" onclick="changeStatus('${r.id}', 'em-andamento')"><svg class="si"><use href="#i-play"/></svg> Iniciar</button>`;
+        }
+        if (r.status === 'em-andamento') {
+            buttons += `<button class="btn btn-info" onclick="changeStatus('${r.id}', 'concluida')"><svg class="si"><use href="#i-flag"/></svg> Concluir</button>`;
+        }
+        buttons += `
+            <button class="btn btn-danger" onclick="deleteRequest('${r.id}')"><svg class="si"><use href="#i-trash"/></svg> Excluir</button>
+            <button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>
+        `;
+        footer.innerHTML = buttons;
+    } else {
+        let buttons = `<button class="btn btn-success" onclick="window.downloadUserRequestPDF('${r.id}')"><svg class="si"><use href="#i-file-pdf"/></svg> Baixar PDF</button>`;
+        if (r.status === 'pendente') {
+            buttons += `<button class="btn btn-danger" onclick="changeStatus('${r.id}', 'cancelada')"><svg class="si"><use href="#i-ban"/></svg> Cancelar</button>`;
+        }
+        buttons += `<button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>`;
+        footer.innerHTML = buttons;
     }
 
     const modalEl = document.querySelector('#view-request-modal .modal');
-    if (modalEl) modalEl.className = 'modal modal-fullscreen';
+    if (modalEl) {
+        modalEl.className = 'modal modal-fullscreen';
+    }
 
-    document.getElementById('view-request-modal')?.classList.add('active');
+    document.getElementById('view-request-modal').classList.add('active');
 }
 
 export function closeViewModal() {
     document.getElementById('view-request-modal')?.classList.remove('active');
 }
 
-// ============================================================
-// CONTADOR
-// ============================================================
-export function updateRequestsCount() {
+function updateRequestsCount() {
     const adminCount = document.getElementById('admin-requests-count');
     if (adminCount) adminCount.textContent = _requests.length;
 
@@ -529,9 +487,6 @@ export function updateRequestsCount() {
     }
 }
 
-// ============================================================
-// WIDGET DASHBOARD
-// ============================================================
 export function renderTodayRequestsWidget() {
     const container = document.getElementById('dashboard-today-requests');
     if (!container) return;
@@ -561,7 +516,8 @@ export function renderTodayRequestsWidget() {
 }
 
 // ============================================================
-// PDF DO COMPROVANTE
+// PDF DO COMPROVANTE — delega para pdf-generator.js
+// (produz 1 página A4 vetorial, sem "print de tela")
 // ============================================================
 export async function downloadUserRequestPDF(requestId) {
     const r = _requests.find(x => x.id === requestId);
@@ -572,11 +528,7 @@ export async function downloadUserRequestPDF(requestId) {
 
     try {
         await generateRequestPDF(r);
-        try {
-            await addHistory('PDF Baixado', r.numero, `Por: ${_currentUser?.name}`);
-        } catch (e) {
-            console.warn('[Requests] Falha ao registrar PDF no histórico (não bloqueia):', e);
-        }
+        await addHistory('PDF Baixado', r.numero, `Por: ${_currentUser?.name}`);
         showNotification('PDF Gerado', 'Comprovante baixado com sucesso!', 'success');
     } catch (err) {
         console.error('[Requests] Erro ao gerar PDF:', err);
@@ -584,9 +536,6 @@ export async function downloadUserRequestPDF(requestId) {
     }
 }
 
-// ============================================================
-// GLOBALS (para onclick inline no HTML)
-// ============================================================
 window.viewRequest = viewRequest;
 window.closeViewModal = closeViewModal;
 window.downloadUserRequestPDF = downloadUserRequestPDF;
