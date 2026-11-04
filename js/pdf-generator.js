@@ -16,7 +16,7 @@ import {
 } from './utils.js';
 
 // ⭐ Cache busting: o ?v=6 força o browser a baixar o v6 do pdf-generator
-import { generateRequestPDF } from './pdf-generator.js?v=6';
+import { generateRequestPDF } from './pdf-generator.js?v=7';
 
 import { addHistory } from './history.js';
 import { sstConfirm } from './dialogs.js';
