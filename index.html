@@ -82,19 +82,32 @@
 <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
 </svg>
 
-<!-- LOADING -->
+<!-- ============================================================
+     LOADING (com botão de fallback "Está demorando?")
+     ============================================================ -->
 <div id="conn-loading" class="conn-loading">
     <div class="loading-content">
-        <div class="loading-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+        <div class="loading-logo">
+            <svg class="si si-3x"><use href="#i-car"/></svg>
+        </div>
         <div class="spinner"></div>
         <div class="loading-title">Conectando ao sistema...</div>
+        <div id="conn-loading-hint" style="margin-top:18px;font-size:0.85rem;opacity:0;transition:opacity 0.3s;">
+            <button onclick="window.__ssotForceShowLogin && window.__ssotForceShowLogin('manual')"
+                    style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-family:inherit;">
+                Está demorando? Clique para ir ao login
+            </button>
+        </div>
     </div>
 </div>
 
-<!-- LOGIN -->
+<!-- ============================================================
+     LOGIN
+     ============================================================ -->
 <div id="login-page" class="login-container hidden">
     <div class="login-card">
 
+        <!-- Tela: seleção de acesso -->
         <div id="screen-select">
             <div class="login-header">
                 <div class="login-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
@@ -130,6 +143,7 @@
             </div>
         </div>
 
+        <!-- Tela: login -->
         <div id="screen-login" class="hidden">
             <div class="back-link" onclick="backToSelect()">
                 <svg class="si"><use href="#i-arrow-left"/></svg> Voltar
@@ -183,6 +197,7 @@
             </div>
         </div>
 
+        <!-- Tela: requerimento -->
         <div id="screen-requerimento" class="hidden">
             <div class="back-link" onclick="backToSelect()">
                 <svg class="si"><use href="#i-arrow-left"/></svg> Voltar
@@ -252,9 +267,12 @@
     </div>
 </div>
 
-<!-- APP -->
+<!-- ============================================================
+     APP
+     ============================================================ -->
 <div id="app-container" class="container hidden">
 
+    <!-- TOP MENU -->
     <nav class="top-menu">
         <div class="top-menu-left">
             <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Menu">
@@ -280,8 +298,10 @@
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
+    <!-- MAIN -->
     <main class="main-content">
 
+        <!-- HEADER -->
         <div class="header">
             <div class="header-left">
                 <div class="breadcrumb">
@@ -306,8 +326,11 @@
             </div>
         </div>
 
-        <!-- ÁREA DO USUÁRIO -->
+        <!-- ====================================================
+             ÁREA DO USUÁRIO
+             ==================================================== -->
         <div id="user-area" class="hidden">
+
             <div id="user-solicitacoes-tab" class="tab-content">
                 <div class="card card-elevated">
                     <div class="card-header">
@@ -319,15 +342,24 @@
                     <div class="card-body">
                         <form id="user-request-form">
                             <div class="form-tabs">
-                                <button type="button" class="form-tab active" data-form-tab="solicitante"><svg class="si"><use href="#i-user"/></svg> Solicitante</button>
-                                <button type="button" class="form-tab" data-form-tab="viagem"><svg class="si"><use href="#i-route"/></svg> Viagem</button>
-                                <button type="button" class="form-tab" data-form-tab="detalhes"><svg class="si"><use href="#i-file-text"/></svg> Detalhes</button>
+                                <button type="button" class="form-tab active" data-form-tab="solicitante">
+                                    <svg class="si"><use href="#i-user"/></svg> Solicitante
+                                </button>
+                                <button type="button" class="form-tab" data-form-tab="viagem">
+                                    <svg class="si"><use href="#i-route"/></svg> Viagem
+                                </button>
+                                <button type="button" class="form-tab" data-form-tab="detalhes">
+                                    <svg class="si"><use href="#i-file-text"/></svg> Detalhes
+                                </button>
                             </div>
 
                             <div class="form-tab-content active" data-form-content="solicitante">
                                 <div class="user-highlight">
                                     <svg class="si si-fw"><use href="#i-user"/></svg>
-                                    <div><strong>Seus dados</strong><p>Preencha as informações do solicitante.</p></div>
+                                    <div>
+                                        <strong>Seus dados</strong>
+                                        <p>Preencha as informações do solicitante.</p>
+                                    </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-col"><div class="form-group"><label>Solicitante *</label><input type="text" id="u-solicitante" class="form-control" required></div></div>
@@ -475,7 +507,9 @@
             </div>
         </div>
 
-        <!-- ÁREA DO ADMIN -->
+        <!-- ====================================================
+             ÁREA DO ADMIN
+             ==================================================== -->
         <div id="admin-area" class="hidden">
 
             <div id="admin-dashboard-tab" class="tab-content">
@@ -555,8 +589,13 @@
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>Nº</th><th>Solicitante</th><th>Setor</th><th>Destino</th>
-                                        <th>Saída</th><th>Prioridade</th><th>Status</th>
+                                        <th>Nº</th>
+                                        <th>Solicitante</th>
+                                        <th>Setor</th>
+                                        <th>Destino</th>
+                                        <th>Saída</th>
+                                        <th>Prioridade</th>
+                                        <th>Status</th>
                                         <th class="table-actions-col">Ações</th>
                                     </tr>
                                 </thead>
@@ -856,9 +895,10 @@
 </div>
 
 <!-- ============================================================
-     MODAIS — sem classe "hidden" (o padrão do seu JS é "active")
+     MODAIS — sem "hidden"; o JS controla via "active"
      ============================================================ -->
 
+<!-- Área de seleção -->
 <div class="modal-overlay" id="area-select-modal">
     <div class="modal area-select-modal-custom">
         <div class="area-select-header">
@@ -917,6 +957,7 @@
     </div>
 </div>
 
+<!-- Continuar sessão -->
 <div class="modal-overlay" id="resume-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-info">
@@ -932,6 +973,7 @@
     </div>
 </div>
 
+<!-- Visualizar solicitação -->
 <div class="modal-overlay" id="view-request-modal">
     <div class="modal modal-fullscreen">
         <div class="modal-header">
@@ -950,6 +992,7 @@
     </div>
 </div>
 
+<!-- Nova solicitação (admin) -->
 <div class="modal-overlay" id="admin-new-request-modal">
     <div class="modal">
         <div class="modal-header">
@@ -999,6 +1042,7 @@
     </div>
 </div>
 
+<!-- Novo usuário (criar/editar) -->
 <div class="modal-overlay" id="user-modal">
     <div class="modal">
         <div class="modal-header">
@@ -1044,6 +1088,7 @@
     </div>
 </div>
 
+<!-- Ajuda por SMS -->
 <div class="modal-overlay" id="help-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-info">
@@ -1091,6 +1136,7 @@
     </div>
 </div>
 
+<!-- Frota: visualizar -->
 <div class="modal-overlay" id="fleet-view-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1101,6 +1147,7 @@
     </div>
 </div>
 
+<!-- Frota: editar/incluir -->
 <div class="modal-overlay" id="fleet-crud-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1119,6 +1166,7 @@
     </div>
 </div>
 
+<!-- Enviar notificação -->
 <div class="modal-overlay" id="notif-modal">
     <div class="modal">
         <div class="modal-header">
@@ -1151,6 +1199,7 @@
     </div>
 </div>
 
+<!-- Ver notificações (usuário) -->
 <div class="modal-overlay" id="notif-view-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1161,6 +1210,7 @@
     </div>
 </div>
 
+<!-- Ver notificações (admin) -->
 <div class="modal-overlay" id="notif-admin-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1178,6 +1228,7 @@
     </div>
 </div>
 
+<!-- Sessão expirando -->
 <div class="modal-overlay" id="session-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-warning">
@@ -1192,6 +1243,7 @@
     </div>
 </div>
 
+<!-- Confirmar senha -->
 <div class="modal-overlay" id="password-confirm-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-danger">
@@ -1208,6 +1260,7 @@
     </div>
 </div>
 
+<!-- PDF preview -->
 <div class="modal-overlay" id="pdf-modal">
     <div class="modal modal-fullscreen">
         <div class="modal-header">
@@ -1226,8 +1279,72 @@
     </div>
 </div>
 
+<!-- Painel de notificações flutuante -->
 <div id="notification-panel" class="notification-panel"></div>
 
-<script type="module" src="js/main.js"></script>
+<!-- ============================================================
+     BOOTSTRAP — fallback + detecção de file:// + import de main.js
+     ============================================================ -->
+<script>
+(function() {
+    'use strict';
+    var loading = document.getElementById('conn-loading');
+    var login = document.getElementById('login-page');
+    var hint = document.getElementById('conn-loading-hint');
+
+    // Botão "Está demorando?" aparece após 3s
+    setTimeout(function() {
+        if (hint) hint.style.opacity = '1';
+    }, 3000);
+
+    window.__ssotForceShowLogin = function(reason) {
+        console.warn('[SSOT] Forçando tela de login:', reason);
+        if (loading) loading.classList.add('hidden');
+        if (login) login.classList.remove('hidden');
+    };
+
+    // Timer de segurança: se main.js não rodar em 5s, força login
+    window.__ssotSafetyTimer = setTimeout(function() {
+        if (loading && !loading.classList.contains('hidden')) {
+            window.__ssotForceShowLogin('timeout 5s');
+        }
+    }, 5000);
+
+    // Detecta file:// (módulos ES não funcionam)
+    if (location.protocol === 'file:') {
+        window.__ssotForceShowLogin('file:// protocol');
+        var card = document.querySelector('.login-card');
+        if (card && !card.querySelector('.ssot-file-warn')) {
+            var warn = document.createElement('div');
+            warn.className = 'alert alert-danger ssot-file-warn';
+            warn.style.cssText = 'margin-bottom:15px;';
+            warn.innerHTML = '<strong>⚠️ Arquivo aberto direto do disco</strong><br>' +
+                'Módulos JS não funcionam com <code>file://</code>.<br>' +
+                'Use um servidor HTTP local: <code>python -m http.server</code> ' +
+                'ou <code>npx http-server</code>.';
+            card.insertBefore(warn, card.firstChild);
+        }
+        return;
+    }
+
+    // Importa main.js e captura erros de módulo
+    import('./js/main.js').then(function() {
+        console.log('[SSOT] main.js carregado com sucesso.');
+    }).catch(function(err) {
+        console.error('[SSOT] Erro ao importar main.js:', err);
+        window.__ssotForceShowLogin('module import error');
+        var card = document.querySelector('.login-card');
+        if (card && !card.querySelector('.ssot-mod-warn')) {
+            var warn = document.createElement('div');
+            warn.className = 'alert alert-danger ssot-mod-warn';
+            warn.style.cssText = 'margin-bottom:15px;';
+            warn.innerHTML = '<strong>⚠️ Erro ao carregar módulo</strong><br>' +
+                (err && err.message ? err.message : 'Erro desconhecido') +
+                '<br><small>Verifique o Console (F12) → aba Console para detalhes.</small>';
+            card.insertBefore(warn, card.firstChild);
+        }
+    });
+})();
+</script>
 </body>
-                        </html>
+    </html>
