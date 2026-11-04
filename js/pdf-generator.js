@@ -1,180 +1,48 @@
 // ============================================================
-// SSOT · Gerador de PDF v3
-// Correções: sem min-height (evita 2ª página) + CSS no <head>
-// + fontes maiores + layout compacto no topo
+// SSOT · PDF Generator v4
+// Estilos 100% inline — impossível não aplicar
+// Garante 1 página A4, fontes maiores, layout compacto
 // ============================================================
 
 import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
 
-const PDF_VERSION = 'v3-2024-11-03';
-console.log('[PDF] Módulo carregado:', PDF_VERSION);
+console.log('[PDF] ✅ v4-INLINE carregado em', new Date().toISOString());
 
-const safe = (v, fallback = '—') => {
-    if (v === null || v === undefined || v === '') return fallback;
-    return String(v);
+const safe = (v, f = '—') => (v === null || v === undefined || v === '') ? f : String(v);
+const e = (v, f = '—') => escapeHtml(safe(v, f));
+
+// ============================================================
+// Estilos base (inline strings)
+// ============================================================
+const S = {
+    doc: 'width:210mm;padding:6mm 8mm;background:#fff;color:#1a1a1a;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.3;box-sizing:border-box;margin:0;',
+    header: 'display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1e3a5f;padding-bottom:6px;margin-bottom:8px;',
+    brand: 'display:flex;align-items:center;gap:10px;',
+    logo: 'width:48px;height:48px;background:#1e3a5f;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:bold;',
+    brandH: 'font-size:22px;color:#1e3a5f;font-weight:bold;margin:0;line-height:1.1;',
+    brandP: 'font-size:11px;color:#666;margin:2px 0 0 0;',
+    meta: 'text-align:right;font-size:11px;color:#555;',
+    num: 'font-size:20px;font-weight:bold;color:#1e3a5f;margin-bottom:3px;',
+    badge: 'display:inline-block;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;background:#e8eef5;color:#1e3a5f;',
+    section: 'font-size:15px;font-weight:bold;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #1e3a5f;padding-left:8px;margin:10px 0 4px 0;line-height:1.2;',
+    grid: 'display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;',
+    grid3: 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 14px;',
+    field: 'padding:2px 0;border-bottom:1px dotted #ddd;',
+    fieldFull: 'grid-column:1/-1;padding:2px 0;border-bottom:1px dotted #ddd;',
+    label: 'font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:1px;font-weight:bold;',
+    value: 'font-size:14px;color:#111;font-weight:500;line-height:1.3;',
+    sig: 'text-align:center;margin-top:14px;',
+    sigLine: 'border-top:1px solid #333;width:240px;margin:20px auto 4px auto;',
+    sigLabel: 'font-size:11px;color:#555;',
+    footer: 'margin-top:12px;padding-top:8px;border-top:1px solid #ccc;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#666;',
+    qrWrap: 'display:flex;align-items:center;gap:10px;',
+    qrImg: 'width:70px;height:70px;display:block;',
+    qrLabel: 'font-size:10px;color:#666;max-width:120px;'
 };
-const e = (v, fallback = '—') => escapeHtml(safe(v, fallback));
 
-// ============================================================
-// CSS injetado no <head> (garante aplicação)
-// ============================================================
-const PDF_CSS_ID = 'ssot-pdf-styles';
-
-function injectStyles() {
-    if (document.getElementById(PDF_CSS_ID)) return;
-    const style = document.createElement('style');
-    style.id = PDF_CSS_ID;
-    style.textContent = `
-      .ssotpdf-doc {
-        width: 210mm !important;
-        height: auto !important;
-        padding: 8mm 10mm !important;
-        background: #ffffff !important;
-        color: #1a1a1a !important;
-        font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 14px !important;
-        line-height: 1.35 !important;
-        box-sizing: border-box !important;
-        display: block !important;
-      }
-      .ssotpdf-doc * {
-        box-sizing: border-box !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      .ssotpdf-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        border-bottom: 2px solid #1e3a5f !important;
-        padding-bottom: 6px !important;
-        margin-bottom: 8px !important;
-      }
-      .ssotpdf-brand {
-        display: flex !important;
-        align-items: center !important;
-        gap: 10px !important;
-      }
-      .ssotpdf-logo {
-        width: 48px !important;
-        height: 48px !important;
-        background: #1e3a5f !important;
-        color: #ffffff !important;
-        border-radius: 8px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 26px !important;
-        font-weight: bold !important;
-      }
-      .ssotpdf-brand h1 {
-        font-size: 22px !important;
-        color: #1e3a5f !important;
-        font-weight: bold !important;
-        line-height: 1.1 !important;
-      }
-      .ssotpdf-brand p {
-        font-size: 11px !important;
-        color: #666 !important;
-        margin-top: 3px !important;
-      }
-      .ssotpdf-meta {
-        text-align: right !important;
-        font-size: 11px !important;
-        color: #555 !important;
-      }
-      .ssotpdf-num {
-        font-size: 20px !important;
-        font-weight: bold !important;
-        color: #1e3a5f !important;
-        margin-bottom: 3px !important;
-      }
-      .ssotpdf-badge {
-        display: inline-block !important;
-        padding: 3px 10px !important;
-        border-radius: 10px !important;
-        font-size: 11px !important;
-        font-weight: bold !important;
-        background: #e8eef5 !important;
-        color: #1e3a5f !important;
-      }
-      .ssotpdf-section {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        color: #1e3a5f !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-        border-left: 4px solid #1e3a5f !important;
-        padding-left: 8px !important;
-        margin: 10px 0 4px !important;
-        line-height: 1.2 !important;
-      }
-      .ssotpdf-grid {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 2px 14px !important;
-      }
-      .ssotpdf-grid-3 { grid-template-columns: 1fr 1fr 1fr !important; }
-      .ssotpdf-field {
-        padding: 2px 0 !important;
-        border-bottom: 1px dotted #ddd !important;
-      }
-      .ssotpdf-full { grid-column: 1 / -1 !important; }
-      .ssotpdf-label {
-        font-size: 10px !important;
-        color: #777 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.3px !important;
-        margin-bottom: 1px !important;
-        font-weight: bold !important;
-      }
-      .ssotpdf-value {
-        font-size: 13px !important;
-        color: #111 !important;
-        font-weight: 500 !important;
-        line-height: 1.3 !important;
-      }
-      .ssotpdf-sig {
-        text-align: center !important;
-        margin-top: 14px !important;
-      }
-      .ssotpdf-sig-line {
-        border-top: 1px solid #333 !important;
-        width: 240px !important;
-        margin: 20px auto 4px !important;
-      }
-      .ssotpdf-sig-label {
-        font-size: 11px !important;
-        color: #555 !important;
-      }
-      .ssotpdf-footer {
-        margin-top: 12px !important;
-        padding-top: 8px !important;
-        border-top: 1px solid #ccc !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        font-size: 10.5px !important;
-        color: #666 !important;
-      }
-      .ssotpdf-qr-wrap {
-        display: flex !important;
-        align-items: center !important;
-        gap: 10px !important;
-      }
-      .ssotpdf-qr-wrap img {
-        width: 70px !important;
-        height: 70px !important;
-        display: block !important;
-      }
-      .ssotpdf-qr-label {
-        font-size: 10px !important;
-        color: #666 !important;
-        max-width: 120px !important;
-      }
-    `;
-    document.head.appendChild(style);
-}
+// helper pra não repetir
+const field = (label, value, full = false) =>
+    `<div style="${full ? S.fieldFull : S.field}"><div style="${S.label}">${label}</div><div style="${S.value}">${value}</div></div>`;
 
 // ============================================================
 // Template
@@ -206,55 +74,55 @@ function buildRequestHTML(r) {
     const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(deepLink)}`;
 
     return `
-    <div class="ssotpdf-doc">
-      <div class="ssotpdf-header">
-        <div class="ssotpdf-brand">
-          <div class="ssotpdf-logo">S</div>
+    <div style="${S.doc}" class="ssotpdf-doc">
+      <div style="${S.header}">
+        <div style="${S.brand}">
+          <div style="${S.logo}">S</div>
           <div>
-            <h1>SSOT</h1>
-            <p>Sistema de Solicitações e Operações de Transporte</p>
+            <h1 style="${S.brandH}">SSOT</h1>
+            <p style="${S.brandP}">Sistema de Solicitações e Operações de Transporte</p>
           </div>
         </div>
-        <div class="ssotpdf-meta">
-          <div class="ssotpdf-num">${numero}</div>
+        <div style="${S.meta}">
+          <div style="${S.num}">${numero}</div>
           <div>Emitido em ${emitidoEm}</div>
-          <div style="margin-top:4px;"><span class="ssotpdf-badge">${status}</span></div>
+          <div style="margin-top:4px;"><span style="${S.badge}">${status}</span></div>
         </div>
       </div>
 
-      <div class="ssotpdf-section">Dados do Solicitante</div>
-      <div class="ssotpdf-grid ssotpdf-grid-3">
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Nome</div><div class="ssotpdf-value">${solicitante}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">E-mail</div><div class="ssotpdf-value">${email}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Ramal</div><div class="ssotpdf-value">${ramal}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Setor</div><div class="ssotpdf-value">${setor}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Cargo</div><div class="ssotpdf-value">${cargo}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Prioridade</div><div class="ssotpdf-value">${prioridade}</div></div>
+      <div style="${S.section}">Dados do Solicitante</div>
+      <div style="${S.grid3}">
+        ${field('Nome', solicitante)}
+        ${field('E-mail', email)}
+        ${field('Ramal', ramal)}
+        ${field('Setor', setor)}
+        ${field('Cargo', cargo)}
+        ${field('Prioridade', prioridade)}
       </div>
 
-      <div class="ssotpdf-section">Detalhes da Viagem</div>
-      <div class="ssotpdf-grid">
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Destino</div><div class="ssotpdf-value">${destino}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Origem</div><div class="ssotpdf-value">${origem}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Saída</div><div class="ssotpdf-value">${saida}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Retorno</div><div class="ssotpdf-value">${retorno}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Passageiros</div><div class="ssotpdf-value">${passageiros}</div></div>
-        <div class="ssotpdf-field"><div class="ssotpdf-label">Veículo</div><div class="ssotpdf-value">${veiculo}</div></div>
-        <div class="ssotpdf-field ssotpdf-full"><div class="ssotpdf-label">Finalidade</div><div class="ssotpdf-value">${finalidade}</div></div>
-        <div class="ssotpdf-field ssotpdf-full"><div class="ssotpdf-label">Nomes dos Passageiros</div><div class="ssotpdf-value">${nomesPassageiros}</div></div>
-        <div class="ssotpdf-field ssotpdf-full"><div class="ssotpdf-label">Necessidades Especiais</div><div class="ssotpdf-value">${necessidades}</div></div>
-        <div class="ssotpdf-field ssotpdf-full"><div class="ssotpdf-label">Observações</div><div class="ssotpdf-value">${observacoes}</div></div>
+      <div style="${S.section}">Detalhes da Viagem</div>
+      <div style="${S.grid}">
+        ${field('Destino', destino)}
+        ${field('Origem', origem)}
+        ${field('Saída', saida)}
+        ${field('Retorno', retorno)}
+        ${field('Passageiros', passageiros)}
+        ${field('Veículo', veiculo)}
+        ${field('Finalidade', finalidade, true)}
+        ${field('Nomes dos Passageiros', nomesPassageiros, true)}
+        ${field('Necessidades Especiais', necessidades, true)}
+        ${field('Observações', observacoes, true)}
       </div>
 
-      <div class="ssotpdf-sig">
-        <div class="ssotpdf-sig-line"></div>
-        <div class="ssotpdf-sig-label">Assinatura do Solicitante</div>
+      <div style="${S.sig}">
+        <div style="${S.sigLine}"></div>
+        <div style="${S.sigLabel}">Assinatura do Solicitante</div>
       </div>
 
-      <div class="ssotpdf-footer">
-        <div class="ssotpdf-qr-wrap">
-          <img src="${qrUrl}" alt="QR" crossorigin="anonymous">
-          <div class="ssotpdf-qr-label">Escaneie para abrir esta solicitação no sistema.</div>
+      <div style="${S.footer}">
+        <div style="${S.qrWrap}">
+          <img src="${qrUrl}" alt="QR" crossorigin="anonymous" style="${S.qrImg}">
+          <div style="${S.qrLabel}">Escaneie para abrir esta solicitação no sistema.</div>
         </div>
         <div style="text-align:right;">
           <div>Criado em ${criadoEm}</div>
@@ -266,18 +134,16 @@ function buildRequestHTML(r) {
 }
 
 // ============================================================
-// Geração do PDF
+// Geração
 // ============================================================
 export async function generateRequestPDF(request) {
-    console.log('[PDF] generateRequestPDF chamado', PDF_VERSION, '| numero:', request?.numero);
+    console.log('[PDF] ▶ chamado | numero:', request?.numero);
 
     if (!request) { console.error('[PDF] request vazio'); return; }
     if (typeof window.html2pdf === 'undefined') {
-        alert('Biblioteca PDF não carregada. Recarregue com Ctrl+Shift+R.');
+        alert('html2pdf não carregado. Recarregue com Ctrl+Shift+R.');
         return;
     }
-
-    injectStyles();
 
     const wrapper = document.createElement('div');
     wrapper.id = 'ssot-pdf-render';
@@ -309,10 +175,16 @@ export async function generateRequestPDF(request) {
         if (!docEl) throw new Error('Template não encontrado.');
 
         const cs = window.getComputedStyle(docEl);
-        console.log('[PDF] Computed: font-size=%s padding=%s display=%s dims=%dx%d',
-            cs.fontSize, cs.padding, cs.display, docEl.offsetWidth, docEl.offsetHeight);
+        const h = docEl.offsetHeight;
+        console.log('[PDF] Computed → font-size=%s padding=%s display=%s | dims %dx%d | A4=1123px',
+            cs.fontSize, cs.padding, cs.display, docEl.offsetWidth, h);
 
-        // ⭐ FIX das 2 páginas: pagebreak avoid-all
+        if (h > 1123) {
+            console.warn('[PDF] ⚠️ ALTURA', h, 'px > 1123px → vai gerar 2ª página em branco!');
+        } else {
+            console.log('[PDF] ✅ Altura ok (%dpx) → 1 página A4', h);
+        }
+
         await window.html2pdf().set({
             margin: 0,
             filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
@@ -322,15 +194,17 @@ export async function generateRequestPDF(request) {
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                width: docEl.offsetWidth,
+                height: Math.min(docEl.offsetHeight, 1123)
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all'] }
         }).from(docEl).save();
 
-        console.log('[PDF] Gerado com sucesso.');
+        console.log('[PDF] ✅ Gerado com sucesso.');
     } catch (err) {
-        console.error('[PDF] Erro:', err);
+        console.error('[PDF] ❌ Erro:', err);
         alert('Erro ao gerar PDF: ' + (err.message || err));
     } finally {
         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
