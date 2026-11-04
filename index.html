@@ -82,14 +82,10 @@
 <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
 </svg>
 
-<!-- ============================================================
-     LOADING (com botão de fallback "Está demorando?")
-     ============================================================ -->
+<!-- LOADING -->
 <div id="conn-loading" class="conn-loading">
     <div class="loading-content">
-        <div class="loading-logo">
-            <svg class="si si-3x"><use href="#i-car"/></svg>
-        </div>
+        <div class="loading-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
         <div class="spinner"></div>
         <div class="loading-title">Conectando ao sistema...</div>
         <div id="conn-loading-hint" style="margin-top:18px;font-size:0.85rem;opacity:0;transition:opacity 0.3s;">
@@ -101,13 +97,9 @@
     </div>
 </div>
 
-<!-- ============================================================
-     LOGIN
-     ============================================================ -->
+<!-- LOGIN -->
 <div id="login-page" class="login-container hidden">
     <div class="login-card">
-
-        <!-- Tela: seleção de acesso -->
         <div id="screen-select">
             <div class="login-header">
                 <div class="login-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
@@ -143,7 +135,6 @@
             </div>
         </div>
 
-        <!-- Tela: login -->
         <div id="screen-login" class="hidden">
             <div class="back-link" onclick="backToSelect()">
                 <svg class="si"><use href="#i-arrow-left"/></svg> Voltar
@@ -197,7 +188,6 @@
             </div>
         </div>
 
-        <!-- Tela: requerimento -->
         <div id="screen-requerimento" class="hidden">
             <div class="back-link" onclick="backToSelect()">
                 <svg class="si"><use href="#i-arrow-left"/></svg> Voltar
@@ -212,47 +202,16 @@
                     <input type="text" id="r-nome" class="form-control" required>
                 </div>
                 <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-email">E-mail *</label>
-                            <input type="email" id="r-email" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-ramal">Ramal *</label>
-                            <input type="text" id="r-ramal" class="form-control" required>
-                        </div>
-                    </div>
+                    <div class="form-col"><div class="form-group"><label for="r-email">E-mail *</label><input type="email" id="r-email" class="form-control" required></div></div>
+                    <div class="form-col"><div class="form-group"><label for="r-ramal">Ramal *</label><input type="text" id="r-ramal" class="form-control" required></div></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-setor">Setor *</label>
-                            <input type="text" id="r-setor" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-cargo">Cargo</label>
-                            <input type="text" id="r-cargo" class="form-control">
-                        </div>
-                    </div>
+                    <div class="form-col"><div class="form-group"><label for="r-setor">Setor *</label><input type="text" id="r-setor" class="form-control" required></div></div>
+                    <div class="form-col"><div class="form-group"><label for="r-cargo">Cargo</label><input type="text" id="r-cargo" class="form-control"></div></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-senha">Senha *</label>
-                            <input type="password" id="r-senha" class="form-control" minlength="6" required>
-                            <span class="form-hint">Mínimo 6 caracteres</span>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-senha2">Confirmar senha *</label>
-                            <input type="password" id="r-senha2" class="form-control" minlength="6" required>
-                        </div>
-                    </div>
+                    <div class="form-col"><div class="form-group"><label for="r-senha">Senha *</label><input type="password" id="r-senha" class="form-control" minlength="6" required><span class="form-hint">Mínimo 6 caracteres</span></div></div>
+                    <div class="form-col"><div class="form-group"><label for="r-senha2">Confirmar senha *</label><input type="password" id="r-senha2" class="form-control" minlength="6" required></div></div>
                 </div>
                 <div class="form-group">
                     <label for="r-justificativa">Justificativa (opcional)</label>
@@ -263,16 +222,12 @@
                 </button>
             </form>
         </div>
-
     </div>
 </div>
 
-<!-- ============================================================
-     APP
-     ============================================================ -->
+<!-- APP -->
 <div id="app-container" class="container hidden">
 
-    <!-- TOP MENU -->
     <nav class="top-menu">
         <div class="top-menu-left">
             <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Menu">
@@ -287,6 +242,11 @@
             <ul id="top-menu-list"></ul>
         </div>
         <div class="top-menu-icons">
+            <!-- ⭐ ATALHO DASHBOARD — visível apenas quando admin, em qualquer área -->
+            <button class="top-icon hidden" id="dashboard-shortcut" title="Ir para Dashboard"
+                    onclick="if(window.gotoAdminTab){window.gotoAdminTab('admin-dashboard');if(window.__setActiveMenu){window.__setActiveMenu('admin-dashboard');}else{document.querySelectorAll('#top-menu-list a').forEach(function(l){l.classList.remove('active');});} }">
+                <svg class="si"><use href="#i-chart-line"/></svg>
+            </button>
             <button class="top-icon hidden" id="area-switch-btn" title="Trocar área" onclick="switchArea()">
                 <svg class="si"><use href="#i-layers"/></svg>
             </button>
@@ -298,10 +258,7 @@
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    <!-- MAIN -->
     <main class="main-content">
-
-        <!-- HEADER -->
         <div class="header">
             <div class="header-left">
                 <div class="breadcrumb">
@@ -326,11 +283,10 @@
             </div>
         </div>
 
-        <!-- ====================================================
+        <!-- ============================================================
              ÁREA DO USUÁRIO
-             ==================================================== -->
+             ============================================================ -->
         <div id="user-area" class="hidden">
-
             <div id="user-solicitacoes-tab" class="tab-content">
                 <div class="card card-elevated">
                     <div class="card-header">
@@ -342,24 +298,15 @@
                     <div class="card-body">
                         <form id="user-request-form">
                             <div class="form-tabs">
-                                <button type="button" class="form-tab active" data-form-tab="solicitante">
-                                    <svg class="si"><use href="#i-user"/></svg> Solicitante
-                                </button>
-                                <button type="button" class="form-tab" data-form-tab="viagem">
-                                    <svg class="si"><use href="#i-route"/></svg> Viagem
-                                </button>
-                                <button type="button" class="form-tab" data-form-tab="detalhes">
-                                    <svg class="si"><use href="#i-file-text"/></svg> Detalhes
-                                </button>
+                                <button type="button" class="form-tab active" data-form-tab="solicitante"><svg class="si"><use href="#i-user"/></svg> Solicitante</button>
+                                <button type="button" class="form-tab" data-form-tab="viagem"><svg class="si"><use href="#i-route"/></svg> Viagem</button>
+                                <button type="button" class="form-tab" data-form-tab="detalhes"><svg class="si"><use href="#i-file-text"/></svg> Detalhes</button>
                             </div>
 
                             <div class="form-tab-content active" data-form-content="solicitante">
                                 <div class="user-highlight">
                                     <svg class="si si-fw"><use href="#i-user"/></svg>
-                                    <div>
-                                        <strong>Seus dados</strong>
-                                        <p>Preencha as informações do solicitante.</p>
-                                    </div>
+                                    <div><strong>Seus dados</strong><p>Preencha as informações do solicitante.</p></div>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-col"><div class="form-group"><label>Solicitante *</label><input type="text" id="u-solicitante" class="form-control" required></div></div>
@@ -390,8 +337,7 @@
                                             <option value="urgente">Urgente</option>
                                         </select>
                                     </div></div>
-                                    <div class="form-col"><div class="form-group">
-                                        <label>Saída * (horário disponível)</label>
+                                    <div class="form-col"><div class="form-group"><label>Saída * (horário disponível)</label>
                                         <select id="u-saida" class="form-control" required>
                                             <option value="">Selecione uma data disponível...</option>
                                         </select>
@@ -507,11 +453,12 @@
             </div>
         </div>
 
-        <!-- ====================================================
+        <!-- ============================================================
              ÁREA DO ADMIN
-             ==================================================== -->
+             ============================================================ -->
         <div id="admin-area" class="hidden">
 
+            <!-- Dashboard (SEMRE presente) -->
             <div id="admin-dashboard-tab" class="tab-content">
                 <div class="widgets-grid">
                     <div class="widget-card">
@@ -589,13 +536,8 @@
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>Nº</th>
-                                        <th>Solicitante</th>
-                                        <th>Setor</th>
-                                        <th>Destino</th>
-                                        <th>Saída</th>
-                                        <th>Prioridade</th>
-                                        <th>Status</th>
+                                        <th>Nº</th><th>Solicitante</th><th>Setor</th><th>Destino</th>
+                                        <th>Saída</th><th>Prioridade</th><th>Status</th>
                                         <th class="table-actions-col">Ações</th>
                                     </tr>
                                 </thead>
@@ -642,9 +584,7 @@
                             </div>
                             <div class="table-responsive">
                                 <table class="table">
-                                    <thead>
-                                        <tr><th>Nome</th><th>E-mail</th><th>Setor</th><th>Perfil</th><th class="table-actions-col">Ações</th></tr>
-                                    </thead>
+                                    <thead><tr><th>Nome</th><th>E-mail</th><th>Setor</th><th>Perfil</th><th class="table-actions-col">Ações</th></tr></thead>
                                     <tbody id="users-table-body">
                                         <tr><td colspan="5" class="table-empty"><p>Nenhum usuário.</p></td></tr>
                                     </tbody>
@@ -697,18 +637,14 @@
                             <div class="form-col"><div class="form-group"><label>Início</label><input type="time" id="slot-start" class="form-control"></div></div>
                             <div class="form-col"><div class="form-group"><label>Fim</label><input type="time" id="slot-end" class="form-control"></div></div>
                             <div class="form-col form-col-button">
-                                <button class="btn btn-primary" id="add-slot-block">
-                                    <svg class="si"><use href="#i-plus"/></svg> Adicionar Bloco
-                                </button>
+                                <button class="btn btn-primary" id="add-slot-block"><svg class="si"><use href="#i-plus"/></svg> Adicionar Bloco</button>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-col"><div class="form-group"><label>Data única</label><input type="date" id="single-slot-date" class="form-control"></div></div>
                             <div class="form-col"><div class="form-group"><label>Horário</label><input type="time" id="single-slot-time" class="form-control"></div></div>
                             <div class="form-col form-col-button">
-                                <button class="btn btn-info" id="add-single-slot">
-                                    <svg class="si"><use href="#i-plus"/></svg> Adicionar
-                                </button>
+                                <button class="btn btn-info" id="add-single-slot"><svg class="si"><use href="#i-plus"/></svg> Adicionar</button>
                             </div>
                         </div>
                         <div class="section-title">
@@ -732,21 +668,13 @@
                             <div class="form-col"><div class="form-group"><label>De</label><input type="date" id="report-date-from" class="form-control"></div></div>
                             <div class="form-col"><div class="form-group"><label>Até</label><input type="date" id="report-date-to" class="form-control"></div></div>
                             <div class="form-col form-col-button">
-                                <button class="btn btn-primary" id="generate-report">
-                                    <svg class="si"><use href="#i-search"/></svg> Gerar
-                                </button>
+                                <button class="btn btn-primary" id="generate-report"><svg class="si"><use href="#i-search"/></svg> Gerar</button>
                             </div>
                         </div>
                         <div class="action-buttons">
-                            <button class="btn btn-success btn-sm" id="export-excel">
-                                <svg class="si"><use href="#i-file-excel"/></svg> Excel
-                            </button>
-                            <button class="btn btn-danger btn-sm" id="export-pdf">
-                                <svg class="si"><use href="#i-file-pdf"/></svg> PDF
-                            </button>
-                            <button class="btn btn-info btn-sm" id="preview-pdf">
-                                <svg class="si"><use href="#i-eye"/></svg> Pré-visualizar
-                            </button>
+                            <button class="btn btn-success btn-sm" id="export-excel"><svg class="si"><use href="#i-file-excel"/></svg> Excel</button>
+                            <button class="btn btn-danger btn-sm" id="export-pdf"><svg class="si"><use href="#i-file-pdf"/></svg> PDF</button>
+                            <button class="btn btn-info btn-sm" id="preview-pdf"><svg class="si"><use href="#i-eye"/></svg> Pré-visualizar</button>
                         </div>
                         <div id="report-results"></div>
                     </div>
@@ -761,12 +689,8 @@
                             <h2>Histórico</h2>
                         </div>
                         <div class="action-buttons">
-                            <button class="btn btn-secondary btn-sm" id="historico-refresh">
-                                <svg class="si"><use href="#i-refresh"/></svg> Atualizar
-                            </button>
-                            <button class="btn btn-danger btn-sm" id="historico-clear">
-                                <svg class="si"><use href="#i-trash"/></svg> Limpar
-                            </button>
+                            <button class="btn btn-secondary btn-sm" id="historico-refresh"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                            <button class="btn btn-danger btn-sm" id="historico-clear"><svg class="si"><use href="#i-trash"/></svg> Limpar</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -790,9 +714,7 @@
                             <h2>Lixeira</h2>
                         </div>
                         <div class="action-buttons">
-                            <button class="btn btn-danger btn-sm" id="lixeira-clear">
-                                <svg class="si"><use href="#i-broom"/></svg> Esvaziar
-                            </button>
+                            <button class="btn btn-danger btn-sm" id="lixeira-clear"><svg class="si"><use href="#i-broom"/></svg> Esvaziar</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -850,9 +772,7 @@
                         </div>
                         <div class="form-group"><label>Telefone</label><input type="tel" id="ap-phone" class="form-control" placeholder="+5511999999999"></div>
                         <div class="form-actions">
-                            <button class="btn btn-success" id="ap-save-btn">
-                                <svg class="si"><use href="#i-check"/></svg> Salvar Alterações
-                            </button>
+                            <button class="btn btn-success" id="ap-save-btn"><svg class="si"><use href="#i-check"/></svg> Salvar Alterações</button>
                         </div>
                     </div>
                 </div>
@@ -873,13 +793,9 @@
                                 <div class="info-value" id="servicos-network-status">—</div>
                             </div>
                         </div>
-                        <div class="section-title">
-                            <svg class="si"><use href="#i-download"/></svg> Backup
-                        </div>
+                        <div class="section-title"><svg class="si"><use href="#i-download"/></svg> Backup</div>
                         <div class="action-buttons">
-                            <button class="btn btn-primary" id="backup-btn">
-                                <svg class="si"><use href="#i-download"/></svg> Baixar Backup
-                            </button>
+                            <button class="btn btn-primary" id="backup-btn"><svg class="si"><use href="#i-download"/></svg> Baixar Backup</button>
                             <input type="file" id="import-backup-input" accept=".json" hidden>
                             <button class="btn btn-success" onclick="document.getElementById('import-backup-input').click()">
                                 <svg class="si"><use href="#i-upload"/></svg> Importar Backup
@@ -888,23 +804,18 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
     </main>
 </div>
 
 <!-- ============================================================
-     MODAIS — sem "hidden"; o JS controla via "active"
+     MODAIS
      ============================================================ -->
-
-<!-- Área de seleção -->
 <div class="modal-overlay" id="area-select-modal">
     <div class="modal area-select-modal-custom">
         <div class="area-select-header">
-            <div class="area-select-brand">
-                <svg class="si si-fw"><use href="#i-car"/></svg> SSOT
-            </div>
+            <div class="area-select-brand"><svg class="si si-fw"><use href="#i-car"/></svg> SSOT</div>
             <h2>Selecione sua área de trabalho</h2>
             <p>Você pode trocar de área a qualquer momento no topo da tela.</p>
         </div>
@@ -950,14 +861,11 @@
                     </div>
                 </button>
             </div>
-            <p class="area-select-footer">
-                Área atual: <strong id="area-current-label">—</strong>
-            </p>
+            <p class="area-select-footer">Área atual: <strong id="area-current-label">—</strong></p>
         </div>
     </div>
 </div>
 
-<!-- Continuar sessão -->
 <div class="modal-overlay" id="resume-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-info">
@@ -973,7 +881,6 @@
     </div>
 </div>
 
-<!-- Visualizar solicitação -->
 <div class="modal-overlay" id="view-request-modal">
     <div class="modal modal-fullscreen">
         <div class="modal-header">
@@ -992,7 +899,6 @@
     </div>
 </div>
 
-<!-- Nova solicitação (admin) -->
 <div class="modal-overlay" id="admin-new-request-modal">
     <div class="modal">
         <div class="modal-header">
@@ -1042,7 +948,6 @@
     </div>
 </div>
 
-<!-- Novo usuário (criar/editar) -->
 <div class="modal-overlay" id="user-modal">
     <div class="modal">
         <div class="modal-header">
@@ -1088,7 +993,6 @@
     </div>
 </div>
 
-<!-- Ajuda por SMS -->
 <div class="modal-overlay" id="help-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-info">
@@ -1097,11 +1001,8 @@
         </div>
         <div class="modal-body">
             <div id="help-error" class="alert alert-danger hidden"></div>
-
             <div id="help-step-phone">
-                <p class="modal-text-muted" style="margin-bottom:14px;">
-                    Informe seu número de celular. Enviaremos um código por SMS para verificar sua identidade.
-                </p>
+                <p class="modal-text-muted" style="margin-bottom:14px;">Informe seu número de celular. Enviaremos um código por SMS para verificar sua identidade.</p>
                 <div class="form-group">
                     <label for="help-phone-input">Número de celular (formato internacional)</label>
                     <input type="tel" id="help-phone-input" class="form-control" placeholder="+5511999999999">
@@ -1112,15 +1013,11 @@
                     <svg class="si"><use href="#i-sign-in"/></svg> Enviar Código
                 </button>
             </div>
-
             <div id="help-step-code" class="hidden">
-                <p class="modal-text-muted" style="margin-bottom:14px;">
-                    Digite o código de 6 dígitos que enviamos por SMS.
-                </p>
+                <p class="modal-text-muted" style="margin-bottom:14px;">Digite o código de 6 dígitos que enviamos por SMS.</p>
                 <div class="form-group">
                     <label for="help-code-input">Código SMS</label>
-                    <input type="text" id="help-code-input" class="form-control"
-                           placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                    <input type="text" id="help-code-input" class="form-control" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
                 </div>
                 <button class="btn btn-success btn-block" id="help-verify-btn" onclick="verifyHelpCode()">
                     <svg class="si"><use href="#i-check"/></svg> Verificar
@@ -1130,13 +1027,11 @@
                     ← Voltar
                 </button>
             </div>
-
             <div id="help-step-result" class="hidden"></div>
         </div>
     </div>
 </div>
 
-<!-- Frota: visualizar -->
 <div class="modal-overlay" id="fleet-view-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1147,7 +1042,6 @@
     </div>
 </div>
 
-<!-- Frota: editar/incluir -->
 <div class="modal-overlay" id="fleet-crud-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1166,7 +1060,6 @@
     </div>
 </div>
 
-<!-- Enviar notificação -->
 <div class="modal-overlay" id="notif-modal">
     <div class="modal">
         <div class="modal-header">
@@ -1199,7 +1092,6 @@
     </div>
 </div>
 
-<!-- Ver notificações (usuário) -->
 <div class="modal-overlay" id="notif-view-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1210,7 +1102,6 @@
     </div>
 </div>
 
-<!-- Ver notificações (admin) -->
 <div class="modal-overlay" id="notif-admin-modal">
     <div class="modal modal-large">
         <div class="modal-header">
@@ -1228,7 +1119,6 @@
     </div>
 </div>
 
-<!-- Sessão expirando -->
 <div class="modal-overlay" id="session-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-warning">
@@ -1243,7 +1133,6 @@
     </div>
 </div>
 
-<!-- Confirmar senha -->
 <div class="modal-overlay" id="password-confirm-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-danger">
@@ -1260,7 +1149,6 @@
     </div>
 </div>
 
-<!-- PDF preview -->
 <div class="modal-overlay" id="pdf-modal">
     <div class="modal modal-fullscreen">
         <div class="modal-header">
@@ -1272,27 +1160,87 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="close-pdf-modal-btn">Fechar</button>
-            <button class="btn btn-danger" id="download-pdf">
-                <svg class="si"><use href="#i-download"/></svg> Baixar PDF
-            </button>
+            <button class="btn btn-danger" id="download-pdf"><svg class="si"><use href="#i-download"/></svg> Baixar PDF</button>
         </div>
     </div>
 </div>
 
-<!-- Painel de notificações flutuante -->
 <div id="notification-panel" class="notification-panel"></div>
 
 <!-- ============================================================
-     BOOTSTRAP — fallback + detecção de file:// + import de main.js
+     BOOTSTRAP: fallbacks inline + import dinâmico de main.js
      ============================================================ -->
 <script>
 (function() {
     'use strict';
+
+    // Fallbacks inline — funcionam mesmo se main.js falhar
+    window.goToLogin = window.goToLogin || function(mode) {
+        document.getElementById('screen-select')?.classList.add('hidden');
+        document.getElementById('screen-login')?.classList.remove('hidden');
+        document.getElementById('screen-requerimento')?.classList.add('hidden');
+        window._loginMode = mode || 'user';
+    };
+    window.goToRequerimento = window.goToRequerimento || function() {
+        document.getElementById('screen-select')?.classList.add('hidden');
+        document.getElementById('screen-login')?.classList.add('hidden');
+        document.getElementById('screen-requerimento')?.classList.remove('hidden');
+    };
+    window.backToSelect = window.backToSelect || function() {
+        document.getElementById('screen-select')?.classList.remove('hidden');
+        document.getElementById('screen-login')?.classList.add('hidden');
+        document.getElementById('screen-requerimento')?.classList.add('hidden');
+    };
+    window.openModal = window.openModal || function(id) {
+        document.getElementById(id)?.classList.add('active');
+    };
+    window.closeModal = window.closeModal || function(id) {
+        document.getElementById(id)?.classList.remove('active');
+    };
+    window.openHelpModal = window.openHelpModal || function(e) {
+        if (e) e.preventDefault();
+        window.openModal('help-modal');
+    };
+    window.closeHelpModal = window.closeHelpModal || function() {
+        window.closeModal('help-modal');
+    };
+    window.sendHelpCode = window.sendHelpCode || function() {
+        alert('Ajuda por SMS indisponível. Verifique o console (F12).');
+    };
+    window.verifyHelpCode = window.verifyHelpCode || function() {
+        alert('Ajuda por SMS indisponível. Verifique o console (F12).');
+    };
+    window.selectArea = window.selectArea || function() {
+        alert('Sistema ainda carregando... Se persistir, verifique o console (F12).');
+    };
+    window.switchArea = window.switchArea || function() {
+        console.error('[SSOT] switchArea indisponível');
+    };
+
+    // =========================================================
+    // ATALHO DASHBOARD — aparece só quando admin-area está visível
+    // =========================================================
+    const dashBtn = document.getElementById('dashboard-shortcut');
+    const adminArea = document.getElementById('admin-area');
+    if (dashBtn && adminArea) {
+        const sync = () => {
+            if (adminArea.classList.contains('hidden')) {
+                dashBtn.classList.add('hidden');
+            } else {
+                dashBtn.classList.remove('hidden');
+            }
+        };
+        new MutationObserver(sync).observe(adminArea, { attributes: true, attributeFilter: ['class'] });
+        sync();
+    }
+
+    // =========================================================
+    // LOADING / FALLBACK
+    // =========================================================
     var loading = document.getElementById('conn-loading');
     var login = document.getElementById('login-page');
     var hint = document.getElementById('conn-loading-hint');
 
-    // Botão "Está demorando?" aparece após 3s
     setTimeout(function() {
         if (hint) hint.style.opacity = '1';
     }, 3000);
@@ -1303,16 +1251,14 @@
         if (login) login.classList.remove('hidden');
     };
 
-    // Timer de segurança: se main.js não rodar em 5s, força login
     window.__ssotSafetyTimer = setTimeout(function() {
         if (loading && !loading.classList.contains('hidden')) {
             window.__ssotForceShowLogin('timeout 5s');
         }
     }, 5000);
 
-    // Detecta file:// (módulos ES não funcionam)
     if (location.protocol === 'file:') {
-        window.__ssotForceShowLogin('file:// protocol');
+        window.__ssotForceShowLogin('file://');
         var card = document.querySelector('.login-card');
         if (card && !card.querySelector('.ssot-file-warn')) {
             var warn = document.createElement('div');
@@ -1320,14 +1266,12 @@
             warn.style.cssText = 'margin-bottom:15px;';
             warn.innerHTML = '<strong>⚠️ Arquivo aberto direto do disco</strong><br>' +
                 'Módulos JS não funcionam com <code>file://</code>.<br>' +
-                'Use um servidor HTTP local: <code>python -m http.server</code> ' +
-                'ou <code>npx http-server</code>.';
+                'Use um servidor: <code>python -m http.server</code>.';
             card.insertBefore(warn, card.firstChild);
         }
         return;
     }
 
-    // Importa main.js e captura erros de módulo
     import('./js/main.js').then(function() {
         console.log('[SSOT] main.js carregado com sucesso.');
     }).catch(function(err) {
@@ -1340,7 +1284,7 @@
             warn.style.cssText = 'margin-bottom:15px;';
             warn.innerHTML = '<strong>⚠️ Erro ao carregar módulo</strong><br>' +
                 (err && err.message ? err.message : 'Erro desconhecido') +
-                '<br><small>Verifique o Console (F12) → aba Console para detalhes.</small>';
+                '<br><small>Console (F12) para detalhes.</small>';
             card.insertBefore(warn, card.firstChild);
         }
     });
