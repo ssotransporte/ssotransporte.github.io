@@ -1,6 +1,6 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE TRANSPORTE (v11.2)
-// PDF corrigido: delega para pdf-generator.js (1 página A4)
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v11.3)
+// PDF via dynamic import — não mata o app se pdf-generator falhar
 // ============================================================
 
 import {
@@ -13,7 +13,6 @@ import {
     getVeiculoText, truncate
 } from './utils.js';
 
-import { generateRequestPDF } from './pdf-generator.js';
 import { addHistory } from './history.js';
 import { sstConfirm } from './dialogs.js';
 
@@ -28,7 +27,6 @@ export function setRequestsContext(db, currentUser) {
     _db = db;
     _currentUser = currentUser;
 }
-
 export function getRequests() { return _requests; }
 export function setRequestsHighlight(id) { _highlightedId = id; }
 
@@ -73,7 +71,6 @@ export function generateNextNumero() {
 // ============================================================
 export async function createRequest(formData) {
     if (!_currentUser) throw new Error('Usuário não autenticado.');
-
     const numero = generateNextNumero();
     const req = {
         numero,
@@ -100,19 +97,15 @@ export async function createRequest(formData) {
         timestamp: new Date().toISOString(),
         updatedBy: _currentUser.name
     };
-
     const newRef = push(ref(_db, 'requests'));
     await set(newRef, req);
-
     await addHistory('Solicitação Criada', numero,
         `Destino: ${formData.destino} | Solicitante: ${req.solicitante}`);
-
     return { ...req, id: newRef.key };
 }
 
 export async function createAdminRequest(formData) {
     if (!_currentUser) throw new Error('Usuário não autenticado.');
-
     const numero = generateNextNumero();
     const req = {
         numero,
@@ -139,13 +132,10 @@ export async function createAdminRequest(formData) {
         timestamp: new Date().toISOString(),
         updatedBy: _currentUser.name
     };
-
     const newRef = push(ref(_db, 'requests'));
     await set(newRef, req);
-
     await addHistory('Solicitação Criada (Admin)', numero,
         `Destino: ${formData.destino} | Solicitante: ${req.solicitante}`);
-
     return { ...req, id: newRef.key };
 }
 
@@ -156,17 +146,14 @@ export async function changeRequestStatus(id, newStatus) {
     const r = _requests.find(x => x.id === id);
     if (!r) return;
     const oldStatus = r.status;
-
     try {
         await update(ref(_db, 'requests/' + id), {
             status: newStatus,
             timestamp: new Date().toISOString(),
             updatedBy: _currentUser?.name || 'Sistema'
         });
-
         await addHistory('Status Alterado', r.numero,
             `De "${getStatusText(oldStatus)}" para "${getStatusText(newStatus)}" | Por: ${_currentUser?.name}`);
-
         showNotification('Atualizado',
             `Solicitação ${r.numero}: ${getStatusText(newStatus)}.`, 'success');
     } catch (err) {
@@ -181,14 +168,12 @@ export async function changeRequestStatus(id, newStatus) {
 export async function moveToTrash(id) {
     const r = _requests.find(x => x.id === id);
     if (!r) return;
-
     const ok = await sstConfirm(
         `Excluir a solicitação ${r.numero}?\n\n` +
         `Destino: ${r.destino}\n` +
         `Solicitante: ${r.solicitante}\n\n` +
         `Ela irá para a lixeira e o horário será liberado na agenda.`,
-        'Excluir Solicitação',
-        'warning'
+        'Excluir Solicitação', 'warning'
     );
     if (!ok) return;
 
@@ -198,25 +183,23 @@ export async function moveToTrash(id) {
             if (date && time) {
                 try {
                     const schedule = await import('./schedule.js');
-                    await schedule.freeSlot(date, time.substring(0, 5));
+                    if (typeof schedule.freeSlot === 'function') {
+                        await schedule.freeSlot(date, time.substring(0, 5));
+                    }
                 } catch (e) {
                     console.warn('[Requests] Falha ao liberar slot:', e);
                 }
             }
         }
-
         const trashRef = push(ref(_db, 'trash'));
         await set(trashRef, {
             request: r,
             deletedAt: new Date().toISOString(),
             deletedBy: _currentUser?.name || 'Sistema'
         });
-
         await remove(ref(_db, 'requests/' + id));
-
         await addHistory('Solicitação Excluída', r.numero,
             `Movida para lixeira por ${_currentUser?.name}`);
-
         showNotification('Excluída', `Solicitação ${r.numero} movida para lixeira.`, 'success');
     } catch (err) {
         console.error(err);
@@ -232,7 +215,6 @@ export function updateUserTable() {
     if (!tbody || !_currentUser) return;
 
     const search = (document.getElementById('user-search')?.value || '').toLowerCase();
-
     let mine = _requests.filter(r =>
         r.solicitanteUid === _currentUser.uid ||
         r.solicitanteEmail === _currentUser.email
@@ -378,16 +360,12 @@ export function updateUserFilter() {
 export function setupRequestFilters() {
     const us = document.getElementById('user-search');
     if (us) us.addEventListener('input', debounce(updateUserTable, 250));
-
     const as = document.getElementById('admin-search');
     if (as) as.addEventListener('input', debounce(updateAdminTable, 250));
-
     const sf = document.getElementById('admin-filter-status');
     if (sf) sf.addEventListener('change', updateAdminTable);
-
     const uf = document.getElementById('admin-filter-user');
     if (uf) uf.addEventListener('change', updateAdminTable);
-
     const pf = document.getElementById('admin-filter-priority');
     if (pf) pf.addEventListener('change', updateAdminTable);
 }
@@ -462,9 +440,7 @@ export function viewRequest(id, adminView) {
     }
 
     const modalEl = document.querySelector('#view-request-modal .modal');
-    if (modalEl) {
-        modalEl.className = 'modal modal-fullscreen';
-    }
+    if (modalEl) modalEl.className = 'modal modal-fullscreen';
 
     document.getElementById('view-request-modal').classList.add('active');
 }
@@ -476,7 +452,6 @@ export function closeViewModal() {
 function updateRequestsCount() {
     const adminCount = document.getElementById('admin-requests-count');
     if (adminCount) adminCount.textContent = _requests.length;
-
     const userCount = document.getElementById('user-requests-count');
     if (userCount && _currentUser) {
         const mine = _requests.filter(r =>
@@ -490,17 +465,14 @@ function updateRequestsCount() {
 export function renderTodayRequestsWidget() {
     const container = document.getElementById('dashboard-today-requests');
     if (!container) return;
-
     const today = new Date().toISOString().slice(0, 10);
     const todayReqs = _requests.filter(r =>
         (r.dataSolicitacao === today) || (r.saida && r.saida.slice(0, 10) === today)
     );
-
     if (todayReqs.length === 0) {
         container.innerHTML = '<div class="widget-empty">Nenhuma solicitação hoje.</div>';
         return;
     }
-
     container.innerHTML = todayReqs.slice(0, 5).map(r => `
         <div class="widget-item">
             <div class="widget-item-icon"><svg class="si"><use href="#i-car"/></svg></div>
@@ -516,8 +488,7 @@ export function renderTodayRequestsWidget() {
 }
 
 // ============================================================
-// PDF DO COMPROVANTE — delega para pdf-generator.js
-// (produz 1 página A4 vetorial, sem "print de tela")
+// PDF — dynamic import (isola falha do pdf-generator)
 // ============================================================
 export async function downloadUserRequestPDF(requestId) {
     const r = _requests.find(x => x.id === requestId);
@@ -527,12 +498,16 @@ export async function downloadUserRequestPDF(requestId) {
     }
 
     try {
-        await generateRequestPDF(r);
+        const mod = await import('./pdf-generator.js');
+        if (typeof mod.generateRequestPDF !== 'function') {
+            throw new Error('pdf-generator.js não exporta generateRequestPDF');
+        }
+        await mod.generateRequestPDF(r);
         await addHistory('PDF Baixado', r.numero, `Por: ${_currentUser?.name}`);
         showNotification('PDF Gerado', 'Comprovante baixado com sucesso!', 'success');
     } catch (err) {
-        console.error('[Requests] Erro ao gerar PDF:', err);
-        showNotification('Erro', 'Não foi possível gerar o PDF.', 'danger');
+        console.error('[Requests] Erro no PDF:', err);
+        showNotification('Erro no PDF', err.message || 'Falha ao gerar.', 'danger');
     }
 }
 
