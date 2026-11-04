@@ -1,6 +1,6 @@
 // ============================================================
 // SSOT · SOLICITAÇÕES DE TRANSPORTE · v11.5
-// - PDF delegado para pdf-generator.js v5 (1 página A4)
+// - PDF delegado para pdf-generator.js v6 (QR base64, 1 página A4)
 // - Cache busting no import do PDF
 // - Validações e proteções defensivas
 // ============================================================
@@ -15,8 +15,8 @@ import {
     getVeiculoText, truncate
 } from './utils.js';
 
-// ⭐ Cache busting: o ?v=5 força o browser a baixar o v5 do pdf-generator
-import { generateRequestPDF } from './pdf-generator.js?v=5';
+// ⭐ Cache busting: o ?v=6 força o browser a baixar o v6 do pdf-generator
+import { generateRequestPDF } from './pdf-generator.js?v=6';
 
 import { addHistory } from './history.js';
 import { sstConfirm } from './dialogs.js';
@@ -57,7 +57,6 @@ export function subscribeRequests(callback) {
             });
             _nextNumber = computeNextNumber();
 
-            // Cada passo isolado — um erro num não derruba os outros
             try { if (callback) callback(_requests); } catch (err) { console.error('[Requests] callback:', err); }
             try { updateAllTables(); } catch (err) { console.error('[Requests] updateAllTables:', err); }
             try { updateRequestsCount(); } catch (err) { console.error('[Requests] updateRequestsCount:', err); }
@@ -221,7 +220,6 @@ export async function moveToTrash(id) {
     if (!ok) return;
 
     try {
-        // Libera horário na agenda (se houver)
         if (r.saida && r.saida.includes('T')) {
             const [date, time] = r.saida.split('T');
             if (date && time) {
@@ -235,7 +233,6 @@ export async function moveToTrash(id) {
             }
         }
 
-        // Move para trash
         const trashRef = push(ref(_db, 'trash'));
         await set(trashRef, {
             request: r,
