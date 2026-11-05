@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT · FROTA EXCEL — v6.0 (botões sempre visíveis)
+// SSOT · FROTA EXCEL — v6.1 (corrige inicialização em aba oculta)
 // ============================================================
 
 import { showNotification, escapeHtml } from './utils.js';
@@ -71,27 +71,32 @@ export function initFleetExcel(target) {
         document.addEventListener('DOMContentLoaded', () => initFleetExcel(target), { once: true });
         return;
     }
-    const container = findOrCreateMount(target);
-    if (!container) { console.error('[FleetExcel] #admin-frota-tab não encontrado.'); return; }
+
+    let container = target
+        ? (typeof target === 'string' ? document.querySelector(target) : target)
+        : document.getElementById('admin-frota-tab');
+
+    if (!container) {
+        container = document.getElementById('admin-frota-tab');
+        if (!container) {
+            console.error('[FleetExcel] #admin-frota-tab não encontrado.');
+            return;
+        }
+    }
 
     loadFromStorage();
     loadVisibleCols();
 
     if (!_initialized) { _initialized = true; bindGlobals(); }
 
-    renderActivePanel();
-    updateStats();
-}
-
-function findOrCreateMount(target) {
-    let container = target
-        ? (typeof target === 'string' ? document.querySelector(target) : target)
-        : document.getElementById('admin-frota-tab');
-    if (!container) return null;
-    if (!document.getElementById('frota-panels')) {
+    // Garante que o #frota-panels exista
+    let panels = document.getElementById('frota-panels');
+    if (!panels) {
         container.insertAdjacentHTML('beforeend', '<div id="frota-panels"></div>');
     }
-    return container;
+
+    renderActivePanel();
+    updateStats();
 }
 
 function bindGlobals() {
@@ -218,7 +223,7 @@ function renderImportPanel() {
 }
 
 // ============================================================
-// PAINEL: DADOS (botões sempre visíveis)
+// PAINEL: DADOS
 // ============================================================
 function renderDataPanel(key, aba) {
     const sheetData = _data[aba.sheetKey] || { headers: [], rows: [] };
