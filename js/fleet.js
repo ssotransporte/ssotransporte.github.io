@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - FROTA E VIAGENS (v11.2)
+// SSOT - FROTA E VIAGENS (v11.3)
 // ============================================================
 
 import {
@@ -29,13 +29,16 @@ export function setFleetContext(db, currentUser) {
 
 export function getVehicles() { return _vehicles; }
 export function getDrivers() { return _drivers; }
+export function getTrips() { return _trips; }
+export function getOrigins() { return _origins; }
+export function getDestinations() { return _destinations; }
 
 // ============================================================
 // SUBSCRIÇÃO
 // ============================================================
 export function subscribeFleet(onChange) {
     if (!_db) return;
-    
+
     if (_unsubV) _unsubV();
     if (_unsubD) _unsubD();
     if (_unsubT) _unsubT();
@@ -47,43 +50,46 @@ export function subscribeFleet(onChange) {
         snap.forEach(c => _vehicles.push({ ...c.val(), id: c.key }));
         renderVehiclesTable();
         updateDropdowns();
-    });
+        if (typeof onChange === 'function') onChange();
+    }, (err) => console.error('[Fleet/vehicles]', err));
 
     _unsubD = onValue(ref(_db, 'drivers'), (snap) => {
         _drivers = [];
         snap.forEach(c => _drivers.push({ ...c.val(), id: c.key }));
         renderDriversTable();
         updateDropdowns();
-    });
+        if (typeof onChange === 'function') onChange();
+    }, (err) => console.error('[Fleet/drivers]', err));
 
     _unsubO = onValue(ref(_db, 'fleetOrigins'), (snap) => {
         _origins = [];
         snap.forEach(c => _origins.push({ ...c.val(), id: c.key }));
         updateDropdowns();
-        renderFleetLists(); // ✅ Atualiza lista no modal
-    });
+        renderFleetLists();
+    }, (err) => console.error('[Fleet/origins]', err));
 
     _unsubDest = onValue(ref(_db, 'fleetDestinations'), (snap) => {
         _destinations = [];
         snap.forEach(c => _destinations.push({ ...c.val(), id: c.key }));
         updateDropdowns();
-        renderFleetLists(); // ✅ Atualiza lista no modal
-    });
+        renderFleetLists();
+    }, (err) => console.error('[Fleet/destinations]', err));
 
     _unsubT = onValue(ref(_db, 'fleetTrips'), (snap) => {
         _trips = [];
         snap.forEach(c => _trips.push({ ...c.val(), id: c.key }));
         _trips.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
         renderTripsTable();
-    });
+        if (typeof onChange === 'function') onChange();
+    }, (err) => console.error('[Fleet/trips]', err));
 }
 
 export function unsubscribeFleet() {
-    if (_unsubV) _unsubV();
-    if (_unsubD) _unsubD();
-    if (_unsubT) _unsubT();
-    if (_unsubO) _unsubO();
-    if (_unsubDest) _unsubDest();
+    if (_unsubV) { try { _unsubV(); } catch (e) {} _unsubV = null; }
+    if (_unsubD) { try { _unsubD(); } catch (e) {} _unsubD = null; }
+    if (_unsubT) { try { _unsubT(); } catch (e) {} _unsubT = null; }
+    if (_unsubO) { try { _unsubO(); } catch (e) {} _unsubO = null; }
+    if (_unsubDest) { try { _unsubDest(); } catch (e) {} _unsubDest = null; }
 }
 
 // ============================================================
@@ -92,10 +98,12 @@ export function unsubscribeFleet() {
 function updateDropdowns() {
     const drvSelect = document.getElementById('trip-driver');
     if (drvSelect) {
+        const current = drvSelect.value;
         drvSelect.innerHTML = '<option value="">Selecione...</option>';
         _drivers.forEach(d => {
             drvSelect.innerHTML += `<option value="${d.id}">${escapeHtml(d.nome)}</option>`;
         });
+        if (current) drvSelect.value = current;
     }
 
     const originSelect = document.getElementById('trip-origin');
@@ -105,7 +113,7 @@ function updateDropdowns() {
         _origins.forEach(o => {
             originSelect.innerHTML += `<option value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</option>`;
         });
-        originSelect.value = current;
+        if (current) originSelect.value = current;
     }
 
     const destSelect = document.getElementById('trip-destination');
@@ -115,11 +123,10 @@ function updateDropdowns() {
         _destinations.forEach(d => {
             destSelect.innerHTML += `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`;
         });
-        destSelect.value = current;
+        if (current) destSelect.value = current;
     }
 }
 
-// ✅ RENDERIZA AS LISTAS NOS MODAIS
 export function renderFleetLists() {
     const originTbody = document.getElementById('origins-list-table');
     if (originTbody) {
@@ -131,7 +138,7 @@ export function renderFleetLists() {
                     <td>${escapeHtml(o.name)}</td>
                     <td class="table-actions-col">
                         <div class="action-buttons" style="justify-content:flex-end;">
-                            <button class="btn btn-secondary btn-sm" onclick="renameOrigin('${o.id}', '${escapeHtml(o.name)}')"><svg class="si"><use href="#i-edit"/></svg></button>
+                            <button class="btn btn-secondary btn-sm" onclick="renameOrigin('${o.id}', '${escapeHtml(o.name).replace(/'/g, "\\'")}')"><svg class="si"><use href="#i-edit"/></svg></button>
                             <button class="btn btn-danger btn-sm" onclick="deleteOrigin('${o.id}')"><svg class="si"><use href="#i-trash"/></svg></button>
                         </div>
                     </td>
@@ -150,7 +157,7 @@ export function renderFleetLists() {
                     <td>${escapeHtml(d.name)}</td>
                     <td class="table-actions-col">
                         <div class="action-buttons" style="justify-content:flex-end;">
-                            <button class="btn btn-secondary btn-sm" onclick="renameDestination('${d.id}', '${escapeHtml(d.name)}')"><svg class="si"><use href="#i-edit"/></svg></button>
+                            <button class="btn btn-secondary btn-sm" onclick="renameDestination('${d.id}', '${escapeHtml(d.name).replace(/'/g, "\\'")}')"><svg class="si"><use href="#i-edit"/></svg></button>
                             <button class="btn btn-danger btn-sm" onclick="deleteDestination('${d.id}')"><svg class="si"><use href="#i-trash"/></svg></button>
                         </div>
                     </td>
@@ -181,8 +188,8 @@ function renderTripsTable() {
                 </div>
             </td>
             <td>
-                <span style="font-size:0.75rem;color:#7f8c8d;">Inicial:</span> ${t.odoStart}<br>
-                <span style="font-size:0.75rem;color:#7f8c8d;">Final:</span> ${t.odoEnd}
+                <span style="font-size:0.75rem;color:#7f8c8d;">Inicial:</span> ${escapeHtml(String(t.odoStart))}<br>
+                <span style="font-size:0.75rem;color:#7f8c8d;">Final:</span> ${escapeHtml(String(t.odoEnd))}
             </td>
             <td>${escapeHtml(t.motive)}</td>
             <td class="table-actions-col">
@@ -252,15 +259,20 @@ export function toggleFleetForm() {
 export function openFleetSearch(type) {
     _searchType = type;
     _searchValue = '';
-    
+
     const title = document.getElementById('fleet-search-title');
     const input = document.getElementById('fleet-search-input');
-    
+
     if (title) title.textContent = `Pesquisar ${type === 'origin' ? 'Origem' : 'Destino'}`;
-    if (input) { input.value = ''; input.focus(); }
-    
+    if (input) { input.value = ''; }
+
     renderFleetSearchList('');
-    window.openModal('modal-fleet-search');
+    const el = document.getElementById('modal-fleet-search');
+    if (el) {
+        el.classList.add('active');
+        if (typeof window.openModal === 'function') window.openModal('modal-fleet-search');
+    }
+    setTimeout(() => input?.focus(), 150);
 }
 
 export function filterFleetSearchList(val) {
@@ -273,7 +285,7 @@ function renderFleetSearchList(filter) {
     if (!list) return;
 
     const data = _searchType === 'origin' ? _origins : _destinations;
-    const filtered = data.filter(d => d.name.toLowerCase().includes(filter.toLowerCase()));
+    const filtered = data.filter(d => d.name.toLowerCase().includes(String(filter).toLowerCase()));
 
     if (filtered.length === 0) {
         list.innerHTML = `<li style="padding:15px; text-align:center; color:#7f8c8d;">Nenhum resultado.</li>`;
@@ -281,7 +293,7 @@ function renderFleetSearchList(filter) {
     }
 
     list.innerHTML = filtered.map(d => `
-        <li class="fleet-search-list-item" onclick="selectFleetSearch('${escapeHtml(d.name)}')">
+        <li class="fleet-search-list-item" onclick="window.selectFleetSearch('${escapeHtml(d.name).replace(/'/g, "\\'")}')">
             ${escapeHtml(d.name)}
         </li>
     `).join('');
@@ -295,7 +307,8 @@ export function selectFleetSearch(value) {
         const sel = document.getElementById('trip-destination');
         if (sel) sel.value = value;
     }
-    window.closeModal('modal-fleet-search');
+    if (typeof window.closeModal === 'function') window.closeModal('modal-fleet-search');
+    else document.getElementById('modal-fleet-search')?.classList.remove('active');
 }
 
 // ============================================================
@@ -319,7 +332,6 @@ export async function saveTrip() {
     const driverObj = _drivers.find(d => d.id === driverId);
     if (!driverObj) return;
 
-    // Valida Odômetro Duplicado
     const odoExists = _trips.find(t => t.odoStart === odoStart || t.odoEnd === odoStart || t.odoStart === odoEnd || t.odoEnd === odoEnd);
     if (odoExists) {
         await sstAlert('Um dos odômetros informados já foi registrado em outra viagem. Verifique!', 'Odômetro Duplicado', 'danger');
@@ -334,24 +346,28 @@ export async function saveTrip() {
             odoStart, odoEnd,
             date, time, motive,
             createdAt: new Date().toISOString(),
-            createdBy: _currentUser?.name
+            createdBy: _currentUser?.name || 'Sistema'
         });
 
         document.getElementById('trip-odo-start').value = '';
         document.getElementById('trip-odo-end').value = '';
         document.getElementById('trip-motive').value = '';
         showNotification('Sucesso', 'Viagem registrada!', 'success');
-        addHistory('Viagem Registrada', '-', `${origin} -> ${destination}`);
+        addHistory('Viagem Registrada', '-', `${origin} -> ${destination}`).catch(() => {});
     } catch (err) {
         console.error(err);
+        showNotification('Erro', 'Não foi possível salvar a viagem.', 'danger');
     }
 }
 
 export async function deleteTrip(id) {
     const ok = await sstConfirm('Excluir esta viagem?', 'Excluir', 'danger');
     if (!ok) return;
-    await remove(ref(_db, 'fleetTrips/' + id));
-    showNotification('Excluída', 'Viagem removida.', 'success');
+    try {
+        await remove(ref(_db, 'fleetTrips/' + id));
+        showNotification('Excluída', 'Viagem removida.', 'success');
+        addHistory('Viagem Excluída', '-', id).catch(() => {});
+    } catch (err) { console.error(err); }
 }
 
 // ============================================================
@@ -361,18 +377,22 @@ export async function addOrigin() {
     const input = document.getElementById('new-origin-input');
     const name = input?.value.trim();
     if (!name) return;
-    await push(ref(_db, 'fleetOrigins'), { name });
-    input.value = '';
-    showNotification('Adicionado', 'Origem criada.', 'success');
+    try {
+        await push(ref(_db, 'fleetOrigins'), { name, createdAt: new Date().toISOString() });
+        input.value = '';
+        showNotification('Adicionado', 'Origem criada.', 'success');
+    } catch (err) { console.error(err); }
 }
 
 export async function addDestination() {
     const input = document.getElementById('new-destination-input');
     const name = input?.value.trim();
     if (!name) return;
-    await push(ref(_db, 'fleetDestinations'), { name });
-    input.value = '';
-    showNotification('Adicionado', 'Destino criado.', 'success');
+    try {
+        await push(ref(_db, 'fleetDestinations'), { name, createdAt: new Date().toISOString() });
+        input.value = '';
+        showNotification('Adicionado', 'Destino criado.', 'success');
+    } catch (err) { console.error(err); }
 }
 
 export async function renameOrigin(id, oldName) {
@@ -427,42 +447,56 @@ export async function deleteDestination(id) {
 // VEÍCULOS E MOTORISTAS
 // ============================================================
 export async function saveVehicle() {
-    const placa = document.getElementById('veiculo-placa').value.trim().toUpperCase();
-    const modelo = document.getElementById('veiculo-modelo').value.trim();
-    const capacidade = document.getElementById('veiculo-capacidade').value.trim();
+    const placa = document.getElementById('veiculo-placa')?.value.trim().toUpperCase();
+    const modelo = document.getElementById('veiculo-modelo')?.value.trim();
+    const capacidade = document.getElementById('veiculo-capacidade')?.value.trim();
 
     if (!placa || !modelo) return showNotification('Erro', 'Placa e modelo obrigatórios.', 'warning');
 
-    await push(ref(_db, 'vehicles'), { placa, modelo, capacidade, createdAt: new Date().toISOString() });
-    document.getElementById('veiculo-placa').value = '';
-    document.getElementById('veiculo-modelo').value = '';
-    document.getElementById('veiculo-capacidade').value = '';
-    showNotification('Sucesso', 'Veículo adicionado.', 'success');
+    try {
+        await push(ref(_db, 'vehicles'), { placa, modelo, capacidade: capacidade || '', createdAt: new Date().toISOString() });
+        document.getElementById('veiculo-placa').value = '';
+        document.getElementById('veiculo-modelo').value = '';
+        document.getElementById('veiculo-capacidade').value = '';
+        showNotification('Sucesso', 'Veículo adicionado.', 'success');
+    } catch (err) { console.error(err); }
 }
 
 export async function deleteVehicle(id) {
     const ok = await sstConfirm('Excluir este veículo?', 'Excluir', 'danger');
-    if (ok) await remove(ref(_db, 'vehicles/' + id));
+    if (!ok) return;
+    try {
+        await remove(ref(_db, 'vehicles/' + id));
+        showNotification('Excluído', 'Veículo removido.', 'success');
+    } catch (err) { console.error(err); }
 }
 
 export async function saveDriver() {
-    const nome = document.getElementById('motorista-nome').value.trim();
-    const telefone = document.getElementById('motorista-telefone').value.trim();
+    const nome = document.getElementById('motorista-nome')?.value.trim();
+    const telefone = document.getElementById('motorista-telefone')?.value.trim();
 
     if (!nome) return showNotification('Erro', 'Nome obrigatório.', 'warning');
 
-    await push(ref(_db, 'drivers'), { nome, telefone, createdAt: new Date().toISOString() });
-    document.getElementById('motorista-nome').value = '';
-    document.getElementById('motorista-telefone').value = '';
-    showNotification('Sucesso', 'Motorista adicionado.', 'success');
+    try {
+        await push(ref(_db, 'drivers'), { nome, telefone: telefone || '', createdAt: new Date().toISOString() });
+        document.getElementById('motorista-nome').value = '';
+        document.getElementById('motorista-telefone').value = '';
+        showNotification('Sucesso', 'Motorista adicionado.', 'success');
+    } catch (err) { console.error(err); }
 }
 
 export async function deleteDriver(id) {
     const ok = await sstConfirm('Excluir este motorista?', 'Excluir', 'danger');
-    if (ok) await remove(ref(_db, 'drivers/' + id));
+    if (!ok) return;
+    try {
+        await remove(ref(_db, 'drivers/' + id));
+        showNotification('Excluído', 'Motorista removido.', 'success');
+    } catch (err) { console.error(err); }
 }
 
-// Exports Globais
+// ============================================================
+// EXPORTS GLOBAIS
+// ============================================================
 window.saveTrip = saveTrip;
 window.deleteTrip = deleteTrip;
 window.addOrigin = addOrigin;
