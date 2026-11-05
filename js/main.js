@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v15.1 - spinner fix + phone help integrado)
+// SSOT - MAIN (v15.0 - PDF profissional + arquivar agenda)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -31,7 +31,6 @@ import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
 import * as Profile from './profile.js';
 import * as ScheduleArchive from './schedule-archive.js';
-import * as PhoneHelp from './phone-help.js';
 
 let app, db, auth;
 let currentUser = null;
@@ -46,6 +45,9 @@ let _fleetCurrentTab = 'viagens';
 
 const AREA_KEY = 'ssot_area_';
 
+// ============================================================
+// ROTEAMENTO POR HASH
+// ============================================================
 function getAreaFromHash() {
     const h = window.location.hash;
     if (h === '#/operacoes') return 'operacoes';
@@ -62,81 +64,39 @@ window.addEventListener('hashchange', () => {
 });
 
 // ============================================================
-// INIT — timer de segurança ANTES do Firebase
+// INIT
 // ============================================================
 function init() {
     console.log(`[SSOT] Inicializando v${APP_VERSION}...`);
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    auth = getAuth(app);
+    window._db = db;
 
-    // ⭐ TIMER DE SEGURANÇA — criado antes de qualquer operação arriscada
-    const safetyTimeout = setTimeout(() => {
-        const loading = document.getElementById('conn-loading');
-        if (loading && !loading.classList.contains('hidden')) {
-            console.warn('[SSOT] Safety timeout: forçando tela de login');
-            loading.classList.add('hidden');
-            document.getElementById('login-page')?.classList.remove('hidden');
-        }
-    }, FIREBASE_LOAD_TIMEOUT || 6000);
-
-    try {
-        app = initializeApp(firebaseConfig);
-        db = getDatabase(app);
-        auth = getAuth(app);
-        window._db = db;
-
-        // Cancela o fallback do HTML (main.js conseguiu inicializar)
-        if (window.__ssotSafetyTimer) {
-            clearTimeout(window.__ssotSafetyTimer);
-            window.__ssotSafetyTimer = null;
-        }
-    } catch (err) {
-        clearTimeout(safetyTimeout);
-        console.error('[SSOT] Erro ao inicializar Firebase:', err);
-        document.getElementById('conn-loading')?.classList.add('hidden');
-        document.getElementById('login-page')?.classList.remove('hidden');
-        const card = document.querySelector('.login-card');
-        if (card && !card.querySelector('.ssot-init-err')) {
-            const warn = document.createElement('div');
-            warn.className = 'alert alert-danger ssot-init-err';
-            warn.style.cssText = 'margin-bottom:15px;';
-            warn.innerHTML = '<strong>Erro de conexão com Firebase</strong><br>' +
-                (err.message || 'Verifique firebase-config.js') +
-                '<br><small>Console (F12) para detalhes.</small>';
-            card.insertBefore(warn, card.firstChild);
-        }
-        return;
-    }
-
-    // Contextos globais
     Signups.setSignupsContext(db, null, false);
     window._addHistoryInternal = (action, num, details) => History.addHistory(action, num, details).catch(() => {});
     window._getUsersForNotif = () => Users.getUsers();
 
-    // Phone Help context
-    try {
-        PhoneHelp.setPhoneHelpContext(auth, db);
-    } catch (e) {
-        console.warn('[SSOT] PhoneHelp não pôde ser inicializado:', e);
-    }
-
-    // Deep link
     const params = new URLSearchParams(window.location.search);
     const reqId = params.get('request');
     if (reqId) _pendingDeepLink = reqId;
 
-    // Setups iniciais
-    try {
-        Settings.setupServices();
-        updateNetworkStatus();
-        setupEventListeners();
-        setupGlobalExports();
-        setupFormTabs();
-        setupUsersTabs();
-        setupMobileSidebar();
-    } catch (err) {
-        console.error('[SSOT] Erro nos setups iniciais:', err);
-    }
+    Settings.setupServices();
+    updateNetworkStatus();
+    setupEventListeners();
+    setupGlobalExports();
+    setupFormTabs();
+    setupUsersTabs();
+    setupMobileSidebar();
 
-    // Auth state
+    const safetyTimeout = setTimeout(() => {
+        const loading = document.getElementById('conn-loading');
+        if (loading && !loading.classList.contains('hidden')) {
+            loading.classList.add('hidden');
+            document.getElementById('login-page').classList.remove('hidden');
+        }
+    }, FIREBASE_LOAD_TIMEOUT);
+
     onAuthStateChanged(auth, async (user) => {
         clearTimeout(safetyTimeout);
         if (_loginInProgress) return;
@@ -162,11 +122,12 @@ function closeMobileSidebar() {
     document.getElementById('main-nav')?.classList.remove('active');
     document.getElementById('sidebar-overlay')?.classList.remove('active');
 }
+
 window.openModal = (id) => document.getElementById(id)?.classList.add('active');
 window.closeModal = (id) => document.getElementById(id)?.classList.remove('active');
 
 // ============================================================
-// FORM TABS
+// FORM TABS + USERS TABS
 // ============================================================
 function setupFormTabs() {
     document.querySelectorAll('.form-tab').forEach(tab => {
@@ -179,6 +140,7 @@ function setupFormTabs() {
         });
     });
 }
+
 window.goToFormTab = function (t) {
     document.querySelectorAll('.form-tab').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.form-tab-content').forEach(x => x.classList.remove('active'));
@@ -253,8 +215,6 @@ function selectArea(mode) {
     if (btn) btn.classList.remove('hidden');
     const bc = document.getElementById('breadcrumb-area');
     if (bc) bc.textContent = mode === 'operacoes' ? 'Operações' : 'Solicitações';
-    const lbl = document.getElementById('area-current-label');
-    if (lbl) lbl.textContent = mode === 'operacoes' ? 'Operações' : 'Solicitações';
     renderAdminMenu();
 }
 
@@ -293,10 +253,7 @@ async function handleUserLoggedIn(user) {
         currentUser = buildUser(user, data);
         isAdmin = ADMIN_ROLES.includes(currentUser.role);
         await enterSystem();
-    } catch (err) {
-        console.error('[SSOT]', err);
-        showLoginPage();
-    }
+    } catch (err) { console.error('[SSOT]', err); showLoginPage(); }
 }
 
 function handleUserLoggedOut() {
@@ -309,18 +266,11 @@ function handleUserLoggedOut() {
 
 function buildUser(fbUser, data) {
     return {
-        uid: fbUser.uid,
-        username: fbUser.email,
-        email: data.email || fbUser.email,
-        name: data.name || fbUser.displayName || fbUser.email,
-        role: data.role || 'user',
-        setor: data.setor || '',
-        ramal: data.ramal || '',
-        cargo: data.cargo || '',
-        phone: data.phone || '',
-        provider: data.provider || 'password',
-        photo: data.photo || null,
-        isGuest: false
+        uid: fbUser.uid, username: fbUser.email, email: data.email || fbUser.email,
+        name: data.name || fbUser.displayName || fbUser.email, role: data.role || 'user',
+        setor: data.setor || '', ramal: data.ramal || '', cargo: data.cargo || '',
+        phone: data.phone || '', provider: data.provider || 'password',
+        photo: data.photo || null, isGuest: false
     };
 }
 
@@ -358,18 +308,14 @@ async function enterSystem() {
     document.getElementById('user-role').textContent = ROLE_LABELS[currentUser.role] || 'Usuário';
     const avatarEl = document.getElementById('user-avatar');
     if (avatarEl) {
-        if (currentUser.photo) {
-            avatarEl.innerHTML = `<img src="${currentUser.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-        } else {
-            avatarEl.textContent = getInitials(currentUser.name);
-        }
+        if (currentUser.photo) avatarEl.innerHTML = `<img src="${currentUser.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        else avatarEl.textContent = getInitials(currentUser.name);
     }
     document.getElementById('login-page').classList.add('hidden');
     document.getElementById('conn-loading').classList.add('hidden');
     document.getElementById('app-container').classList.remove('hidden');
     sessionStorage.setItem(SESSION_ACTIVE_KEY, currentUser.uid);
 
-    // Setar contexto em todos os módulos
     Users.setUsersContext(db, currentUser);
     Requests.setRequestsContext(db, currentUser);
     Schedule.setScheduleContext(db, currentUser);
@@ -392,8 +338,6 @@ async function enterSystem() {
             if (bc) bc.textContent = hashArea === 'operacoes' ? 'Operações' : 'Solicitações';
             const btn = document.getElementById('area-switch-btn');
             if (btn) btn.classList.remove('hidden');
-            const lbl = document.getElementById('area-current-label');
-            if (lbl) lbl.textContent = hashArea === 'operacoes' ? 'Operações' : 'Solicitações';
             renderAdminMenu();
         } else {
             const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
@@ -404,8 +348,6 @@ async function enterSystem() {
                 if (bc) bc.textContent = savedArea === 'operacoes' ? 'Operações' : 'Solicitações';
                 const btn = document.getElementById('area-switch-btn');
                 if (btn) btn.classList.remove('hidden');
-                const lbl = document.getElementById('area-current-label');
-                if (lbl) lbl.textContent = savedArea === 'operacoes' ? 'Operações' : 'Solicitações';
                 renderAdminMenu();
             } else {
                 _areaMode = null;
@@ -423,10 +365,8 @@ async function enterSystem() {
     activateSubscribers();
     Session.startSessionWatch(() => doLogout(true));
 
-    // Deep link
     if (_pendingDeepLink) {
-        const id = _pendingDeepLink;
-        _pendingDeepLink = null;
+        const id = _pendingDeepLink; _pendingDeepLink = null;
         const url = new URL(window.location.href);
         url.searchParams.delete('request');
         window.history.replaceState({}, '', url.toString());
@@ -435,16 +375,9 @@ async function enterSystem() {
             const reqs = Requests.getRequests();
             if (reqs.length > 0 || attempts > 30) {
                 const req = reqs.find(r => r.id === id);
-                if (req) {
-                    Requests.viewRequest(id, isAdmin);
-                    showNotification('Solicitação aberta', `Solicitação ${req.numero}`, 'info');
-                } else {
-                    showNotification('Não encontrada', 'A solicitação pode ter sido removida.', 'warning');
-                }
-            } else {
-                attempts++;
-                setTimeout(tryOpen, 400);
-            }
+                if (req) { Requests.viewRequest(id, isAdmin); showNotification('Solicitação aberta', `Solicitação ${req.numero}`, 'info'); }
+                else showNotification('Não encontrada', 'A solicitação pode ter sido removida.', 'warning');
+            } else { attempts++; setTimeout(tryOpen, 400); }
         };
         setTimeout(tryOpen, 500);
     }
@@ -487,7 +420,7 @@ function deactivateSubscribers() {
 }
 
 // ============================================================
-// MENU DO USUÁRIO
+// MENUS
 // ============================================================
 function renderUserMenu() {
     const menu = document.getElementById('top-menu-list');
@@ -497,9 +430,7 @@ function renderUserMenu() {
     `;
     menu.querySelectorAll('a').forEach(a => {
         a.addEventListener('click', e => {
-            e.preventDefault();
-            gotoUserTab(a.getAttribute('data-tab'));
-            closeMobileSidebar();
+            e.preventDefault(); gotoUserTab(a.getAttribute('data-tab')); closeMobileSidebar();
         });
     });
     gotoUserTab('user-solicitacoes');
@@ -519,15 +450,9 @@ function gotoUserTab(tabId) {
     const subtitle = document.getElementById('page-subtitle');
     if (sub) { subtitle.textContent = sub; subtitle.classList.remove('hidden'); }
     else subtitle.classList.add('hidden');
-    if (tabId === 'user-perfil') {
-        Profile.refreshProfileState();
-        Profile.populateProfileForm();
-    }
+    if (tabId === 'user-perfil') { Profile.refreshProfileState(); Profile.populateProfileForm(); }
 }
 
-// ============================================================
-// MENU DE OPERAÇÕES (FROTA)
-// ============================================================
 function renderOperacoesMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
@@ -577,9 +502,6 @@ function renderOperacoesMenu() {
     }, 100);
 }
 
-// ============================================================
-// MENU DO ADMIN (SOLICITAÇÕES)
-// ============================================================
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
@@ -603,9 +525,7 @@ function renderAdminMenu() {
         `;
         menu.querySelectorAll('a').forEach(a => {
             a.addEventListener('click', e => {
-                e.preventDefault();
-                gotoAdminTab(a.getAttribute('data-tab'));
-                closeMobileSidebar();
+                e.preventDefault(); gotoAdminTab(a.getAttribute('data-tab')); closeMobileSidebar();
             });
         });
         gotoAdminTab('admin-dashboard');
@@ -647,23 +567,11 @@ export function gotoAdminTab(tabId) {
             Schedule.renderSlotsAdmin();
             updateArchiveBadge();
             break;
-        case 'admin-historico':
-            History.refreshHistory();
-            break;
-        case 'admin-lixeira':
-            Trash.updateTrashTable();
-            break;
-        case 'admin-usuarios':
-            Users.updateUsersTable();
-            Signups.subscribeSignups();
-            break;
-        case 'admin-perfil':
-            Profile.refreshProfileState();
-            Profile.populateProfileForm();
-            break;
-        case 'admin-servicos':
-            updateNetworkStatus();
-            break;
+        case 'admin-historico': History.refreshHistory(); break;
+        case 'admin-lixeira': Trash.updateTrashTable(); break;
+        case 'admin-usuarios': Users.updateUsersTable(); Signups.subscribeSignups(); break;
+        case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
+        case 'admin-servicos': updateNetworkStatus(); break;
         case 'admin-frota':
             try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Frota Excel:', e); }
             break;
@@ -699,13 +607,13 @@ function openProfileTab() {
 function prefillUserForm() {
     if (!currentUser) return;
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    set('u-solicitante', currentUser.name);
-    set('u-email', currentUser.email);
-    set('u-ramal', currentUser.ramal);
-    set('u-setor', currentUser.setor);
-    set('u-cargo', currentUser.cargo);
+    set('u-solicitante', currentUser.name); set('u-email', currentUser.email);
+    set('u-ramal', currentUser.ramal); set('u-setor', currentUser.setor); set('u-cargo', currentUser.cargo);
 }
 
+// ============================================================
+// LOGOUT
+// ============================================================
 async function doLogout(silent = false) {
     if (currentUser && !currentUser.isGuest) {
         try { await History.addHistory('Logout', '-', `Usuário ${currentUser.name}`); } catch (e) {}
@@ -716,11 +624,8 @@ async function doLogout(silent = false) {
     Session.stopSessionWatch();
     deactivateSubscribers();
     sessionStorage.removeItem(SESSION_ACTIVE_KEY);
-    currentUser = null;
-    isAdmin = false;
-    isResuming = false;
-    _loginInProgress = false;
-    _enterSystemDone = false;
+    currentUser = null; isAdmin = false; isResuming = false;
+    _loginInProgress = false; _enterSystemDone = false;
     try { await Auth.logoutUser(); } catch (e) {}
     document.getElementById('app-container')?.classList.add('hidden');
     document.getElementById('conn-loading')?.classList.add('hidden');
@@ -729,7 +634,7 @@ async function doLogout(silent = false) {
 }
 
 // ============================================================
-// TELAS DE LOGIN
+// NAVEGAÇÃO LOGIN
 // ============================================================
 function goToLoginFn(mode) {
     window._loginMode = mode;
@@ -738,20 +643,12 @@ function goToLoginFn(mode) {
     document.getElementById('screen-requerimento').classList.add('hidden');
     const title = document.getElementById('login-title');
     const subtitle = document.getElementById('login-subtitle');
-    if (mode === 'admin') {
-        if (title) title.textContent = 'Entrar como Setor';
-        if (subtitle) subtitle.textContent = 'Acesso administrativo';
-    } else {
-        if (title) title.textContent = 'Entrar como Usuário';
-        if (subtitle) subtitle.textContent = 'Acesse suas solicitações';
-    }
+    if (mode === 'admin') { if (title) title.textContent = 'Entrar como Setor'; if (subtitle) subtitle.textContent = 'Acesso administrativo'; }
+    else { if (title) title.textContent = 'Entrar como Usuário'; if (subtitle) subtitle.textContent = 'Acesse suas solicitações'; }
     document.getElementById('login-error')?.classList.add('hidden');
     document.getElementById('login-info')?.classList.add('hidden');
-    const u = document.getElementById('username');
-    const p = document.getElementById('password');
-    if (u) u.value = '';
-    if (p) p.value = '';
-    u?.focus();
+    const u = document.getElementById('username'); const p = document.getElementById('password');
+    if (u) u.value = ''; if (p) p.value = ''; u?.focus();
 }
 function goToRequerimentoFn() {
     document.getElementById('screen-select').classList.add('hidden');
@@ -772,20 +669,14 @@ function backToSelectFn() {
     document.getElementById('requerimento-success')?.classList.add('hidden');
 }
 function togglePassFn(id, el) {
-    const p = document.getElementById(id);
-    if (!p) return;
+    const p = document.getElementById(id); if (!p) return;
     const use = el.querySelector('use');
-    if (p.type === 'password') {
-        p.type = 'text';
-        if (use) use.setAttribute('href', '#i-eye-off');
-    } else {
-        p.type = 'password';
-        if (use) use.setAttribute('href', '#i-eye');
-    }
+    if (p.type === 'password') { p.type = 'text'; if (use) use.setAttribute('href', '#i-eye-off'); }
+    else { p.type = 'password'; if (use) use.setAttribute('href', '#i-eye'); }
 }
 
 // ============================================================
-// EVENT LISTENERS
+// LISTENERS
 // ============================================================
 function setupEventListeners() {
     document.getElementById('login-form')?.addEventListener('submit', handleLoginSubmit);
@@ -806,15 +697,13 @@ function setupEventListeners() {
                         grp.label = child.label;
                         Array.from(child.children).forEach(opt => {
                             const newOpt = document.createElement('option');
-                            newOpt.value = opt.value;
-                            newOpt.textContent = opt.textContent;
+                            newOpt.value = opt.value; newOpt.textContent = opt.textContent;
                             grp.appendChild(newOpt);
                         });
                         saidaSelect.appendChild(grp);
                     } else if (child.value) {
                         const newOpt = document.createElement('option');
-                        newOpt.value = child.value;
-                        newOpt.textContent = child.textContent;
+                        newOpt.value = child.value; newOpt.textContent = child.textContent;
                         saidaSelect.appendChild(newOpt);
                     }
                 });
@@ -835,490 +724,4 @@ function setupEventListeners() {
     document.getElementById('password')?.addEventListener('blur', () => {
         document.getElementById('capslock-warning')?.style.setProperty('display', 'none');
     });
-    document.getElementById('user-info-trigger')?.addEventListener('click', () => openProfileTab());
-
-    window.openForgotPassword = async function (e) {
-        e.preventDefault();
-        const email = await sstPrompt('Digite seu e-mail para receber o link:', '', 'Redefinir Senha');
-        if (!email) return;
-        try {
-            await Auth.sendReset(email);
-            showNotification('E-mail enviado', 'Verifique sua caixa.', 'success');
-        } catch (err) {
-            showNotification('Erro', 'Não foi possível enviar.', 'danger');
-        }
-    };
-
-    document.getElementById('notif-bell-btn')?.addEventListener('click', () => {
-        if (isAdmin) Notifications.openNotifAdminModal();
-        else Notifications.openNotifViewModal();
-    });
-    document.getElementById('send-notif-btn')?.addEventListener('click', handleSendNotification);
-
-    document.getElementById('new-user-btn')?.addEventListener('click', () => Users.openUserModal());
-    document.getElementById('save-user-btn')?.addEventListener('click', () => Users.saveUser());
-    document.getElementById('refresh-users')?.addEventListener('click', () => {
-        Users.updateUsersTable();
-        Signups.subscribeSignups();
-        showNotification('Atualizado', 'Lista atualizada.', 'success', 2000);
-    });
-    Users.setupUserFilters();
-
-    document.getElementById('user-photo-input')?.addEventListener('change', function (e) {
-        const f = e.target.files?.[0];
-        if (f) Users.handlePhotoSelect(f);
-    });
-    document.getElementById('user-photo-remove')?.addEventListener('click', () => Users.handlePhotoRemove());
-
-    document.getElementById('ap-photo-input')?.addEventListener('change', function (e) {
-        const f = e.target.files?.[0];
-        if (f) Profile.handleProfilePhotoSelect(f);
-    });
-    document.getElementById('ap-photo-remove')?.addEventListener('click', () => Profile.handleProfilePhotoRemove());
-    document.getElementById('ap-save-btn')?.addEventListener('click', () => Profile.saveProfile());
-
-    document.getElementById('up-photo-input')?.addEventListener('change', function (e) {
-        const f = e.target.files?.[0];
-        if (f) Profile.handleProfilePhotoSelect(f);
-    });
-    document.getElementById('up-photo-remove')?.addEventListener('click', () => Profile.handleProfilePhotoRemove());
-    document.getElementById('up-save-btn')?.addEventListener('click', () => Profile.saveProfile());
-
-    Requests.setupRequestFilters();
-    History.setupHistoryFilters();
-
-    document.getElementById('user-refresh')?.addEventListener('click', () => {
-        Requests.updateUserTable();
-        showNotification('Atualizado', 'Lista atualizada.', 'success', 2000);
-    });
-    document.getElementById('admin-refresh')?.addEventListener('click', () => {
-        Requests.updateAdminTable();
-        showNotification('Atualizado', 'Lista atualizada.', 'success', 2000);
-    });
-    document.getElementById('historico-refresh')?.addEventListener('click', () => {
-        History.refreshHistory();
-        showNotification('Atualizado', 'Histórico atualizado.', 'success', 2000);
-    });
-    document.getElementById('historico-clear')?.addEventListener('click', () => History.clearAllHistory());
-
-    document.getElementById('add-slot-block')?.addEventListener('click', async () => {
-        await Schedule.addSlotBlock(
-            document.getElementById('slot-date')?.value,
-            document.getElementById('slot-start')?.value,
-            document.getElementById('slot-end')?.value
-        );
-    });
-    document.getElementById('add-single-slot')?.addEventListener('click', async () => {
-        await Schedule.addSingleSlot(
-            document.getElementById('single-slot-date')?.value,
-            document.getElementById('single-slot-time')?.value
-        );
-    });
-    document.getElementById('refresh-slots')?.addEventListener('click', () => {
-        Schedule.renderSlotsAdmin();
-        updateArchiveBadge();
-        showNotification('Atualizado', 'Agenda atualizada.', 'success', 2000);
-    });
-
-    // Botão Arquivar Agenda Passada
-    document.getElementById('archive-past-slots')?.addEventListener('click', async () => {
-        await ScheduleArchive.archivePastSlots(db, () => {
-            try { Schedule.renderSlotsAdmin(); } catch (e) {}
-            updateArchiveBadge();
-        });
-    });
-
-    document.getElementById('lixeira-clear')?.addEventListener('click', () => Trash.emptyTrash());
-    document.getElementById('generate-report')?.addEventListener('click', () => Reports.generateReport());
-    document.getElementById('export-excel')?.addEventListener('click', () => Reports.exportReportExcel());
-    document.getElementById('export-pdf')?.addEventListener('click', () => Reports.exportReportPDF(false));
-    document.getElementById('preview-pdf')?.addEventListener('click', () => Reports.exportReportPDF(true));
-    document.getElementById('admin-export-pdf')?.addEventListener('click', () => Reports.exportReportPDF(false));
-    document.getElementById('admin-export-excel')?.addEventListener('click', () => Reports.exportReportExcel());
-
-    Dashboard.setupChartDownloads();
-    Dashboard.setupChartFilters();
-    Settings.setupBackupButtons(handleBackup, handleImportBackup);
-
-    document.getElementById('close-view-modal')?.addEventListener('click', () => Requests.closeViewModal());
-    document.getElementById('close-pdf-modal')?.addEventListener('click', closePdfModal);
-    document.getElementById('close-pdf-modal-btn')?.addEventListener('click', closePdfModal);
-    document.getElementById('download-pdf')?.addEventListener('click', () => {
-        Reports.exportReportPDF(false);
-        setTimeout(closePdfModal, 1500);
-    });
-
-    document.querySelectorAll('.modal-overlay').forEach(m => {
-        m.addEventListener('click', function (e) {
-            if (e.target === this) {
-                if (this.id === 'session-modal' || this.id === 'resume-modal' || this.id === 'area-select-modal') return;
-                this.classList.remove('active');
-            }
-        });
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay.active').forEach(m => {
-                if (m.id !== 'session-modal' && m.id !== 'resume-modal' && m.id !== 'area-select-modal') {
-                    m.classList.remove('active');
-                }
-            });
-        }
-    });
-    window.addEventListener('online', updateNetworkStatus);
-    window.addEventListener('offline', updateNetworkStatus);
-}
-
-// ============================================================
-// LOGIN SUBMIT
-// ============================================================
-async function handleLoginSubmit(e) {
-    e.preventDefault();
-    const email = document.getElementById('username')?.value.trim() || '';
-    const password = document.getElementById('password')?.value || '';
-    const btn = document.getElementById('login-submit-btn');
-    const errBox = document.getElementById('login-error');
-    const infoBox = document.getElementById('login-info');
-    _loginInProgress = true;
-    errBox?.classList.add('hidden');
-    infoBox?.classList.add('hidden');
-    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
-    try {
-        const user = await Auth.loginUser(email, password);
-        const snap = await get(ref(db, 'users/' + user.uid));
-        if (!snap.exists()) {
-            const sc = await Signups.checkSignupByEmail(email);
-            await Auth.logoutUser();
-            if (sc.exists && sc.status === 'pendente') throw new Error('Sua solicitação está PENDENTE.');
-            else if (sc.exists && sc.status === 'recusado') throw new Error('Sua solicitação foi RECUSADA.');
-            else throw new Error('Usuário não cadastrado.');
-        }
-        const data = snap.val();
-        if (data.active === false) { await Auth.logoutUser(); throw new Error('Conta desativada.'); }
-        const mode = window._loginMode || 'user';
-        const userRole = data.role || 'user';
-        const isAdminRole = ADMIN_ROLES.includes(userRole);
-        if (mode === 'admin' && !isAdminRole) { await Auth.logoutUser(); throw new Error('Sem acesso administrativo.'); }
-        if (mode === 'user' && isAdminRole) { await Auth.logoutUser(); throw new Error('Use "Sou Setor".'); }
-        currentUser = buildUser(user, data);
-        isAdmin = isAdminRole;
-        _loginInProgress = false;
-        await enterSystem();
-    } catch (err) {
-        _loginInProgress = false;
-        try { await Auth.logoutUser(); } catch (e) {}
-        const msg = err.code ? Auth.getAuthErrorMessage(err) : err.message;
-        if (errBox) { errBox.textContent = msg; errBox.classList.remove('hidden'); }
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-    }
-}
-
-// ============================================================
-// GOOGLE LOGIN
-// ============================================================
-async function handleGoogleLogin() {
-    const btn = document.getElementById('google-login-btn');
-    const errBox = document.getElementById('login-error');
-    const infoBox = document.getElementById('login-info');
-    _loginInProgress = true;
-    errBox?.classList.add('hidden');
-    infoBox?.classList.add('hidden');
-    if (btn) btn.disabled = true;
-    try {
-        const result = await Auth.loginWithGoogle();
-        const googleUser = result.user;
-        const email = (googleUser.email || '').toLowerCase();
-        const snap = await get(ref(db, 'users/' + googleUser.uid));
-        if (snap.exists()) {
-            const data = snap.val();
-            if (data.email && data.email.toLowerCase() !== email) {
-                await Auth.logoutUser();
-                throw new Error('E-mail do Google diferente.');
-            }
-            if (data.active === false) { await Auth.logoutUser(); throw new Error('Conta desativada.'); }
-            currentUser = buildUser(googleUser, data);
-            isAdmin = ADMIN_ROLES.includes(currentUser.role);
-            _loginInProgress = false;
-            await enterSystem();
-            return;
-        }
-        const sc = await Signups.checkSignupByEmail(email);
-        if (sc.exists && sc.status === 'pendente') {
-            await Auth.logoutUser();
-            _loginInProgress = false;
-            if (infoBox) {
-                infoBox.innerHTML = '<strong>Solicitação pendente</strong><p>Aguarde aprovação.</p>';
-                infoBox.classList.remove('hidden');
-            }
-            return;
-        }
-        if (sc.exists && sc.status === 'recusado') {
-            await Auth.logoutUser();
-            _loginInProgress = false;
-            if (errBox) { errBox.textContent = 'Sua solicitação foi recusada.'; errBox.classList.remove('hidden'); }
-            return;
-        }
-        await Auth.logoutUser();
-        _loginInProgress = false;
-        goToRequerimentoFn();
-        document.getElementById('r-nome').value = googleUser.displayName || '';
-        document.getElementById('r-email').value = email;
-        if (infoBox) {
-            infoBox.innerHTML = '<strong>Cadastro necessário</strong><p>Preencha os dados.</p>';
-            infoBox.classList.remove('hidden');
-        }
-    } catch (err) {
-        _loginInProgress = false;
-        try { await Auth.logoutUser(); } catch (e) {}
-        const msg = err.code ? Auth.getAuthErrorMessage(err) : (err.message || 'Erro.');
-        if (errBox) { errBox.textContent = msg; errBox.classList.remove('hidden'); }
-    } finally {
-        if (btn) btn.disabled = false;
-    }
-}
-
-// ============================================================
-// REQUERIMENTO
-// ============================================================
-async function handleSignupSubmit(e) {
-    e.preventDefault();
-    const nome = document.getElementById('r-nome')?.value.trim() || '';
-    const email = document.getElementById('r-email')?.value.trim().toLowerCase() || '';
-    const ramal = document.getElementById('r-ramal')?.value.trim() || '';
-    const setor = document.getElementById('r-setor')?.value.trim() || '';
-    const cargo = document.getElementById('r-cargo')?.value.trim() || '';
-    const senha = document.getElementById('r-senha')?.value || '';
-    const senha2 = document.getElementById('r-senha2')?.value || '';
-    const justificativa = document.getElementById('r-justificativa')?.value.trim() || '';
-    const errBox = document.getElementById('requerimento-error');
-    const successBox = document.getElementById('requerimento-success');
-    errBox?.classList.add('hidden');
-    successBox?.classList.add('hidden');
-    if (!nome || !email || !ramal || !setor) {
-        errBox.textContent = 'Preencha os campos.';
-        errBox.classList.remove('hidden');
-        return;
-    }
-    if (!senha || senha.length < 6) {
-        errBox.textContent = 'Senha mínima 6 caracteres.';
-        errBox.classList.remove('hidden');
-        return;
-    }
-    if (senha !== senha2) {
-        errBox.textContent = 'Senhas não coincidem.';
-        errBox.classList.remove('hidden');
-        return;
-    }
-    const btn = document.getElementById('requerimento-submit-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-    try {
-        await Signups.createSignup({ nome, email, ramal, setor, cargo, justificativa, senha, origin: 'form' });
-        successBox.innerHTML = '<strong>Solicitação enviada!</strong><p>Aguarde aprovação.</p>';
-        successBox.classList.remove('hidden');
-        document.getElementById('requerimento-form')?.reset();
-        setTimeout(() => backToSelectFn(), 6000);
-    } catch (err) {
-        errBox.textContent = err.message || 'Erro.';
-        errBox.classList.remove('hidden');
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitação'; }
-    }
-}
-
-// ============================================================
-// NOVA SOLICITAÇÃO (usuário)
-// ============================================================
-async function handleRequestSubmit(e) {
-    e.preventDefault();
-    const formData = {
-        solicitante: document.getElementById('u-solicitante')?.value.trim(),
-        email: document.getElementById('u-email')?.value.trim(),
-        ramal: document.getElementById('u-ramal')?.value.trim(),
-        setor: document.getElementById('u-setor')?.value.trim(),
-        cargo: document.getElementById('u-cargo')?.value.trim() || '',
-        destino: document.getElementById('u-destino')?.value.trim(),
-        origem: document.getElementById('u-origem')?.value.trim() || '',
-        finalidade: document.getElementById('u-finalidade')?.value.trim(),
-        prioridade: document.getElementById('u-prioridade')?.value || 'normal',
-        saida: document.getElementById('u-saida')?.value,
-        retorno: document.getElementById('u-retorno')?.value || '',
-        passageiros: document.getElementById('u-passageiros')?.value || '1',
-        necessidades: document.getElementById('u-necessidades')?.value.trim() || '',
-        nomesPassageiros: document.getElementById('u-nomes-passageiros')?.value.trim() || '',
-        observacoes: document.getElementById('u-observacoes')?.value.trim() || ''
-    };
-    const required = ['solicitante', 'email', 'ramal', 'setor', 'destino', 'finalidade', 'saida'];
-    for (const field of required) {
-        if (!formData[field]) {
-            showAlert('Preencha todos os campos obrigatórios.', 'danger');
-            const fieldMap = {
-                solicitante: 'solicitante', email: 'solicitante', ramal: 'solicitante',
-                setor: 'solicitante', destino: 'viagem', finalidade: 'viagem', saida: 'viagem'
-            };
-            window.goToFormTab(fieldMap[field] || 'solicitante');
-            return;
-        }
-    }
-    try {
-        const created = await Requests.createRequest(formData);
-        if (formData.saida && formData.saida.includes('T')) {
-            const [date, time] = formData.saida.split('T');
-            if (date && time) {
-                try { await Schedule.reserveSlot(date, time.substring(0, 5), created.numero); } catch (e) {}
-            }
-        }
-        ['u-destino','u-origem','u-finalidade','u-saida','u-retorno','u-necessidades','u-nomes-passageiros','u-observacoes'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-        const p = document.getElementById('u-passageiros');
-        if (p) p.value = 1;
-        const pr = document.getElementById('u-prioridade');
-        if (pr) pr.value = 'normal';
-        window.goToFormTab('solicitante');
-        showNotification('Enviada', `Solicitação ${created.numero} registrada!`, 'success');
-    } catch (err) {
-        showAlert('Erro: ' + (err.message || ''), 'danger');
-    }
-}
-
-// ============================================================
-// NOVA SOLICITAÇÃO (admin)
-// ============================================================
-async function handleAdminRequestSubmit(e) {
-    e.preventDefault();
-    const formData = {
-        solicitante: document.getElementById('ar-solicitante')?.value.trim(),
-        email: document.getElementById('ar-email')?.value.trim(),
-        ramal: document.getElementById('ar-ramal')?.value.trim(),
-        setor: document.getElementById('ar-setor')?.value.trim(),
-        cargo: document.getElementById('ar-cargo')?.value.trim() || '',
-        destino: document.getElementById('ar-destino')?.value.trim(),
-        origem: document.getElementById('ar-origem')?.value.trim() || '',
-        finalidade: document.getElementById('ar-finalidade')?.value.trim(),
-        prioridade: document.getElementById('ar-prioridade')?.value || 'normal',
-        saida: document.getElementById('ar-saida')?.value,
-        retorno: document.getElementById('ar-retorno')?.value || '',
-        passageiros: document.getElementById('ar-passageiros')?.value || '1',
-        necessidades: document.getElementById('ar-necessidades')?.value.trim() || '',
-        nomesPassageiros: document.getElementById('ar-nomes-passageiros')?.value.trim() || '',
-        observacoes: document.getElementById('ar-observacoes')?.value.trim() || ''
-    };
-    const required = ['solicitante', 'email', 'ramal', 'setor', 'destino', 'finalidade', 'saida'];
-    for (const field of required) {
-        if (!formData[field]) { showAlert('Preencha os campos.', 'danger'); return; }
-    }
-    const btn = e.target.querySelector('button[type="submit"]');
-    const original = btn?.textContent;
-    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
-    try {
-        const created = await Requests.createAdminRequest(formData);
-        if (formData.saida && formData.saida.includes('T')) {
-            const [date, time] = formData.saida.split('T');
-            if (date && time) {
-                try { await Schedule.reserveSlot(date, time.substring(0, 5), created.numero); } catch (e) {}
-            }
-        }
-        window.closeModal('admin-new-request-modal');
-        showNotification('Enviada', `Solicitação ${created.numero}!`, 'success');
-    } catch (err) {
-        showAlert('Erro: ' + (err.message || ''), 'danger');
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = original; }
-    }
-}
-
-// ============================================================
-// NOTIFICAÇÃO
-// ============================================================
-async function handleSendNotification() {
-    const target = document.getElementById('notif-target')?.value || 'all';
-    const type = document.getElementById('notif-type')?.value || 'info';
-    const title = document.getElementById('notif-title')?.value || '';
-    const message = document.getElementById('notif-message')?.value || '';
-    const btn = document.getElementById('send-notif-btn');
-    const originalText = btn?.textContent;
-    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-    try {
-        await Notifications.sendNotification({ target, type, title, message });
-        Notifications.closeNotifModal();
-        showNotification('Enviada', 'Notificação enviada.', 'success');
-    } catch (err) {
-        showAlert(err.message || 'Erro.', 'danger');
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = originalText; }
-    }
-}
-
-// ============================================================
-// BACKUP
-// ============================================================
-function handleBackup() {
-    const backup = {
-        meta: {
-            app: 'SSOT', version: APP_VERSION, timestamp: new Date().toISOString(),
-            createdBy: currentUser?.name || 'Sistema'
-        },
-        data: {
-            requests: Requests.getRequests(),
-            users: Users.getUsers(),
-            trash: Trash.getTrash(),
-            signups: Signups.getSignups(),
-            notifications: Notifications.getNotifications()
-        }
-    };
-    downloadJSON(backup, `backup_ssot_${new Date().toISOString().slice(0, 10)}`);
-    History.addHistory('Backup Realizado', '-', `Por: ${currentUser?.name}`);
-    showNotification('Backup', 'Arquivo gerado!', 'success');
-}
-async function handleImportBackup(file) {
-    if (!file) return;
-    const ok = await sstConfirm('Importar? Os dados serão MANTIDOS.', 'Importar Backup');
-    if (!ok) return;
-    try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        const payload = data.data || data;
-        let imported = 0;
-        const importCollection = async (col, items, idField) => {
-            if (!Array.isArray(items)) return;
-            for (const item of items) {
-                const id = item[idField] || item.id;
-                if (!id) continue;
-                const copy = { ...item };
-                delete copy[idField];
-                delete copy.id;
-                await set(ref(db, col + '/' + id), copy);
-                imported++;
-            }
-        };
-        await importCollection('requests', payload.requests, 'id');
-        await importCollection('users', payload.users, 'uid');
-        await History.addHistory('Backup Importado', '-', `${imported} registros`);
-        showNotification('Importado', `${imported} registros.`, 'success');
-    } catch (err) {
-        showAlert('Erro ao importar.', 'danger');
-    }
-}
-
-function closePdfModal() {
-    document.getElementById('pdf-modal')?.classList.remove('active');
-}
-function updateNetworkStatus() {
-    const el = document.getElementById('servicos-network-status');
-    if (!el) return;
-    el.textContent = navigator.onLine ? 'Online' : 'Offline';
-    el.style.color = navigator.onLine ? '#27ae60' : '#c0392b';
-}
-
-// ============================================================
-// BOOTSTRAP
-// ============================================================
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-} else {
-    init();
-}
-
-console.log(`[SSOT] v${APP_VERSION} · Firebase: ssot-ed9b1`);
+    document.getElementById('user-info-t
