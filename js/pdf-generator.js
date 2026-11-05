@@ -1,280 +1,219 @@
 // ============================================================
-// SSOT · PDF GENERATOR — v1.0 STANDALONE
-// Não importa nenhum outro módulo do projeto.
-// Só depende de window.html2pdf (CDN, carregado no index.html).
+// SSOT · PDF Generator v8
+// - QR gerado localmente via qrcode-generator (sem CORS)
+// - Linha de assinatura como div sólido
+// - Truncagem automática de texto se estourar A4
 // ============================================================
-console.log('[pdf-generator] v1.0 standalone carregado');
 
+import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
+
+console.log('[PDF] ✅ v8 carregado em', new Date().toISOString());
+
+const safe = (v, f = '—') => (v === null || v === undefined || v === '') ? f : String(v);
+const e = (v, f = '—') => escapeHtml(safe(v, f));
+
+// ============================================================
+// Carrega qrcode-generator dinamicamente (sem precisar mexer no HTML)
+// ============================================================
+async function ensureQRCodeLib() {
+    if (typeof window.qrcode !== 'undefined') return true;
+    return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+        setTimeout(() => resolve(typeof window.qrcode !== 'undefined'), 5000);
+    });
+}
+
+// ============================================================
+// Gera QR → data URL base64 (PNG/GIF embutido)
+// ============================================================
+function generateQRDataURL(text) {
+    if (typeof window.qrcode === 'undefined') {
+        console.warn('[PDF] qrcode-generator não disponível');
+        return null;
+    }
+    try {
+        const qr = window.qrcode(0, 'M'); // 0 = auto, M = error correction
+        qr.addData(text);
+        qr.make();
+        const dataUrl = qr.createDataURL(6, 2); // cellSize=6, margin=2
+        console.log('[PDF] ✅ QR gerado localmente (len:', dataUrl.length, 'chars)');
+        return dataUrl;
+    } catch (err) {
+        console.error('[PDF] ❌ Erro ao gerar QR:', err);
+        return null;
+    }
+}
+
+// ============================================================
+// Trunca textos se altura estourar A4
+// ============================================================
+function fitToPage(docEl) {
+    const A4 = 1123;
+    let attempts = 0;
+    while (docEl.offsetHeight > A4 && attempts < 15) {
+        const fulls = Array.from(docEl.querySelectorAll('[data-ssot-full]'));
+        let biggest = null, len = 0;
+        for (const f of fulls) {
+            const v = f.querySelector('[data-ssot-value]');
+            if (v && v.textContent.length > len) { len = v.textContent.length; biggest = v; }
+        }
+        if (biggest && biggest.textContent.length > 60) {
+            const cut = Math.max(60, Math.floor(biggest.textContent.length * 0.7));
+            biggest.textContent = biggest.textContent.substring(0, cut) + '…';
+            attempts++;
+        } else break;
+    }
+    return docEl.offsetHeight;
+}
+
+// ============================================================
+// Template
+// ============================================================
+const F = (label, value, full = false) => `
+  <div ${full ? 'data-ssot-full' : ''} style="padding:3px 0;border-bottom:1px dotted #ddd;${full ? 'grid-column:1/-1;' : ''}">
+    <div style="font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.3px;font-weight:bold;margin-bottom:1px;">${label}</div>
+    <div data-ssot-value style="font-size:16px;color:#111;font-weight:500;line-height:1.3;">${value}</div>
+  </div>`;
+
+function buildHTML(r, qrDataUrl) {
+    const emitidoEm = formatDateTime(new Date().toISOString());
+    const status = e(getStatusText(r.status), 'Pendente');
+    const base = 'width:210mm;padding:5mm 10mm;background:#fff;color:#1a1a1a;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;margin:0;';
+
+    const qrHTML = qrDataUrl
+        ? `<img data-ssot-qr src="${qrDataUrl}" alt="QR" style="width:80px;height:80px;display:block;border:1px solid #eee;">`
+        : `<div style="width:80px;height:80px;border:2px dashed #c00;background:#fee;display:flex;align-items:center;justify-content:center;font-size:10px;color:#c00;text-align:center;padding:4px;box-sizing:border-box;">QR<br>falhou</div>`;
+
+    return `
+<div style="${base}" class="ssotpdf-doc">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1e3a5f;padding-bottom:8px;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:50px;height:50px;background:#1e3a5f;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;">S</div>
+      <div>
+        <h1 style="font-size:24px;color:#1e3a5f;font-weight:bold;margin:0;line-height:1.1;">SSOT</h1>
+        <p style="font-size:12px;color:#666;margin:2px 0 0 0;">Sistema de Solicitações e Operações de Transporte</p>
+      </div>
+    </div>
+    <div style="text-align:right;font-size:13px;color:#555;">
+      <div style="font-size:22px;font-weight:bold;color:#1e3a5f;margin-bottom:3px;">${e(r.numero)}</div>
+      <div>Emitido em ${emitidoEm}</div>
+      <div style="margin-top:4px;"><span style="display:inline-block;padding:3px 10px;border-radius:10px;font-size:13px;font-weight:bold;background:#e8eef5;color:#1e3a5f;">${status}</span></div>
+    </div>
+  </div>
+
+  <div style="font-size:16px;font-weight:bold;color:#1e3a5f;text-transform:uppercase;border-left:4px solid #1e3a5f;padding-left:8px;margin:12px 0 6px;">Dados do Solicitante</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 14px;">
+    ${F('Nome', e(r.solicitante))}
+    ${F('E-mail', e(r.email))}
+    ${F('Ramal', e(r.ramal))}
+    ${F('Setor', e(r.setor))}
+    ${F('Cargo', e(r.cargo))}
+    ${F('Prioridade', e(r.prioridade, 'normal'))}
+  </div>
+
+  <div style="font-size:16px;font-weight:bold;color:#1e3a5f;text-transform:uppercase;border-left:4px solid #1e3a5f;padding-left:8px;margin:12px 0 6px;">Detalhes da Viagem</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;">
+    ${F('Destino', e(r.destino))}
+    ${F('Origem', e(r.origem))}
+    ${F('Saída', r.saida ? formatDateTime(r.saida) : '—')}
+    ${F('Retorno', r.retorno ? formatDateTime(r.retorno) : '—')}
+    ${F('Passageiros', e(r.passageiros, '1'))}
+    ${F('Veículo', r.veiculo ? getVeiculoText(r.veiculo) : '—')}
+    ${r.finalidade ? F('Finalidade', e(r.finalidade), true) : ''}
+    ${r.nomesPassageiros ? F('Nomes dos Passageiros', e(r.nomesPassageiros).replace(/\n/g, '<br>'), true) : ''}
+    ${r.necessidades ? F('Necessidades Especiais', e(r.necessidades), true) : ''}
+    ${r.observacoes ? F('Observações', e(r.observacoes).replace(/\n/g, '<br>'), true) : ''}
+  </div>
+
+  <div style="text-align:center;margin-top:24px;">
+    <div data-ssot-sig style="height:1px;background:#333;width:300px;margin:34px auto 6px;"></div>
+    <div style="font-size:13px;color:#555;">Assinatura do Solicitante</div>
+  </div>
+
+  <div style="margin-top:18px;padding-top:10px;border-top:1px solid #ccc;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#666;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      ${qrHTML}
+      <div style="font-size:11px;color:#666;max-width:140px;">Escaneie para abrir esta solicitação no sistema.</div>
+    </div>
+    <div style="text-align:right;">
+      <div>Criado em ${r.timestamp ? formatDateTime(r.timestamp) : '—'}</div>
+      <div>Documento gerado pelo SSOT</div>
+    </div>
+  </div>
+
+</div>`;
+}
+
+// ============================================================
+// Geração
+// ============================================================
 export async function generateRequestPDF(request) {
-    if (!request) {
-        window.alert('Solicitação inválida.');
+    console.log('[PDF] ▶ v8 chamado | numero:', request?.numero);
+    if (!request) return;
+    if (typeof window.html2pdf === 'undefined') {
+        alert('html2pdf não carregado. Recarregue com Ctrl+Shift+R.');
         return;
     }
-    if (typeof window.html2pdf === 'undefined') {
-        window.alert('Biblioteca de PDF não carregada. Recarregue com Ctrl+F5.');
-        throw new Error('html2pdf ausente');
-    }
 
-    const container = buildContainer(request);
-    document.body.appendChild(container);
+    // 1. Carrega qrcode-generator
+    const libOk = await ensureQRCodeLib();
+    console.log('[PDF] qrcode-generator:', libOk ? '✅' : '❌');
 
-    try {
-        await window.html2pdf().set({
-            margin: [12, 12, 12, 12],
-            filename: `solicitacao_${request.numero || 'SSOT'}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 3,
-                useCORS: true,
-                letterRendering: true,
-                logging: false,
-                windowWidth: 794
-            },
-            jsPDF: {
-                unit: 'mm',
-                format: 'a4',
-                orientation: 'portrait',
-                compress: true
-            },
-            pagebreak: { mode: ['css', 'legacy'] }
-        }).from(container).save();
-    } finally {
-        document.body.removeChild(container);
-    }
-}
+    // 2. Gera QR local
+    const baseUrl = window.location.origin + window.location.pathname;
+    const deepLink = `${baseUrl}?request=${encodeURIComponent(request.id || '')}`;
+    const qrDataUrl = generateQRDataURL(deepLink);
 
-export async function generateReportPDF(requests, titulo = 'Relatório de Solicitações') {
-    if (!Array.isArray(requests) || requests.length === 0) {
-        window.alert('Não há dados para exportar.');
-        return;
-    }
-    if (typeof window.html2pdf === 'undefined') {
-        window.alert('Biblioteca de PDF não carregada.');
-        throw new Error('html2pdf ausente');
-    }
+    // 3. Wrapper
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;background:#fff;z-index:99990;pointer-events:none;';
+    wrapper.innerHTML = buildHTML(request, qrDataUrl);
+    document.body.appendChild(wrapper);
 
-    const container = buildReportContainer(requests, titulo);
-    document.body.appendChild(container);
+    // 4. Overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;font-size:20px;font-weight:600;';
+    overlay.textContent = 'Gerando PDF...';
+    document.body.appendChild(overlay);
 
     try {
-        await window.html2pdf().set({
-            margin: [12, 12, 12, 12],
-            filename: `relatorio_${new Date().toISOString().slice(0, 10)}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2.5, useCORS: true, logging: false, windowWidth: 1123 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-            pagebreak: { mode: ['css', 'legacy'] }
-        }).from(container).save();
-    } finally {
-        document.body.removeChild(container);
-    }
-}
+        try { if (document.fonts?.ready) await document.fonts.ready; } catch (_) {}
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await new Promise(r => setTimeout(r, 150));
 
-// ============================================================
-// CONSTRUÇÃO DO HTML (A4)
-// ============================================================
-function escapeHtml(v) {
-    if (v === null || v === undefined || v === '') return '—';
-    return String(v)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-function fmtDate(v) {
-    if (!v) return '—';
-    try {
-        if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
-            return new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        const docEl = wrapper.querySelector('.ssotpdf-doc');
+        let h = docEl.offsetHeight;
+        console.log('[PDF] altura antes:', h, 'px');
+
+        if (h > 1123) {
+            h = fitToPage(docEl);
+            console.log('[PDF] altura após truncagem:', h, 'px');
         }
-        if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
-            const [y, m, d] = v.split('-');
-            return `${d}/${m}/${y}`;
-        }
-        return String(v);
-    } catch (e) { return String(v); }
-}
 
-function buildContainer(request) {
-    const div = document.createElement('div');
-    div.className = 'pdf-a4';
-    div.style.cssText = `
-        width: 210mm;
-        min-height: 297mm;
-        padding: 14mm;
-        box-sizing: border-box;
-        background: #fff;
-        color: #1a1a1a;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 11pt;
-        line-height: 1.4;
-        position: absolute;
-        left: -9999px;
-        top: 0;
-    `;
+        console.log('[PDF] QR no DOM:', docEl.querySelectorAll('[data-ssot-qr]').length,
+                    '| Assinatura no DOM:', docEl.querySelectorAll('[data-ssot-sig]').length,
+                    '| Altura final:', h, h > 1123 ? '⚠️' : '✅');
 
-    const statusLabel = {
-        pendente: 'Pendente', aprovada: 'Aprovada', recusada: 'Recusada',
-        'em-andamento': 'Em Andamento', concluida: 'Concluída', cancelada: 'Cancelada'
-    }[request.status] || request.status || '—';
+        await window.html2pdf().set({
+            margin: 0,
+            filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#fff' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all'] }
+        }).from(docEl).save();
 
-    const prioridadeLabel = {
-        baixa: 'Baixa', normal: 'Normal', alta: 'Alta', urgente: 'Urgente'
-    }[request.prioridade] || request.prioridade || 'Normal';
-
-    div.innerHTML = `
-        <header style="border-bottom:3px solid #2c3e50;padding-bottom:10px;margin-bottom:14px;">
-            <table style="width:100%;border-collapse:collapse;">
-                <tr>
-                    <td style="vertical-align:middle;">
-                        <div style="font-size:18pt;font-weight:800;color:#1a252f;letter-spacing:1px;">SSOT</div>
-                        <div style="font-size:9pt;color:#7f8c8d;margin-top:2px;">Sistema de Solicitações e Operações de Transporte</div>
-                    </td>
-                    <td style="text-align:right;vertical-align:middle;">
-                        <div style="font-size:13pt;font-weight:700;color:#2c3e50;">Solicitação nº ${escapeHtml(request.numero)}</div>
-                        <div style="font-size:9pt;color:#7f8c8d;margin-top:2px;">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
-                    </td>
-                </tr>
-            </table>
-        </header>
-
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Dados do Solicitante</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:10pt;">
-                <tr>
-                    <td style="padding:4px 0;width:25%;color:#7f8c8d;font-weight:600;">Nome</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.solicitante)}</td>
-                    <td style="padding:4px 0;width:20%;color:#7f8c8d;font-weight:600;">E-mail</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.email)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Setor</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.setor)}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Ramal</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.ramal)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Cargo</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.cargo)}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Prioridade</td>
-                    <td style="padding:4px 0;color:#1a1a1a;font-weight:700;">${escapeHtml(prioridadeLabel)}</td>
-                </tr>
-            </table>
-        </section>
-
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Dados da Viagem</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:10pt;">
-                <tr>
-                    <td style="padding:4px 0;width:25%;color:#7f8c8d;font-weight:600;">Origem</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.origem)}</td>
-                    <td style="padding:4px 0;width:20%;color:#7f8c8d;font-weight:600;">Destino</td>
-                    <td style="padding:4px 0;color:#1a1a1a;font-weight:700;">${escapeHtml(request.destino)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Finalidade</td>
-                    <td style="padding:4px 0;color:#1a1a1a;" colspan="3">${escapeHtml(request.finalidade)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Saída</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(fmtDate(request.saida))}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Retorno</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(fmtDate(request.retorno))}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Passageiros</td>
-                    <td style="padding:4px 0;color:#1a1a1a;">${escapeHtml(request.passageiros || '1')}</td>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Status</td>
-                    <td style="padding:4px 0;color:#1a1a1a;font-weight:700;">${escapeHtml(statusLabel)}</td>
-                </tr>
-                <tr>
-                    <td style="padding:4px 0;color:#7f8c8d;font-weight:600;">Necessidades</td>
-                    <td style="padding:4px 0;color:#1a1a1a;" colspan="3">${escapeHtml(request.necessidades)}</td>
-                </tr>
-            </table>
-        </section>
-
-        ${request.nomesPassageiros ? `
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Passageiros</h2>
-            <div style="font-size:10pt;color:#1a1a1a;background:#f8f9fa;padding:8px 10px;border-radius:4px;white-space:pre-wrap;">${escapeHtml(request.nomesPassageiros)}</div>
-        </section>` : ''}
-
-        ${request.observacoes ? `
-        <section style="margin-bottom:14px;">
-            <h2 style="font-size:11pt;color:#2c3e50;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;border-left:4px solid #3498db;padding-left:8px;">Observações</h2>
-            <div style="font-size:10pt;color:#1a1a1a;background:#f8f9fa;padding:8px 10px;border-radius:4px;white-space:pre-wrap;">${escapeHtml(request.observacoes)}</div>
-        </section>` : ''}
-
-        <footer style="margin-top:22px;padding-top:10px;border-top:1px solid #dee2e6;font-size:8pt;color:#adb5bd;text-align:center;">
-            Documento gerado eletronicamente pelo SSOT · ${new Date().getFullYear()}
-        </footer>
-    `;
-    return div;
-}
-
-function buildReportContainer(requests, titulo) {
-    const div = document.createElement('div');
-    div.className = 'pdf-a4-landscape';
-    div.style.cssText = `
-        width: 297mm;
-        min-height: 210mm;
-        padding: 12mm;
-        box-sizing: border-box;
-        background: #fff;
-        color: #1a1a1a;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 9pt;
-        line-height: 1.35;
-        position: absolute;
-        left: -9999px;
-        top: 0;
-    `;
-
-    const rows = requests.map((r, i) => `
-        <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f9fa'};">
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;font-weight:600;">${escapeHtml(r.numero)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;">${escapeHtml(r.solicitante)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;">${escapeHtml(r.setor)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;">${escapeHtml(r.destino)}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;white-space:nowrap;">${escapeHtml(fmtDate(r.saida))}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;">${escapeHtml(r.prioridade || 'normal')}</td>
-            <td style="padding:5px 6px;border:1px solid #dee2e6;text-align:center;">${escapeHtml(r.status || 'pendente')}</td>
-        </tr>
-    `).join('');
-
-    div.innerHTML = `
-        <header style="border-bottom:3px solid #2c3e50;padding-bottom:8px;margin-bottom:10px;">
-            <table style="width:100%;border-collapse:collapse;">
-                <tr>
-                    <td style="vertical-align:middle;">
-                        <div style="font-size:16pt;font-weight:800;color:#1a252f;letter-spacing:1px;">SSOT</div>
-                        <div style="font-size:8pt;color:#7f8c8d;">Relatório de Transporte</div>
-                    </td>
-                    <td style="text-align:right;vertical-align:middle;">
-                        <div style="font-size:12pt;font-weight:700;color:#2c3e50;">${escapeHtml(titulo)}</div>
-                        <div style="font-size:8pt;color:#7f8c8d;">${requests.length} registro(s) · ${new Date().toLocaleString('pt-BR')}</div>
-                    </td>
-                </tr>
-            </table>
-        </header>
-
-        <table style="width:100%;border-collapse:collapse;font-size:9pt;">
-            <thead>
-                <tr style="background:#2c3e50;color:#fff;">
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Nº</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:left;font-weight:700;">Solicitante</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:left;font-weight:700;">Setor</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:left;font-weight:700;">Destino</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Saída</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Prioridade</th>
-                    <th style="padding:6px;border:1px solid #2c3e50;text-align:center;font-weight:700;">Status</th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-        </table>
-
-        <footer style="margin-top:14px;padding-top:8px;border-top:1px solid #dee2e6;font-size:7.5pt;color:#adb5bd;text-align:center;">
-            Documento gerado eletronicamente pelo SSOT · ${new Date().getFullYear()}
-        </footer>
-    `;
-    return div;
+        console.log('[PDF] ✅ gerado.');
+    } catch (err) {
+        console.error('[PDF] ❌', err);
+        alert('Erro: ' + err.message);
+    } finally {
+        overlay.remove();
+        wrapper.remove();
+    }
 }
