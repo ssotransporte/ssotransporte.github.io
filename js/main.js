@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - MAIN (v15.0 - PDF profissional + arquivar agenda)
+// SSOT - MAIN (v15.1 - restauração completa)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -26,11 +26,15 @@ import * as Schedule from './schedule.js';
 import * as Dashboard from './dashboard.js';
 import * as Trash from './trash.js';
 import * as FleetExcel from './fleet-excel.js';
+import * as Fleet from './fleet.js';
 import * as Reports from './reports.js';
 import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
 import * as Profile from './profile.js';
 import * as ScheduleArchive from './schedule-archive.js';
+import * as Notes from './notes.js';
+import * as UserSettings from './user-settings.js';
+import * as PhoneHelp from './phone-help.js';
 
 let app, db, auth;
 let currentUser = null;
@@ -88,6 +92,8 @@ function init() {
     setupFormTabs();
     setupUsersTabs();
     setupMobileSidebar();
+    Notes.subscribeNotes();
+    UserSettings.setupUserSettings();
 
     const safetyTimeout = setTimeout(() => {
         const loading = document.getElementById('conn-loading');
@@ -105,6 +111,20 @@ function init() {
         else handleUserLoggedOut();
     });
 }
+
+function updateNetworkStatus() {
+    const el = document.getElementById('network-status');
+    if (!el) return;
+    if (navigator.onLine) {
+        el.className = 'alert alert-info';
+        el.innerHTML = '<strong>Online</strong> · Conectado ao Firebase';
+    } else {
+        el.className = 'alert alert-warning';
+        el.innerHTML = '<strong>Offline</strong> · Verifique sua conexão';
+    }
+}
+window.addEventListener('online', updateNetworkStatus);
+window.addEventListener('offline', updateNetworkStatus);
 
 // ============================================================
 // SIDEBAR MOBILE
@@ -193,6 +213,56 @@ function setupGlobalExports() {
     window.openProfileTab = openProfileTab;
     window.selectArea = selectArea;
     window.switchArea = switchArea;
+
+    // Wrappers para funções que precisam de contexto
+    window.__saveUser = () => Users.saveUser();
+    window.__saveProfile = () => Profile.saveProfile();
+    window.__generateReport = () => Reports.generateReport();
+    window.__exportReportExcel = () => Reports.exportReportExcel();
+    window.__exportReportPDF = (preview) => Reports.exportReportPDF(preview);
+    window.__clearHistory = () => History.clearAllHistory();
+    window.__emptyTrash = () => Trash.emptyTrash();
+    window.__addSlotBlock = () => {
+        const date = document.getElementById('slot-date')?.value;
+        const start = document.getElementById('slot-start')?.value;
+        const end = document.getElementById('slot-end')?.value;
+        Schedule.addSlotBlock(date, start, end);
+    };
+    window.__archivePastSlots = async () => {
+        await ScheduleArchive.archivePastSlots(db, () => Schedule.renderSlotsAdmin());
+    };
+    window.__sendNotificationFromModal = async () => {
+        const data = {
+            title: document.getElementById('notif-title')?.value,
+            message: document.getElementById('notif-message')?.value,
+            type: document.getElementById('notif-type')?.value,
+            target: document.getElementById('notif-target')?.value
+        };
+        try {
+            await Notifications.sendNotification(data);
+            Notifications.closeNotifModal();
+            showNotification('Enviado', 'Notificação disparada.', 'success');
+        } catch (e) {
+            await sstAlert(e.message, 'Erro', 'danger');
+        }
+    };
+
+    // Notas
+    window.addNote = Notes.addNote;
+    window.deleteNote = Notes.deleteNote;
+    window.changeMonth = Notes.changeMonth;
+    window.goToToday = Notes.goToToday;
+
+    // Ajuda
+    window.openHelpModal = () => PhoneHelp.openHelpModal();
+    window.closeHelpModal = () => PhoneHelp.closeHelpModal();
+    window.sendHelpCode = () => PhoneHelp.sendHelpCode();
+    window.verifyHelpCode = () => PhoneHelp.verifyHelpCode();
+
+    // Perfil (Salvar)
+    window.loadMyProfile = UserSettings.loadMyProfile;
+    window.saveMyProfile = UserSettings.saveMyProfile;
+    window.saveMyPassword = UserSettings.saveMyPassword;
 }
 
 // ============================================================
@@ -322,11 +392,15 @@ async function enterSystem() {
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
     FleetExcel.setFleetExcelContext(db, currentUser);
+    Fleet.setFleetContext(db, currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
     Signups.setSignupsContext(db, currentUser, isAdmin);
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
+    Notes.setNotesContext(db, currentUser);
+    UserSettings.setUserSettingsContext(db, currentUser);
+    PhoneHelp.setPhoneHelpContext(auth, db);
 
     if (isAdmin) {
         document.getElementById('user-area').classList.add('hidden');
@@ -397,9 +471,11 @@ function activateSubscribers() {
     Requests.subscribeRequests((requests) => {
         Dashboard.setDashboardData(requests);
         Reports.setReportsContext(requests, currentUser);
+        Notes.setNotesRequests(requests);
     });
     Schedule.subscribeSlots();
     Notifications.subscribeNotifications();
+    Fleet.subscribeFleet();
     if (isAdmin) {
         History.subscribeHistory();
         Trash.subscribeTrash();
@@ -416,6 +492,7 @@ function deactivateSubscribers() {
     Trash.unsubscribeTrash();
     Signups.unsubscribeSignups();
     Notifications.unsubscribeNotifications();
+    Fleet.unsubscribeFleet();
     Dashboard.destroyDashboardCharts();
 }
 
@@ -674,6 +751,14 @@ function togglePassFn(id, el) {
     if (p.type === 'password') { p.type = 'text'; if (use) use.setAttribute('href', '#i-eye-off'); }
     else { p.type = 'password'; if (use) use.setAttribute('href', '#i-eye'); }
 }
+window.openForgotPassword = function(e) {
+    e?.preventDefault();
+    const email = document.getElementById('username')?.value?.trim();
+    if (!email) { sstAlert('Informe seu e-mail primeiro no campo acima.', 'Atenção', 'warning'); return; }
+    Auth.sendReset(email).then(() => {
+        sstAlert('Enviamos um link de recuperação para ' + email, 'E-mail enviado', 'success');
+    }).catch(err => sstAlert(Auth.getAuthErrorMessage(err), 'Erro', 'danger'));
+};
 
 // ============================================================
 // LISTENERS
@@ -712,6 +797,7 @@ function setupEventListeners() {
         window.openModal('admin-new-request-modal');
     });
     document.getElementById('admin-request-form')?.addEventListener('submit', handleAdminRequestSubmit);
+
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
         const ok = await sstConfirm('Deseja realmente sair?', 'Sair', 'warning');
         if (ok) doLogout(false);
@@ -724,4 +810,269 @@ function setupEventListeners() {
     document.getElementById('password')?.addEventListener('blur', () => {
         document.getElementById('capslock-warning')?.style.setProperty('display', 'none');
     });
-    document.getElementById('user-info-t
+    document.getElementById('user-info-trigger')?.addEventListener('click', openProfileTab);
+
+    // Notificações
+    document.getElementById('notif-bell-btn')?.addEventListener('click', () => {
+        if (isAdmin) {
+            // Admin vê notificações recebidas (como qualquer usuário)
+            Notifications.openNotifViewModal();
+        } else {
+            Notifications.openNotifViewModal();
+        }
+    });
+
+    // Ajuda / SMS
+    document.getElementById('help-btn')?.addEventListener('click', () => PhoneHelp.openHelpModal());
+
+    // Filtros dos módulos
+    Requests.setupRequestFilters();
+    Users.setupUserFilters();
+    History.setupHistoryFilters();
+    Dashboard.setupChartFilters();
+    Dashboard.setupChartDownloads();
+
+    // Atualizar solicitações
+    document.getElementById('user-refresh')?.addEventListener('click', () => {
+        Requests.updateUserTable();
+        showNotification('Atualizado', 'Lista de solicitações atualizada.', 'success', 2000);
+    });
+    document.getElementById('admin-refresh')?.addEventListener('click', () => {
+        Requests.updateAdminTable();
+        showNotification('Atualizado', 'Lista de solicitações atualizada.', 'success', 2000);
+    });
+
+    // Agenda
+    document.getElementById('slot-date')?.addEventListener('change', () => {});
+
+    // Backup
+    Settings.setupBackupButtons(
+        async () => {
+            try {
+                const snap = await get(ref(db));
+                downloadJSON(snap.val(), 'backup_ssot');
+                showNotification('Backup', 'Arquivo baixado com sucesso!', 'success');
+            } catch (e) {
+                console.error(e);
+                sstAlert('Erro ao gerar backup: ' + e.message, 'Erro', 'danger');
+            }
+        },
+        async (file) => {
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const ok = await sstConfirm('Restaurar o backup? Isso sobrescreverá os dados atuais.', 'Restaurar', 'danger');
+                if (!ok) return;
+                await set(ref(db), data);
+                showNotification('Restaurado', 'Backup aplicado com sucesso!', 'success');
+            } catch (e) {
+                console.error(e);
+                sstAlert('Erro ao restaurar: ' + e.message, 'Erro', 'danger');
+            }
+        }
+    );
+
+    // Perfil: foto
+    document.getElementById('up-photo-input')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) Profile.handleProfilePhotoSelect(file);
+    });
+    document.getElementById('up-photo-remove')?.addEventListener('click', () => Profile.handleProfilePhotoRemove());
+    document.getElementById('ap-photo-input')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) Profile.handleProfilePhotoSelect(file);
+    });
+    document.getElementById('ap-photo-remove')?.addEventListener('click', () => Profile.handleProfilePhotoRemove());
+    document.getElementById('up-save-btn')?.addEventListener('click', () => Profile.saveProfile());
+
+    // Usuários: foto
+    document.getElementById('user-photo-input')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) Users.handlePhotoSelect(file);
+    });
+    document.getElementById('user-photo-remove')?.addEventListener('click', () => Users.handlePhotoRemove());
+
+    // Notas: botão de adicionar nota
+    document.getElementById('note-add-btn')?.addEventListener('click', () => Notes.addNote());
+    document.getElementById('calendar-prev')?.addEventListener('click', () => Notes.changeMonth(-1));
+    document.getElementById('calendar-next')?.addEventListener('click', () => Notes.changeMonth(1));
+    document.getElementById('calendar-today')?.addEventListener('click', () => Notes.goToToday());
+}
+
+// ============================================================
+// HANDLERS DE FORMULÁRIO
+// ============================================================
+async function handleLoginSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('username')?.value?.trim();
+    const password = document.getElementById('password')?.value || '';
+    const errBox = document.getElementById('login-error');
+    const btn = document.getElementById('login-submit-btn');
+    if (!email || !password) {
+        if (errBox) { errBox.textContent = 'Preencha e-mail e senha.'; errBox.classList.remove('hidden'); }
+        return;
+    }
+    _loginInProgress = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+    if (errBox) errBox.classList.add('hidden');
+    try {
+        await Auth.loginUser(email, password);
+        _loginInProgress = false;
+    } catch (err) {
+        _loginInProgress = false;
+        if (errBox) { errBox.textContent = Auth.getAuthErrorMessage(err); errBox.classList.remove('hidden'); }
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+    }
+}
+
+async function handleGoogleLogin() {
+    _loginInProgress = true;
+    try {
+        const result = await Auth.loginWithGoogle();
+        const user = result.user;
+        const snap = await get(ref(db, 'users/' + user.uid));
+        if (!snap.exists()) {
+            const signupRef = push(ref(db, 'signups'));
+            await set(signupRef, {
+                nome: user.displayName || user.email,
+                email: user.email,
+                ramal: '',
+                setor: '',
+                cargo: '',
+                justificativa: 'Cadastro via Google',
+                password: null,
+                status: 'pendente',
+                origin: 'google',
+                timestamp: new Date().toISOString(),
+                uid: user.uid
+            });
+            await Auth.logoutUser();
+            sstAlert('Sua conta Google foi registrada! Aguarde aprovação do administrador.', 'Cadastro pendente', 'info');
+            _loginInProgress = false;
+        }
+        // Se já existe, onAuthStateChanged cuida do resto
+        _loginInProgress = false;
+    } catch (err) {
+        _loginInProgress = false;
+        sstAlert(Auth.getAuthErrorMessage(err), 'Erro', 'danger');
+    }
+}
+
+async function handleSignupSubmit(e) {
+    e.preventDefault();
+    const nome = document.getElementById('r-nome')?.value.trim();
+    const email = document.getElementById('r-email')?.value.trim();
+    const ramal = document.getElementById('r-ramal')?.value.trim();
+    const setor = document.getElementById('r-setor')?.value.trim();
+    const cargo = document.getElementById('r-cargo')?.value.trim();
+    const senha = document.getElementById('r-senha')?.value || '';
+    const senha2 = document.getElementById('r-senha2')?.value || '';
+    const justificativa = document.getElementById('r-justificativa')?.value.trim();
+    const errBox = document.getElementById('requerimento-error');
+    const successBox = document.getElementById('requerimento-success');
+    const btn = document.getElementById('requerimento-submit-btn');
+
+    if (!nome || !email || !ramal || !setor || !senha) {
+        if (errBox) { errBox.textContent = 'Preencha todos os campos obrigatórios.'; errBox.classList.remove('hidden'); }
+        return;
+    }
+    if (senha !== senha2) {
+        if (errBox) { errBox.textContent = 'As senhas não coincidem.'; errBox.classList.remove('hidden'); }
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+    if (errBox) errBox.classList.add('hidden');
+    if (successBox) successBox.classList.add('hidden');
+    try {
+        await Signups.createSignup({ nome, email, ramal, setor, cargo, senha, justificativa });
+        if (successBox) {
+            successBox.textContent = 'Solicitação enviada! Aguarde aprovação.';
+            successBox.classList.remove('hidden');
+        }
+        document.getElementById('requerimento-form')?.reset();
+    } catch (err) {
+        if (errBox) { errBox.textContent = err.message || 'Erro ao enviar.'; errBox.classList.remove('hidden'); }
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitação'; }
+    }
+}
+
+async function handleRequestSubmit(e) {
+    e.preventDefault();
+    const formData = {
+        solicitante: document.getElementById('u-solicitante')?.value.trim(),
+        email: document.getElementById('u-email')?.value.trim(),
+        ramal: document.getElementById('u-ramal')?.value.trim(),
+        setor: document.getElementById('u-setor')?.value.trim(),
+        cargo: document.getElementById('u-cargo')?.value.trim(),
+        destino: document.getElementById('u-destino')?.value.trim(),
+        origem: document.getElementById('u-origem')?.value.trim(),
+        finalidade: document.getElementById('u-finalidade')?.value.trim(),
+        prioridade: document.getElementById('u-prioridade')?.value,
+        saida: document.getElementById('u-saida')?.value,
+        retorno: document.getElementById('u-retorno')?.value,
+        passageiros: document.getElementById('u-passageiros')?.value,
+        necessidades: document.getElementById('u-necessidades')?.value,
+        nomesPassageiros: document.getElementById('u-nomes-passageiros')?.value,
+        observacoes: document.getElementById('u-observacoes')?.value,
+        veiculo: 'carro'
+    };
+
+    if (!formData.destino || !formData.finalidade || !formData.saida) {
+        await sstAlert('Preencha Destino, Finalidade e Saída.', 'Campos obrigatórios', 'warning');
+        return;
+    }
+
+    try {
+        const req = await Requests.createRequest(formData);
+        if (formData.saida && formData.saida.includes('T')) {
+            const [d, t] = formData.saida.split('T');
+            if (d && t) await Schedule.reserveSlot(d, t.substring(0, 5), req.numero);
+        }
+        showNotification('Enviada', `Solicitação ${req.numero} criada!`, 'success');
+        document.getElementById('user-request-form').reset();
+        prefillUserForm();
+        goToFormTab('solicitante');
+    } catch (err) {
+        console.error(err);
+        await sstAlert(err.message || 'Erro ao enviar.', 'Erro', 'danger');
+    }
+}
+
+async function handleAdminRequestSubmit(e) {
+    e.preventDefault();
+    const formData = {
+        solicitante: document.getElementById('ar-solicitante')?.value.trim(),
+        email: document.getElementById('ar-email')?.value.trim(),
+        ramal: document.getElementById('ar-ramal')?.value.trim(),
+        setor: document.getElementById('ar-setor')?.value.trim(),
+        cargo: document.getElementById('ar-cargo')?.value.trim(),
+        destino: document.getElementById('ar-destino')?.value.trim(),
+        origem: document.getElementById('ar-origem')?.value.trim(),
+        finalidade: document.getElementById('ar-finalidade')?.value.trim(),
+        prioridade: document.getElementById('ar-prioridade')?.value,
+        saida: document.getElementById('ar-saida')?.value,
+        retorno: document.getElementById('ar-retorno')?.value,
+        passageiros: document.getElementById('ar-passageiros')?.value,
+        necessidades: document.getElementById('ar-necessidades')?.value,
+        nomesPassageiros: document.getElementById('ar-nomes-passageiros')?.value,
+        observacoes: document.getElementById('ar-observacoes')?.value
+    };
+    try {
+        const req = await Requests.createAdminRequest(formData);
+        if (formData.saida && formData.saida.includes('T')) {
+            const [d, t] = formData.saida.split('T');
+            if (d && t) await Schedule.reserveSlot(d, t.substring(0, 5), req.numero);
+        }
+        window.closeModal('admin-new-request-modal');
+        showNotification('Criada', `Solicitação ${req.numero} criada!`, 'success');
+    } catch (err) {
+        await sstAlert(err.message || 'Erro ao criar.', 'Erro', 'danger');
+    }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+init();
