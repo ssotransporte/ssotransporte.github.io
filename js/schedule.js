@@ -1,5 +1,5 @@
 // ============================================================
-// SSOT - AGENDA DE HORÁRIOS
+// SSOT - AGENDA DE HORÁRIOS (v10.5)
 // ============================================================
 
 import {
@@ -60,9 +60,6 @@ function generateIntervals(start, end) {
     return result;
 }
 
-/**
- * ✅ ESTRUTURA: schedule/{YYYY-MM-DD}/{HH-MM} = { time, date, available, ... }
- */
 export async function addSlotBlock(date, start, end) {
     if (!_db) {
         await sstAlert('Sistema não conectado.', 'Erro', 'danger');
@@ -261,6 +258,22 @@ export async function reserveSlot(date, time, requestNum) {
     }
 }
 
+export async function freeSlot(date, time) {
+    if (!_db || !date || !time) return;
+    const timeKey = String(time).substring(0, 5).replace(':', '-');
+    if (!_slots[date] || !_slots[date][timeKey]) return;
+    try {
+        await update(ref(_db, `schedule/${date}/${timeKey}`), {
+            requestId: null,
+            available: true,
+            freedAt: new Date().toISOString(),
+            freedBy: _currentUser?.name || 'Sistema'
+        });
+    } catch (err) {
+        console.error('[Schedule] freeSlot:', err);
+    }
+}
+
 export function renderUpcomingSlotsWidget() {
     const container = document.getElementById('dashboard-upcoming-slots');
     if (!container) return;
@@ -297,12 +310,6 @@ export function renderUpcomingSlotsWidget() {
     `).join('');
 }
 
-window.removeSlot = removeSlot;
-window.removeDay = removeDay;
-
-// ============================================================
-// ADICIONAR HORÁRIO INDIVIDUAL (v10.4)
-// ============================================================
 export async function addSingleSlot(date, time) {
     if (!_db) {
         await sstAlert('Sistema não conectado.', 'Erro', 'danger');
@@ -338,3 +345,6 @@ export async function addSingleSlot(date, time) {
         await sstAlert('Não foi possível adicionar.', 'Erro', 'danger');
     }
 }
+
+window.removeSlot = removeSlot;
+window.removeDay = removeDay;
