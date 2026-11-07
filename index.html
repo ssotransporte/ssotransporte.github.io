@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSOT - Sistema de Solicitações e Operações de Transporte</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
@@ -15,6 +16,10 @@
         .si-lg{width:1.5em;height:1.5em}
         .si-2x{width:2em;height:2em}
         .si-3x{width:3em;height:3em}
+        .logo-img{display:inline-block;vertical-align:-.125em;object-fit:contain}
+        .logo-img-fw{width:1.25em;height:1.25em}
+        .logo-img-lg{width:1.5em;height:1.5em}
+        .logo-img-3x{width:3em;height:3em}
     </style>
 </head>
 <body>
@@ -93,7 +98,7 @@
 
 <div id="conn-loading" class="conn-loading">
     <div class="loading-content">
-        <div class="loading-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+        <div class="loading-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
         <div class="spinner"></div>
         <p class="loading-title">Conectando...</p>
     </div>
@@ -133,7 +138,7 @@
     <div class="modal area-select-modal-custom">
         <div class="area-select-header">
             <div class="area-select-brand">
-                <svg class="si si-lg"><use href="#i-car"/></svg>
+                <img src="favicon.ico" alt="SSOT" class="logo-img logo-img-lg">
                 <span>SSOT</span>
             </div>
             <h2>Selecione o módulo</h2>
@@ -218,7 +223,7 @@
 <div id="login-page" class="login-container hidden">
     <div class="login-card">
         <div class="login-header">
-            <div class="login-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+            <div class="login-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
             <h2>SSOT</h2>
             <p>Sistema de Solicitações e Operações de Transporte</p>
         </div>
@@ -359,7 +364,7 @@
             <button class="mobile-menu-btn" id="mobile-menu-toggle">
                 <svg class="si si-lg"><use href="#i-menu"/></svg>
             </button>
-            <div class="top-menu-brand"><svg class="si si-fw"><use href="#i-car"/></svg><span>SSOT</span></div>
+            <div class="top-menu-brand"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-fw"><span>SSOT</span></div>
         </div>
         
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
