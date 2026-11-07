@@ -287,7 +287,7 @@ function buildRequestHTML(r, qrSrc) {
 }
 
 // ============================================================
-// Geração do PDF (A4 · 1 página · texto nítido)
+// Geração do PDF (A4 · 1 página · sem corte · texto nítido)
 // ============================================================
 export async function generateRequestPDF(request) {
     if (!request) {
@@ -307,13 +307,18 @@ export async function generateRequestPDF(request) {
     let qrSrc = await fetchAsDataUrl(qrApiUrl);
     if (!qrSrc) qrSrc = fallbackQrSvg();
 
-    // 2) Container fora da tela (html2canvas precisa ver o elemento)
+    // 2) A4 em pixels exatos (96 DPI) — trava o layout em dimensões conhecidas
+    const A4_W = 794;   // 210mm @ 96dpi
+    const A4_H = 1123;  // 297mm @ 96dpi
+
+    // 3) Container off-screen com tamanho travado em PX
     const wrapper = document.createElement('div');
     wrapper.style.cssText = [
         'position: fixed',
         'left: -10000px',
         'top: 0',
-        'width: 210mm',
+        `width: ${A4_W}px`,
+        `height: ${A4_H}px`,
         'background: #ffffff',
         'z-index: 1',
         'pointer-events: none'
@@ -321,11 +326,20 @@ export async function generateRequestPDF(request) {
     wrapper.innerHTML = buildRequestHTML(request, qrSrc);
     document.body.appendChild(wrapper);
 
-    // 3) Fontes prontas
+    // 4) Força o .pdf-doc a ter EXATAMENTE A4_W × A4_H em px (vence o mm do CSS)
+    const docEl = wrapper.querySelector('.pdf-doc');
+    if (!docEl) {
+        document.body.removeChild(wrapper);
+        throw new Error('Template do PDF não encontrado.');
+    }
+    docEl.style.width  = A4_W + 'px';
+    docEl.style.height = A4_H + 'px';
+
+    // 5) Fontes prontas
     try { if (document.fonts?.ready) await document.fonts.ready; } catch (_) {}
 
-    // 4) Aguarda o QR carregar (data URL resolve rápido; SVG fallback também)
-    const img = wrapper.querySelector('.verification img');
+    // 6) QR carregado (data URL resolve rápido; fallback SVG também)
+    const img = docEl.querySelector('.verification img');
     if (img && !(img.complete && img.naturalWidth > 0)) {
         await new Promise(resolve => {
             const done = () => resolve();
@@ -335,31 +349,24 @@ export async function generateRequestPDF(request) {
         });
     }
 
-    // 5) Deixa o layout assentar (2 frames + 150ms)
+    // 7) Dois frames para o layout assentar
     await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
     await new Promise(res => setTimeout(res, 150));
-
-    const docEl = wrapper.querySelector('.pdf-doc');
-    if (!docEl) {
-        document.body.removeChild(wrapper);
-        throw new Error('Template do PDF não encontrado.');
-    }
 
     try {
         await window.html2pdf().set({
             margin: 0,
             filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
-            image: { type: 'png' },                 // PNG → texto nítido
+            image: { type: 'png' },             // texto nítido
             html2canvas: {
-                scale: 2.5,                          // maior resolução
+                scale: 2,                       // 1588×2246 px (proporção A4 exata)
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
                 backgroundColor: '#ffffff',
                 scrollX: 0,
-                scrollY: 0,
-                windowWidth:  docEl.scrollWidth,
-                windowHeight: docEl.scrollHeight
+                scrollY: 0
+                // ⚠️ NÃO usar windowWidth / windowHeight — é o que estava cortando
             },
             jsPDF: {
                 unit: 'mm',
@@ -367,12 +374,13 @@ export async function generateRequestPDF(request) {
                 orientation: 'portrait',
                 compress: true
             },
-            pagebreak: {
-                mode: ['css', 'legacy'],
-                avoid: ['.doc-header', '.protocol', '.doc-section', '.terms',
-                        '.signatures', '.verification', '.doc-footer']
-            }
+            pagebreak: { mode: ['css', 'legacy'] }
+            // (opcional) avoid: ['.doc-header', '.protocol', '.doc-section', '.terms',
+            //                   '.signatures', '.verification', '.doc-footer']
         }).from(docEl).save();
+    } catch (err) {
+        console.error('[PDF] Erro:', err);
+        await sstAlert('Não foi possível gerar o PDF: ' + (err.message || ''), 'Erro', 'danger');
     } finally {
         if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
     }
