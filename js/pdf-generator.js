@@ -1,12 +1,11 @@
 // ============================================================
 // SSOT · Gerador de PDF — Comprovante Oficial de Solicitação
-// v2.1 · A4 1 página · com logo · texto nítido
+// v2.2 · A4 1 página · logo · fontes maiores · texto nítido
 // ============================================================
 
 import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
 import { sstAlert } from './dialogs.js';
 
-// -------- helpers --------
 const safe = (v, fallback = '—') =>
     (v === null || v === undefined || v === '' ? fallback : String(v));
 const e = (v, fallback = '—') => escapeHtml(safe(v, fallback));
@@ -19,13 +18,7 @@ const STATUS_CSS = {
     'concluida':    'concluida',
     'cancelada':    'cancelada'
 };
-
-const PRIORIDADE_LABEL = {
-    'baixa':   'Baixa',
-    'normal':  'Normal',
-    'alta':    'Alta',
-    'urgente': 'Urgente'
-};
+const PRIORIDADE_LABEL = { baixa: 'Baixa', normal: 'Normal', alta: 'Alta', urgente: 'Urgente' };
 
 function shortHash(str) {
     const s = String(str || '');
@@ -56,7 +49,7 @@ async function fetchAsDataUrl(url, timeoutMs = 6000) {
         const blob = await res.blob();
         return await new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload  = () => resolve(reader.result);
+            reader.onload = () => resolve(reader.result);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
@@ -66,7 +59,6 @@ async function fetchAsDataUrl(url, timeoutMs = 6000) {
     }
 }
 
-// Logo do site (favicon.ico / favicon.png) como data URL
 async function fetchFaviconAsDataUrl() {
     const candidates = ['favicon.ico', 'favicon.png', '/favicon.ico', '/favicon.png'];
     for (const url of candidates) {
@@ -77,7 +69,7 @@ async function fetchFaviconAsDataUrl() {
             if (blob.size === 0) continue;
             return await new Promise((resolve) => {
                 const r = new FileReader();
-                r.onload  = () => resolve(r.result);
+                r.onload = () => resolve(r.result);
                 r.onerror = () => resolve(null);
                 r.readAsDataURL(blob);
             });
@@ -87,7 +79,7 @@ async function fetchFaviconAsDataUrl() {
 }
 
 // ============================================================
-// Template HTML (CSS 100% inline)
+// Template
 // ============================================================
 function buildRequestHTML(r, qrSrc, logoDataUrl) {
     const numero           = e(r.numero);
@@ -113,7 +105,6 @@ function buildRequestHTML(r, qrSrc, logoDataUrl) {
     const emitidoEm        = formatDateTime(new Date().toISOString());
     const hash             = shortHash(`${r.id}|${r.numero}|${r.timestamp}`);
 
-    // Logo: favicon se disponível, senão selo "SSOT"
     const logoHtml = logoDataUrl
         ? `<img src="${logoDataUrl}" class="doc-logo" alt="SSOT">`
         : `<div class="doc-seal">SSOT</div>`;
@@ -127,7 +118,7 @@ function buildRequestHTML(r, qrSrc, logoDataUrl) {
             background: #fff;
             color: #1a1a1a;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 10px;
+            font-size: 11px;
             line-height: 1.4;
             display: flex;
             flex-direction: column;
@@ -135,13 +126,13 @@ function buildRequestHTML(r, qrSrc, logoDataUrl) {
         }
         .pdf-top-bar    { height: 8mm; background: linear-gradient(90deg, #1e3a5f 0%, #2471a3 50%, #1e3a5f 100%); flex-shrink: 0; }
         .pdf-bottom-bar { height: 6mm; background: linear-gradient(90deg, #1e3a5f 0%, #2471a3 50%, #1e3a5f 100%); flex-shrink: 0; }
-        .pdf-body { flex: 1; padding: 10mm 14mm; display: flex; flex-direction: column; min-height: 0; }
+        .pdf-body { flex: 1; padding: 8mm 12mm; display: flex; flex-direction: column; min-height: 0; }
 
         /* HEADER */
-        .doc-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 2.5px solid #1e3a5f; margin-bottom: 10px; }
+        .doc-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 7px; border-bottom: 2.5px solid #1e3a5f; margin-bottom: 8px; }
         .doc-brand  { display: flex; align-items: center; gap: 10px; }
         .doc-logo {
-            width: 44px; height: 44px;
+            width: 48px; height: 48px;
             border-radius: 50%;
             object-fit: contain;
             background: #ffffff;
@@ -151,70 +142,70 @@ function buildRequestHTML(r, qrSrc, logoDataUrl) {
             display: block;
         }
         .doc-seal {
-            width: 44px; height: 44px; border-radius: 50%;
+            width: 48px; height: 48px; border-radius: 50%;
             background: linear-gradient(135deg, #1e3a5f 0%, #2471a3 100%);
-            color: #fff; font-size: 11px; font-weight: 900;
+            color: #fff; font-size: 12px; font-weight: 900;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 0 2px #fff, 0 0 0 3px #1e3a5f;
             letter-spacing: 0.5px;
             flex-shrink: 0;
         }
-        .doc-brand-text h1 { font-size: 14px; font-weight: 900; color: #1e3a5f; letter-spacing: 1.5px; line-height: 1.1; }
-        .doc-brand-text p  { font-size: 7.5px; color: #5a6b7d; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; margin-top: 2px; }
-        .doc-header-meta   { text-align: right; font-size: 8px; color: #555; }
-        .doc-header-meta .doc-title { font-size: 9px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; background: #eaf1f7; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
-        .doc-header-meta .doc-subtitle { font-size: 8px; color: #5a6b7d; margin-top: 2px; }
+        .doc-brand-text h1 { font-size: 16px; font-weight: 900; color: #1e3a5f; letter-spacing: 1.5px; line-height: 1.1; }
+        .doc-brand-text p  { font-size: 8.5px; color: #5a6b7d; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; margin-top: 2px; }
+        .doc-header-meta   { text-align: right; font-size: 9px; color: #555; }
+        .doc-header-meta .doc-title { font-size: 10.5px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; background: #eaf1f7; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
+        .doc-header-meta .doc-subtitle { font-size: 9px; color: #5a6b7d; margin-top: 2px; }
 
         /* PROTOCOLO */
-        .protocol { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: linear-gradient(180deg, #f8fafc 0%, #eaf1f7 100%); border: 1px solid #c8d6e5; border-left: 4px solid #1e3a5f; border-radius: 3px; margin-bottom: 12px; }
+        .protocol { display: flex; align-items: center; gap: 12px; padding: 7px 10px; background: linear-gradient(180deg, #f8fafc 0%, #eaf1f7 100%); border: 1px solid #c8d6e5; border-left: 4px solid #1e3a5f; border-radius: 3px; margin-bottom: 10px; }
         .protocol-main   { flex: 1; }
-        .protocol-label  { font-size: 7px; color: #6b7d8f; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; margin-bottom: 1px; }
-        .protocol-number { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 900; color: #1e3a5f; letter-spacing: 0.5px; line-height: 1; }
-        .protocol-badge  { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; line-height: 1.4; }
+        .protocol-label  { font-size: 8px; color: #6b7d8f; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; margin-bottom: 1px; }
+        .protocol-number { font-family: 'Courier New', monospace; font-size: 17px; font-weight: 900; color: #1e3a5f; letter-spacing: 0.5px; line-height: 1; }
+        .protocol-badge  { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; line-height: 1.4; }
         .protocol-badge.pendente  { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .protocol-badge.aprovada  { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .protocol-badge.recusada  { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .protocol-badge.andamento { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
         .protocol-badge.concluida { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
         .protocol-badge.cancelada { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
-        .protocol-meta   { text-align: right; font-size: 8px; color: #5a6b7d; }
-        .protocol-meta strong { display: block; font-size: 9px; color: #1e3a5f; font-weight: 700; }
+        .protocol-meta   { text-align: right; font-size: 9px; color: #5a6b7d; }
+        .protocol-meta strong { display: block; font-size: 10.5px; color: #1e3a5f; font-weight: 700; }
 
         /* SEÇÕES */
-        .doc-section { margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }
-        .section-title { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1.5px solid #d0d7de; }
-        .section-num   { width: 16px; height: 16px; border-radius: 50%; background: #1e3a5f; color: #fff; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .section-title h2 { font-size: 9px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; }
+        .doc-section { margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
+        .section-title { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; padding-bottom: 2px; border-bottom: 1.5px solid #d0d7de; }
+        .section-num   { width: 18px; height: 18px; border-radius: 50%; background: #1e3a5f; color: #fff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .section-title h2 { font-size: 10.5px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; }
 
         /* GRID */
-        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; }
+        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; }
         .field-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-        .field { padding: 3px 0; border-bottom: 1px dotted #d5dbe0; min-width: 0; }
+        .field { padding: 2px 0; border-bottom: 1px dotted #d5dbe0; min-width: 0; }
         .field.full { grid-column: 1 / -1; }
-        .field .label { font-size: 6.5px; color: #6b7d8f; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; margin-bottom: 1px; line-height: 1.2; }
-        .field .value { font-size: 9.5px; color: #1a1a1a; font-weight: 500; line-height: 1.35; word-wrap: break-word; overflow-wrap: break-word; }
+        .field .label { font-size: 7.5px; color: #6b7d8f; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; margin-bottom: 1px; line-height: 1.2; }
+        .field .value { font-size: 11px; color: #1a1a1a; font-weight: 500; line-height: 1.35; word-wrap: break-word; overflow-wrap: break-word; }
 
         /* TERMOS */
-        .terms { background: #fafbfc; border: 1px solid #d0d7de; border-radius: 3px; padding: 8px 10px; font-size: 7.5px; color: #444; line-height: 1.55; margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }
+        .terms { background: #fafbfc; border: 1px solid #d0d7de; border-radius: 3px; padding: 7px 9px; font-size: 8.5px; color: #444; line-height: 1.55; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
         .terms strong { color: #1e3a5f; font-weight: 800; }
 
         /* ASSINATURAS */
-        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 6px 0 10px; page-break-inside: avoid; break-inside: avoid; }
+        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 5px 0 8px; page-break-inside: avoid; break-inside: avoid; }
         .sig { text-align: center; }
-        .sig-line  { border-top: 1px solid #1a1a1a; margin-top: 26px; margin-bottom: 4px; }
-        .sig-label { font-size: 7.5px; color: #333; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .sig-sub   { font-size: 7px; color: #6b7d8f; margin-top: 2px; }
+        .sig-line  { border-top: 1px solid #1a1a1a; margin-top: 22px; margin-bottom: 4px; }
+        .sig-label { font-size: 8.5px; color: #333; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sig-sub   { font-size: 8px; color: #6b7d8f; margin-top: 2px; }
 
         /* VERIFICAÇÃO */
-        .verification { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #f8fafc 0%, #eaf1f7 100%); border: 1px dashed #1e3a5f; border-radius: 3px; padding: 8px 10px; page-break-inside: avoid; break-inside: avoid; margin-top: auto; }
-        .verification img { width: 58px; height: 58px; border: 1px solid #d0d7de; border-radius: 2px; background: #fff; padding: 2px; flex-shrink: 0; display: block; }
+        .verification { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #f8fafc 0%, #eaf1f7 100%); border: 1px dashed #1e3a5f; border-radius: 3px; padding: 7px 9px; page-break-inside: avoid; break-inside: avoid; margin-top: auto; }
+        .verification img { width: 62px; height: 62px; border: 1px solid #d0d7de; border-radius: 2px; background: #fff; padding: 2px; flex-shrink: 0; display: block; }
         .verification-info { flex: 1; min-width: 0; }
-        .verification-info .v-title { font-size: 8.5px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
-        .verification-info .v-text  { font-size: 7.5px; color: #444; line-height: 1.4; margin-bottom: 3px; }
-        .verification-info code { font-family: 'Courier New', monospace; font-size: 7px; background: #fff; border: 1px solid #d0d7de; border-radius: 2px; padding: 1px 4px; color: #1e3a5f; font-weight: 700; }
+        .verification-info .v-title { font-size: 9.5px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+        .verification-info .v-text  { font-size: 8.5px; color: #444; line-height: 1.4; margin-bottom: 3px; }
+        .verification-info code { font-family: 'Courier New', monospace; font-size: 8px; background: #fff; border: 1px solid #d0d7de; border-radius: 2px; padding: 1px 4px; color: #1e3a5f; font-weight: 700; }
 
         /* FOOTER */
-        .doc-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1px solid #c8d6e5; font-size: 6.5px; color: #6b7d8f; margin-top: 8px; }
+        .doc-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 5px; border-top: 1px solid #c8d6e5; font-size: 7.5px; color: #6b7d8f; margin-top: 6px; }
         .doc-footer strong { color: #1e3a5f; font-weight: 800; }
     </style>
 
@@ -319,60 +310,47 @@ function buildRequestHTML(r, qrSrc, logoDataUrl) {
 }
 
 // ============================================================
-// Geração do PDF (A4 · 1 página · com logo)
+// Geração do PDF (A4 · 1 página garantida · com logo)
 // ============================================================
 export async function generateRequestPDF(request) {
-    if (!request) {
-        console.error('[PDF] request vazio');
-        return;
-    }
+    if (!request) return console.error('[PDF] request vazio');
     if (typeof window.html2pdf === 'undefined') {
         await sstAlert('Biblioteca de PDF não carregada. Recarregue com Ctrl+F5.', 'Erro', 'danger');
         return;
     }
 
-    // 1) QR como Data URL
+    // QR
     const baseUrl  = window.location.origin + window.location.pathname;
     const deepLink = `${baseUrl}?request=${encodeURIComponent(request.id || '')}`;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(deepLink)}`;
     let qrSrc = await fetchAsDataUrl(qrApiUrl);
     if (!qrSrc) qrSrc = fallbackQrSvg();
 
-    // 2) Logo do site (favicon) como Data URL
+    // Logo
     const logoDataUrl = await fetchFaviconAsDataUrl();
 
-    // 3) A4 em px (96 DPI) — literais
+    // ⚠️ A4_W/A4_H — 1120 em vez de 1123 para evitar overflow de 0.02mm
+    //    que gerava a 2ª página em branco
     const A4_W = 794;
-    const A4_H = 1123;
+    const A4_H = 1120;
 
-    // 4) Container off-screen
     const wrapper = document.createElement('div');
     wrapper.style.cssText = [
-        'position: fixed',
-        'left: -10000px',
-        'top: 0',
-        `width: ${A4_W}px`,
-        `height: ${A4_H}px`,
-        'background: #ffffff',
-        'z-index: 1',
-        'pointer-events: none'
+        'position: fixed', 'left: -10000px', 'top: 0',
+        `width: ${A4_W}px`, `height: ${A4_H}px`,
+        'background: #ffffff', 'z-index: 1', 'pointer-events: none'
     ].join(';');
     wrapper.innerHTML = buildRequestHTML(request, qrSrc, logoDataUrl);
     document.body.appendChild(wrapper);
 
     const docEl = wrapper.querySelector('.pdf-doc');
-    if (!docEl) {
-        document.body.removeChild(wrapper);
-        throw new Error('Template do PDF não encontrado.');
-    }
-    // Trava em px exatos (sobrepõe 210mm/297mm)
+    if (!docEl) { wrapper.remove(); throw new Error('Template do PDF não encontrado.'); }
     docEl.style.width  = A4_W + 'px';
     docEl.style.height = A4_H + 'px';
 
     try {
         try { if (document.fonts?.ready) await document.fonts.ready; } catch (_) {}
 
-        // QR carregado?
         const img = docEl.querySelector('.verification img');
         if (img && !(img.complete && img.naturalWidth > 0)) {
             await new Promise(resolve => {
@@ -383,21 +361,22 @@ export async function generateRequestPDF(request) {
             });
         }
 
-        // 2 frames + 120ms pro layout assentar
         await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
         await new Promise(res => setTimeout(res, 120));
 
-        // 5) Gera PDF: width/height fixos = 1 página garantida
-        await window.html2pdf().set({
+        const filename = `SSOT-${safe(request.numero, 'solicitacao')}.pdf`;
+
+        // Gera via Worker para garantir 1 página: se o html2pdf criar
+        // mais de uma, deletamos as extras antes de salvar.
+        const worker = window.html2pdf().set({
             margin: 0,
-            filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
+            filename,
             image: { type: 'png' },
             html2canvas: {
-                scale: 2,              // 1588×2246 px (proporção A4)
+                scale: 2,
                 width: A4_W,
                 height: A4_H,
-                x: 0,
-                y: 0,
+                x: 0, y: 0,
                 windowWidth: A4_W,
                 windowHeight: A4_H,
                 useCORS: true,
@@ -413,8 +392,20 @@ export async function generateRequestPDF(request) {
                 orientation: 'portrait',
                 compress: true
             }
-            // ✅ SEM pagebreak.avoid — era a causa da 2ª página em branco
-        }).from(docEl).save();
+            // Sem pagebreak.avoid — evita o efeito colateral de empurrar p/ 2ª folha
+        }).from(docEl);
+
+        const pdf = await worker.toPdf().get('pdf');
+
+        // SAFETY NET: força 1 página, deletando qualquer extra
+        try {
+            const total = pdf.internal.getNumberOfPages();
+            for (let p = total; p > 1; p--) pdf.deletePage(p);
+        } catch (e) {
+            console.warn('[PDF] não foi possível verificar nº de páginas:', e);
+        }
+
+        pdf.save(filename);
     } catch (err) {
         console.error('[PDF] Erro:', err);
         await sstAlert('Não foi possível gerar o PDF: ' + (err.message || ''), 'Erro', 'danger');
