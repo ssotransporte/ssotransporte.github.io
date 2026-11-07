@@ -1,17 +1,16 @@
 // ============================================================
 // SSOT · Gerador de PDF — Comprovante Oficial de Solicitação
-// v2.0 · A4 1 página · Texto nítido · Design institucional
+// v2.1 · A4 1 página · com logo · texto nítido
 // ============================================================
 
 import { formatDateTime, escapeHtml, getStatusText, getVeiculoText } from './utils.js';
 import { sstAlert } from './dialogs.js';
 
-// -------- helpers defensivos --------
+// -------- helpers --------
 const safe = (v, fallback = '—') =>
     (v === null || v === undefined || v === '' ? fallback : String(v));
 const e = (v, fallback = '—') => escapeHtml(safe(v, fallback));
 
-// -------- mapas --------
 const STATUS_CSS = {
     'pendente':     'pendente',
     'aprovada':     'aprovada',
@@ -28,7 +27,6 @@ const PRIORIDADE_LABEL = {
     'urgente': 'Urgente'
 };
 
-// -------- hash de verificação (FNV-1a simplificado) --------
 function shortHash(str) {
     const s = String(str || '');
     let h = 0x811c9dc5;
@@ -39,7 +37,6 @@ function shortHash(str) {
     return (h >>> 0).toString(16).toUpperCase().padStart(8, '0');
 }
 
-// -------- SVG de fallback quando o QR falha --------
 function fallbackQrSvg() {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
         <rect width="120" height="120" fill="#eaf1f7" stroke="#1e3a5f" stroke-width="2"/>
@@ -49,7 +46,6 @@ function fallbackQrSvg() {
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 
-// -------- prefetch do QR como DataURL (evita CORS no html2canvas) --------
 async function fetchAsDataUrl(url, timeoutMs = 6000) {
     try {
         const ctrl = new AbortController();
@@ -65,15 +61,35 @@ async function fetchAsDataUrl(url, timeoutMs = 6000) {
             reader.readAsDataURL(blob);
         });
     } catch (err) {
-        console.warn('[PDF] QR prefetch falhou:', err);
+        console.warn('[PDF] prefetch falhou:', err);
         return null;
     }
 }
 
+// Logo do site (favicon.ico / favicon.png) como data URL
+async function fetchFaviconAsDataUrl() {
+    const candidates = ['favicon.ico', 'favicon.png', '/favicon.ico', '/favicon.png'];
+    for (const url of candidates) {
+        try {
+            const res = await fetch(url, { cache: 'force-cache' });
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            if (blob.size === 0) continue;
+            return await new Promise((resolve) => {
+                const r = new FileReader();
+                r.onload  = () => resolve(r.result);
+                r.onerror = () => resolve(null);
+                r.readAsDataURL(blob);
+            });
+        } catch (_) {}
+    }
+    return null;
+}
+
 // ============================================================
-// Template HTML do comprovante (CSS 100% inline)
+// Template HTML (CSS 100% inline)
 // ============================================================
-function buildRequestHTML(r, qrSrc) {
+function buildRequestHTML(r, qrSrc, logoDataUrl) {
     const numero           = e(r.numero);
     const solicitante      = e(r.solicitante);
     const email            = e(r.email);
@@ -97,6 +113,11 @@ function buildRequestHTML(r, qrSrc) {
     const emitidoEm        = formatDateTime(new Date().toISOString());
     const hash             = shortHash(`${r.id}|${r.numero}|${r.timestamp}`);
 
+    // Logo: favicon se disponível, senão selo "SSOT"
+    const logoHtml = logoDataUrl
+        ? `<img src="${logoDataUrl}" class="doc-logo" alt="SSOT">`
+        : `<div class="doc-seal">SSOT</div>`;
+
     return `
     <style>
         .pdf-doc, .pdf-doc * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -119,13 +140,24 @@ function buildRequestHTML(r, qrSrc) {
         /* HEADER */
         .doc-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 2.5px solid #1e3a5f; margin-bottom: 10px; }
         .doc-brand  { display: flex; align-items: center; gap: 10px; }
+        .doc-logo {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            object-fit: contain;
+            background: #ffffff;
+            padding: 4px;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 3px #1e3a5f;
+            flex-shrink: 0;
+            display: block;
+        }
         .doc-seal {
             width: 44px; height: 44px; border-radius: 50%;
             background: linear-gradient(135deg, #1e3a5f 0%, #2471a3 100%);
             color: #fff; font-size: 11px; font-weight: 900;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1e3a5f;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 3px #1e3a5f;
             letter-spacing: 0.5px;
+            flex-shrink: 0;
         }
         .doc-brand-text h1 { font-size: 14px; font-weight: 900; color: #1e3a5f; letter-spacing: 1.5px; line-height: 1.1; }
         .doc-brand-text p  { font-size: 7.5px; color: #5a6b7d; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; margin-top: 2px; }
@@ -154,7 +186,7 @@ function buildRequestHTML(r, qrSrc) {
         .section-num   { width: 16px; height: 16px; border-radius: 50%; background: #1e3a5f; color: #fff; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .section-title h2 { font-size: 9px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* GRID DE CAMPOS */
+        /* GRID */
         .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; }
         .field-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
         .field { padding: 3px 0; border-bottom: 1px dotted #d5dbe0; min-width: 0; }
@@ -192,7 +224,7 @@ function buildRequestHTML(r, qrSrc) {
 
             <div class="doc-header">
                 <div class="doc-brand">
-                    <div class="doc-seal">SSOT</div>
+                    ${logoHtml}
                     <div class="doc-brand-text">
                         <h1>SSOT</h1>
                         <p>Sistema de Solicitações e Operações de Transporte</p>
@@ -287,7 +319,7 @@ function buildRequestHTML(r, qrSrc) {
 }
 
 // ============================================================
-// Geração do PDF (A4 · 1 página · sem corte · texto nítido)
+// Geração do PDF (A4 · 1 página · com logo)
 // ============================================================
 export async function generateRequestPDF(request) {
     if (!request) {
@@ -299,19 +331,21 @@ export async function generateRequestPDF(request) {
         return;
     }
 
-    // 1) Prefetch do QR como Data URL (evita CORS no html2canvas)
+    // 1) QR como Data URL
     const baseUrl  = window.location.origin + window.location.pathname;
     const deepLink = `${baseUrl}?request=${encodeURIComponent(request.id || '')}`;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(deepLink)}`;
-
     let qrSrc = await fetchAsDataUrl(qrApiUrl);
     if (!qrSrc) qrSrc = fallbackQrSvg();
 
-    // 2) A4 em pixels exatos (96 DPI) — trava o layout em dimensões conhecidas
-    const A4_W = 794;   // 210mm @ 96dpi
-    const A4_H = 1123;  // 297mm @ 96dpi
+    // 2) Logo do site (favicon) como Data URL
+    const logoDataUrl = await fetchFaviconAsDataUrl();
 
-    // 3) Container off-screen com tamanho travado em PX
+    // 3) A4 em px (96 DPI) — literais
+    const A4_W = 794;
+    const A4_H = 1123;
+
+    // 4) Container off-screen
     const wrapper = document.createElement('div');
     wrapper.style.cssText = [
         'position: fixed',
@@ -323,60 +357,63 @@ export async function generateRequestPDF(request) {
         'z-index: 1',
         'pointer-events: none'
     ].join(';');
-    wrapper.innerHTML = buildRequestHTML(request, qrSrc);
+    wrapper.innerHTML = buildRequestHTML(request, qrSrc, logoDataUrl);
     document.body.appendChild(wrapper);
 
-    // 4) Força o .pdf-doc a ter EXATAMENTE A4_W × A4_H em px (vence o mm do CSS)
     const docEl = wrapper.querySelector('.pdf-doc');
     if (!docEl) {
         document.body.removeChild(wrapper);
         throw new Error('Template do PDF não encontrado.');
     }
+    // Trava em px exatos (sobrepõe 210mm/297mm)
     docEl.style.width  = A4_W + 'px';
     docEl.style.height = A4_H + 'px';
 
-    // 5) Fontes prontas
-    try { if (document.fonts?.ready) await document.fonts.ready; } catch (_) {}
-
-    // 6) QR carregado (data URL resolve rápido; fallback SVG também)
-    const img = docEl.querySelector('.verification img');
-    if (img && !(img.complete && img.naturalWidth > 0)) {
-        await new Promise(resolve => {
-            const done = () => resolve();
-            img.addEventListener('load',  done, { once: true });
-            img.addEventListener('error', done, { once: true });
-            setTimeout(done, 4000);
-        });
-    }
-
-    // 7) Dois frames para o layout assentar
-    await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
-    await new Promise(res => setTimeout(res, 150));
-
     try {
+        try { if (document.fonts?.ready) await document.fonts.ready; } catch (_) {}
+
+        // QR carregado?
+        const img = docEl.querySelector('.verification img');
+        if (img && !(img.complete && img.naturalWidth > 0)) {
+            await new Promise(resolve => {
+                const done = () => resolve();
+                img.addEventListener('load',  done, { once: true });
+                img.addEventListener('error', done, { once: true });
+                setTimeout(done, 3000);
+            });
+        }
+
+        // 2 frames + 120ms pro layout assentar
+        await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+        await new Promise(res => setTimeout(res, 120));
+
+        // 5) Gera PDF: width/height fixos = 1 página garantida
         await window.html2pdf().set({
             margin: 0,
             filename: `SSOT-${safe(request.numero, 'solicitacao')}.pdf`,
-            image: { type: 'png' },             // texto nítido
+            image: { type: 'png' },
             html2canvas: {
-                scale: 2,                       // 1588×2246 px (proporção A4 exata)
+                scale: 2,              // 1588×2246 px (proporção A4)
+                width: A4_W,
+                height: A4_H,
+                x: 0,
+                y: 0,
+                windowWidth: A4_W,
+                windowHeight: A4_H,
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
                 backgroundColor: '#ffffff',
                 scrollX: 0,
                 scrollY: 0
-                // ⚠️ NÃO usar windowWidth / windowHeight — é o que estava cortando
             },
             jsPDF: {
                 unit: 'mm',
                 format: 'a4',
                 orientation: 'portrait',
                 compress: true
-            },
-            pagebreak: { mode: ['css', 'legacy'] }
-            // (opcional) avoid: ['.doc-header', '.protocol', '.doc-section', '.terms',
-            //                   '.signatures', '.verification', '.doc-footer']
+            }
+            // ✅ SEM pagebreak.avoid — era a causa da 2ª página em branco
         }).from(docEl).save();
     } catch (err) {
         console.error('[PDF] Erro:', err);
