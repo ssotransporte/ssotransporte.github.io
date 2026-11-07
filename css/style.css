@@ -2643,3 +2643,16 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
     }
     .fleet-toolbar .btn svg { width: 13px; height: 13px; }
 }
+/* Fix: favicon maior e com contraste no menu superior */
+.top-menu-brand img.logo-img,
+.top-menu-brand img.logo-img-fw {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 6px;
+    display: block;
+    vertical-align: middle;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
