@@ -1,14 +1,24 @@
 // ============================================================
-// SSOT · FROTA EXCEL — v6.0 (botões sempre visíveis)
+// SSOT · FROTA — Firebase Realtime + Ordenação (v8.0)
+// Persistência no banco — sincroniza entre dispositivos
+// Alterações:
+//  - Dados vivem em /fleet no Firebase (não mais localStorage)
+//  - Ordenação por coluna (select + toggle direção)
+//  - Exporta window._fleetDataForCharts para o Chart Builder
+//  - Sincronização em tempo real via onValue
 // ============================================================
+
+import {
+    ref, onValue, set, remove
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { showNotification, escapeHtml } from './utils.js';
 import { sstConfirm, sstAlert } from './dialogs.js';
 import { addHistory } from './history.js';
 
-const STORAGE_KEY = 'ssot_fleet_excel_v1';
-const COLS_KEY    = 'ssot_fleet_visible_cols_v1';
-const PAGE_SIZE   = 100;
+const FLEET_DB  = 'fleet';
+const COLS_KEY  = 'ssot_fleet_visible_cols_v2';
+const PAGE_SIZE = 100;
 
 const SHEETS_CONFIG = {
     'Veículos':       { key: 'veiculos',       titleRow: false, icon: 'i-car' },
@@ -31,17 +41,25 @@ const ABAS = {
     checklist:      { label: 'Checklist',         icon: 'i-check-circle', sheetKey: 'checklist',      sheetName: 'Checklist' }
 };
 
-let _currentUser   = null;
-let _data          = {};
-let _visibleCols   = {};
-let _activeAba     = 'viagens';
-let _initialized   = false;
-let _searchTerm    = '';
-let _page          = 0;
-let _editingKey    = null;
-let _editingIndex  = -1;
-let _searchTimer   = null;
+let _db = null;
+let _currentUser = null;
+let _data = {};
+let _visibleCols = {};
+let _activeAba = 'viagens';
+let _initialized = false;
+let _searchTerm = '';
+let _page = 0;
+let _editingKey = null;
+let _editingIndex = -1;
+let _searchTimer = null;
+let _sortCol = -1;
+let _sortDir = 1;
+let _unsub = null;
+let _firebaseReady = false;
 
+// ============================================================
+// UTILITÁRIOS DE MODAL
+// ============================================================
 function openModalSafe(id) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -62,10 +80,17 @@ function closeModalSafe(id) {
     el.style.display = 'none';
 }
 
+// ============================================================
+// CONTEXTO
+// ============================================================
 export function setFleetExcelContext(db, currentUser) {
+    _db = db || null;
     _currentUser = currentUser || null;
 }
 
+// ============================================================
+// INIT
+// ============================================================
 export function initFleetExcel(target) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => initFleetExcel(target), { once: true });
@@ -74,13 +99,15 @@ export function initFleetExcel(target) {
     const container = findOrCreateMount(target);
     if (!container) { console.error('[FleetExcel] #admin-frota-tab não encontrado.'); return; }
 
-    loadFromStorage();
     loadVisibleCols();
-
     if (!_initialized) { _initialized = true; bindGlobals(); }
 
+    if (!_firebaseReady && _db) {
+        subscribeFleet();
+        _firebaseReady = true;
+    }
+
     renderActivePanel();
-    updateStats();
 }
 
 function findOrCreateMount(target) {
@@ -110,10 +137,75 @@ function bindGlobals() {
     window.fleetColShowAll     = showAllColumns;
     window.fleetColHideAll     = hideAllColumns;
     window.fleetExcelFocusSearch = focusSearch;
+    window.fleetExcelSort      = setSort;
+    window.fleetExcelSortDir   = setSortDir;
+    window.fleetExcelClearSort = clearSort;
 }
 
+// ============================================================
+// SUBSCRIÇÃO FIREBASE (sincronização entre dispositivos)
+// ============================================================
+function subscribeFleet() {
+    if (!_db) return;
+    if (_unsub) { try { _unsub(); } catch (e) {} }
+
+    _unsub = onValue(ref(_db, FLEET_DB), (snap) => {
+        const val = snap.val() || {};
+        const newData = {};
+        Object.entries(SHEETS_CONFIG).forEach(([name, cfg]) => {
+            const sheet = val[cfg.key] || {};
+            newData[cfg.key] = {
+                headers: toArray(sheet.headers),
+                rows: toArray(sheet.rows).map(r => toArray(r))
+            };
+        });
+        _data = newData;
+        if (_initialized) renderActivePanel();
+    }, (err) => {
+        console.error('[FleetExcel] Firebase:', err);
+        sstAlert('Não foi possível carregar os dados da frota.', 'Erro de conexão', 'danger');
+    });
+}
+
+function toArray(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'object') {
+        return Object.keys(v)
+            .filter(k => /^\d+$/.test(k))
+            .map(k => parseInt(k))
+            .sort((a, b) => a - b)
+            .map(k => v[k]);
+    }
+    return [];
+}
+
+function persistSheet(sheetKey) {
+    if (!_db) return Promise.resolve();
+    const sd = _data[sheetKey];
+    if (!sd) return Promise.resolve();
+    return set(ref(_db, `${FLEET_DB}/${sheetKey}`), {
+        headers: sd.headers || [],
+        rows: sd.rows || []
+    }).catch(err => console.error('[FleetExcel] persist:', err));
+}
+
+function persistAll() {
+    if (!_db) return Promise.resolve();
+    const payload = {};
+    Object.entries(SHEETS_CONFIG).forEach(([name, cfg]) => {
+        const sd = _data[cfg.key];
+        if (sd) payload[cfg.key] = { headers: sd.headers || [], rows: sd.rows || [] };
+    });
+    return set(ref(_db, FLEET_DB), payload).catch(err => console.error('[FleetExcel] persistAll:', err));
+}
+
+// ============================================================
+// COLUNAS VISÍVEIS
+// ============================================================
 function loadVisibleCols() {
-    try { const raw = localStorage.getItem(COLS_KEY); _visibleCols = raw ? JSON.parse(raw) : {}; } catch (e) { _visibleCols = {}; }
+    try { const raw = localStorage.getItem(COLS_KEY); _visibleCols = raw ? JSON.parse(raw) : {}; }
+    catch (e) { _visibleCols = {}; }
 }
 function saveVisibleCols() {
     try { localStorage.setItem(COLS_KEY, JSON.stringify(_visibleCols)); } catch (e) {}
@@ -125,11 +217,16 @@ function getVisibleIdx(sheetKey, headersLength) {
     return _visibleCols[sheetKey].filter(i => i >= 0 && i < headersLength);
 }
 
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
 function switchTab(key) {
     if (!ABAS[key]) return;
     _activeAba = key;
     _searchTerm = '';
     _page = 0;
+    _sortCol = -1;
+    _sortDir = 1;
     renderActivePanel();
 }
 
@@ -142,6 +239,30 @@ function renderActivePanel() {
     } else if (aba.sheetKey) {
         container.innerHTML = renderDataPanel(_activeAba, aba);
     }
+}
+
+// ============================================================
+// ORDENAÇÃO
+// ============================================================
+function setSort(abaKey, colIdx) {
+    if (colIdx === '' || colIdx === null || colIdx === undefined) {
+        clearSort();
+        return;
+    }
+    const idx = parseInt(colIdx);
+    if (isNaN(idx)) return;
+    if (_sortCol === idx) _sortDir *= -1;
+    else { _sortCol = idx; _sortDir = 1; }
+    renderActivePanel();
+}
+function setSortDir(abaKey, dir) {
+    _sortDir = parseInt(dir) === -1 ? -1 : 1;
+    renderActivePanel();
+}
+function clearSort() {
+    _sortCol = -1;
+    _sortDir = 1;
+    renderActivePanel();
 }
 
 // ============================================================
@@ -173,6 +294,9 @@ function renderImportPanel() {
                     <button class="btn btn-success btn-sm" onclick="window.fleetExcelExport()" ${!hasData ? 'disabled' : ''}>
                         <svg class="si"><use href="#i-download"/></svg> Exportar Excel
                     </button>
+                    <button class="btn btn-info btn-sm" onclick="window.openChartBuilder('fleet')" ${!hasData ? 'disabled title="Importe dados primeiro"' : ''}>
+                        <svg class="si"><use href="#i-chart-bar"/></svg> Gráfico Dinâmico
+                    </button>
                     <button class="btn btn-danger btn-sm" onclick="window.fleetExcelReset()" ${!hasData ? 'disabled' : ''}>
                         <svg class="si"><use href="#i-broom"/></svg> Zerar Dados
                     </button>
@@ -180,6 +304,10 @@ function renderImportPanel() {
             </div>
             <div class="card-body">
                 <input type="file" id="fleet-file-input" accept=".xlsx,.xls" hidden>
+                <div class="alert alert-info" style="margin-bottom:14px;font-size:0.85rem;display:flex;gap:8px;align-items:flex-start;">
+                    <svg class="si" style="flex-shrink:0;margin-top:2px;"><use href="#i-info"/></svg>
+                    <span>Os dados importados são salvos automaticamente no banco e sincronizados em todos os dispositivos em tempo real.</span>
+                </div>
                 ${hasData
                     ? `<div class="fleet-import-summary">
                         <div class="fleet-import-stat">
@@ -192,7 +320,7 @@ function renderImportPanel() {
                         </div>
                         <div class="fleet-import-stat">
                             <div class="fleet-import-stat-value" style="color:#27ae60;">✓</div>
-                            <div class="fleet-import-stat-label">Status: Pronto</div>
+                            <div class="fleet-import-stat-label">Sincronizado</div>
                         </div>
                        </div>`
                     : `<div class="fleet-empty-state">
@@ -218,19 +346,30 @@ function renderImportPanel() {
 }
 
 // ============================================================
-// PAINEL: DADOS (botões sempre visíveis)
+// PAINEL: DADOS
 // ============================================================
 function renderDataPanel(key, aba) {
     const sheetData = _data[aba.sheetKey] || { headers: [], rows: [] };
     const headers = sheetData.headers || [];
     const rows = sheetData.rows || [];
-
     const hasHeaders = headers.length > 0;
 
-    let filtered = rows;
+    // Filtro de busca
+    let filtered = rows.slice();
     if (_searchTerm.trim()) {
         const s = _searchTerm.toLowerCase();
-        filtered = rows.filter(r => (r || []).some(c => String(c ?? '').toLowerCase().includes(s)));
+        filtered = filtered.filter(r => (r || []).some(c => String(c ?? '').toLowerCase().includes(s)));
+    }
+
+    // Ordenação
+    if (_sortCol >= 0 && _sortCol < headers.length) {
+        filtered.sort((a, b) => {
+            const va = String(a[_sortCol] ?? '').toLowerCase();
+            const vb = String(b[_sortCol] ?? '').toLowerCase();
+            if (va < vb) return -_sortDir;
+            if (va > vb) return _sortDir;
+            return 0;
+        });
     }
 
     const total = filtered.length;
@@ -249,6 +388,14 @@ function renderDataPanel(key, aba) {
             <span>${escapeHtml(h) || '(sem nome)'}</span>
         </label>
     `).join('');
+
+    // Dropdown de ordenação
+    const sortOptions = headers.map((h, i) =>
+        `<option value="${i}" ${_sortCol === i ? 'selected' : ''}>${escapeHtml(h) || '(sem nome)'}</option>`
+    ).join('');
+
+    const sortActive = _sortCol >= 0;
+    const sortDirLabel = _sortDir === 1 ? '↑ Asc' : '↓ Desc';
 
     return `
         <div class="card card-elevated">
@@ -295,6 +442,20 @@ function renderDataPanel(key, aba) {
                                value="${escapeHtml(_searchTerm)}"
                                oninput="window.fleetExcelSearch(this.value)">
                     </div>
+                    <select class="form-control filter-select" style="min-width:180px;" onchange="window.fleetExcelSort('${key}', this.value)">
+                        <option value="">Ordenar por...</option>
+                        ${sortOptions}
+                    </select>
+                    ${sortActive ? `
+                        <button class="btn btn-primary btn-sm" onclick="window.fleetExcelSortDir('${key}', ${_sortDir === 1 ? -1 : 1})"
+                                title="Alternar direção">
+                            ${sortDirLabel}
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="window.fleetExcelClearSort('${key}')"
+                                title="Limpar ordenação">
+                            ✕
+                        </button>
+                    ` : ''}
                 </div>
                 ` : ''}
 
@@ -375,13 +536,22 @@ function renderDataPanel(key, aba) {
     `;
 }
 
+// ============================================================
+// BUSCA
+// ============================================================
 function focusSearch() {
     const input = document.getElementById('fleet-search-input');
-    if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-    else { showNotification('Pesquisa', 'Importe dados primeiro para habilitar a busca.', 'warning'); }
+    if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+        showNotification('Pesquisa', 'Importe dados primeiro para habilitar a busca.', 'warning');
+    }
 }
 
-function toggleColsPanel() { document.getElementById('fleet-cols-panel')?.classList.toggle('hidden'); }
+function toggleColsPanel() {
+    document.getElementById('fleet-cols-panel')?.classList.toggle('hidden');
+}
 
 function toggleColumn(abaKey, idx, checked) {
     const aba = ABAS[abaKey]; if (!aba?.sheetKey) return;
@@ -401,13 +571,15 @@ function showAllColumns(abaKey) {
     const aba = ABAS[abaKey]; if (!aba?.sheetKey) return;
     const headers = _data[aba.sheetKey]?.headers || [];
     _visibleCols[aba.sheetKey] = Array.from({ length: headers.length }, (_, i) => i);
-    saveVisibleCols(); renderActivePanel();
+    saveVisibleCols();
+    renderActivePanel();
     document.getElementById('fleet-cols-panel')?.classList.remove('hidden');
 }
 function hideAllColumns(abaKey) {
     const aba = ABAS[abaKey]; if (!aba?.sheetKey) return;
     _visibleCols[aba.sheetKey] = [0];
-    saveVisibleCols(); renderActivePanel();
+    saveVisibleCols();
+    renderActivePanel();
     document.getElementById('fleet-cols-panel')?.classList.remove('hidden');
 }
 
@@ -425,8 +597,15 @@ function debounceSearch(value) {
         }
     }, 400);
 }
-function changePage(p) { if (p < 0) return; _page = p; renderActivePanel(); }
+function changePage(p) {
+    if (p < 0) return;
+    _page = p;
+    renderActivePanel();
+}
 
+// ============================================================
+// CRUD: VER / EDITAR / INSERIR / EXCLUIR
+// ============================================================
 function viewRow(abaKey, index) {
     const aba = ABAS[abaKey];
     const sheetData = _data[aba.sheetKey];
@@ -447,15 +626,26 @@ function viewRow(abaKey, index) {
     openModalSafe('fleet-view-modal');
 }
 
-function editRow(abaKey, index) { _editingKey = abaKey; _editingIndex = index; openCrudModal('editar', abaKey, index); }
-function insertRow(abaKey) { _editingKey = abaKey; _editingIndex = -1; openCrudModal('incluir', abaKey, -1); }
+function editRow(abaKey, index) {
+    _editingKey = abaKey;
+    _editingIndex = index;
+    openCrudModal('editar', abaKey, index);
+}
+function insertRow(abaKey) {
+    _editingKey = abaKey;
+    _editingIndex = -1;
+    openCrudModal('incluir', abaKey, -1);
+}
 
 function openCrudModal(mode, abaKey, index) {
     const aba = ABAS[abaKey];
     const sheetData = _data[aba.sheetKey];
     if (!sheetData) return;
     const headers = sheetData.headers || [];
-    if (headers.length === 0) { sstAlert('Importe um arquivo primeiro.', 'Aba vazia', 'warning'); return; }
+    if (headers.length === 0) {
+        sstAlert('Importe um arquivo primeiro.', 'Aba vazia', 'warning');
+        return;
+    }
     const row = index >= 0 ? (sheetData.rows[index] || []) : [];
     const title = document.getElementById('fleet-crud-title');
     if (title) title.textContent = mode === 'incluir' ? `Incluir — ${aba.label}` : `Editar — ${aba.label}`;
@@ -464,8 +654,10 @@ function openCrudModal(mode, abaKey, index) {
     fields.innerHTML = headers.map((h, i) => {
         const value = row[i] ?? '';
         const fieldId = `fleet-field-${i}`;
-        const type = detectInputType(h, value);
-        return `<div class="form-group"><label for="${fieldId}">${escapeHtml(h)}</label>${buildInputHtml(fieldId, type, value)}</div>`;
+        return `<div class="form-group">
+            <label for="${fieldId}">${escapeHtml(h)}</label>
+            <input type="text" class="form-control" id="${fieldId}" value="${escapeHtml(value)}">
+        </div>`;
     }).join('');
     const form = document.getElementById('fleet-crud-form');
     if (form && !form.dataset.bound) {
@@ -475,18 +667,6 @@ function openCrudModal(mode, abaKey, index) {
     openModalSafe('fleet-crud-modal');
 }
 
-function detectInputType(header, value) {
-    const h = String(header || '').toLowerCase();
-    const v = String(value || '').trim();
-    if (h.includes('data') && /^\d{2}\/\d{2}\/\d{4}$/.test(v)) return 'date';
-    if (h.includes('hora') && /^\d{2}:\d{2}/.test(v)) return 'time';
-    return 'text';
-}
-function buildInputHtml(id, type, value) {
-    if (type === 'date') { const [d, m, y] = String(value).split('/'); return `<input type="date" class="form-control" id="${id}" value="${y || ''}-${m || ''}-${d || ''}">`; }
-    if (type === 'time') return `<input type="time" class="form-control" id="${id}" value="${String(value).substring(0, 5)}">`;
-    return `<input type="text" class="form-control" id="${id}" value="${escapeHtml(value)}">`;
-}
 async function handleCrudSubmit(e) {
     e.preventDefault();
     if (!_editingKey) return;
@@ -495,46 +675,57 @@ async function handleCrudSubmit(e) {
     const headers = sheetData.headers || [];
     const newRow = headers.map((h, i) => {
         const input = document.getElementById(`fleet-field-${i}`);
-        if (!input) return '';
-        const type = detectInputType(h, '');
-        if (type === 'date' && input.value) { const [y, m, d] = input.value.split('-'); return `${d}/${m}/${y}`; }
-        if (type === 'time' && input.value) return input.value.substring(0, 5);
-        return input.value;
+        return input ? input.value : '';
     });
+
     if (_editingIndex >= 0) {
         sheetData.rows[_editingIndex] = newRow;
         showNotification('Atualizado', 'Registro atualizado.', 'success');
-        try { await addHistory('Frota Excel Edição', '-', `${aba.label} editado`); } catch (err) {}
+        addHistory('Frota Edição', '-', `${aba.label} editado`).catch(() => {});
     } else {
         sheetData.rows.push(newRow);
         showNotification('Adicionado', 'Novo registro incluído.', 'success');
-        try { await addHistory('Frota Excel Inclusão', '-', `${aba.label} incluído`); } catch (err) {}
+        addHistory('Frota Inclusão', '-', `${aba.label} incluído`).catch(() => {});
     }
-    saveToStorage();
+
+    await persistSheet(aba.sheetKey);
+
     closeModalSafe('fleet-crud-modal');
-    _editingKey = null; _editingIndex = -1;
+    _editingKey = null;
+    _editingIndex = -1;
     renderActivePanel();
 }
 
 async function deleteRow(abaKey, index) {
-    const aba = ABAS[abaKey]; const sheetData = _data[aba.sheetKey];
+    const aba = ABAS[abaKey];
+    const sheetData = _data[aba.sheetKey];
     const row = sheetData?.rows?.[index]; if (!row) return;
     const firstCell = row[0] ?? 'registro';
-    const ok = await sstConfirm(`Excluir o registro "${firstCell}" de ${aba.label}?`, 'Confirmar exclusão', 'danger');
+    const ok = await sstConfirm(
+        `Excluir o registro "${firstCell}" de ${aba.label}?`,
+        'Confirmar exclusão',
+        'danger'
+    );
     if (!ok) return;
+
     sheetData.rows.splice(index, 1);
-    saveToStorage();
+    await persistSheet(aba.sheetKey);
     showNotification('Excluído', 'Registro removido.', 'success');
-    try { await addHistory('Frota Excel Exclusão', '-', `${aba.label} removido`); } catch (err) {}
+    addHistory('Frota Exclusão', '-', `${aba.label} removido`).catch(() => {});
     renderActivePanel();
-    updateStats();
 }
 
+// ============================================================
+// IMPORTAÇÃO
+// ============================================================
 function triggerImport() {
     let input = document.getElementById('fleet-file-input');
     if (!input) {
         input = document.createElement('input');
-        input.type = 'file'; input.id = 'fleet-file-input'; input.accept = '.xlsx,.xls'; input.hidden = true;
+        input.type = 'file';
+        input.id = 'fleet-file-input';
+        input.accept = '.xlsx,.xls';
+        input.hidden = true;
         document.body.appendChild(input);
     }
     input.value = '';
@@ -544,12 +735,18 @@ function triggerImport() {
 
 async function handleFileImport(e) {
     const file = e.target.files?.[0]; if (!file) return;
-    if (typeof window.XLSX === 'undefined') { sstAlert('Biblioteca XLSX não carregada. Recarregue a página.', 'Erro', 'danger'); return; }
+    if (typeof window.XLSX === 'undefined') {
+        sstAlert('Biblioteca XLSX não carregada. Recarregue a página.', 'Erro', 'danger');
+        return;
+    }
     try {
         showNotification('Processando', `Lendo "${file.name}"...`, 'info');
         const buffer = await file.arrayBuffer();
         const workbook = window.XLSX.read(buffer, { type: 'array', cellDates: true });
-        const newData = {}; let totalRows = 0; const notFound = [];
+        const newData = {};
+        let totalRows = 0;
+        const notFound = [];
+
         for (const [sheetName, cfg] of Object.entries(SHEETS_CONFIG)) {
             let sheet = workbook.Sheets[sheetName];
             if (!sheet) {
@@ -557,40 +754,84 @@ async function handleFileImport(e) {
                 const found = workbook.SheetNames.find(n => normalizeName(n) === norm);
                 if (found) sheet = workbook.Sheets[found];
             }
-            if (!sheet) { notFound.push(sheetName); newData[cfg.key] = { headers: [], rows: [] }; continue; }
-            const parsed = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, blankrows: false });
-            if (parsed.length === 0) { newData[cfg.key] = { headers: [], rows: [] }; continue; }
-            let headers = parsed[0]; let rows = parsed.slice(1);
-            if (cfg.titleRow) { headers = parsed[1] || parsed[0]; rows = parsed.slice(2); }
+            if (!sheet) {
+                notFound.push(sheetName);
+                newData[cfg.key] = { headers: [], rows: [] };
+                continue;
+            }
+            const parsed = window.XLSX.utils.sheet_to_json(sheet, {
+                header: 1, defval: '', raw: false, blankrows: false
+            });
+            if (parsed.length === 0) {
+                newData[cfg.key] = { headers: [], rows: [] };
+                continue;
+            }
+            let headers = parsed[0];
+            let rows = parsed.slice(1);
+            if (cfg.titleRow) {
+                headers = parsed[1] || parsed[0];
+                rows = parsed.slice(2);
+            }
             headers = headers.map(h => String(h ?? '').trim()).filter(h => h.length > 0);
-            rows = rows.map(r => headers.map((_, i) => String(r[i] ?? '').trim())).filter(r => r.some(c => c !== ''));
+            rows = rows.map(r => headers.map((_, i) => String(r[i] ?? '').trim()))
+                       .filter(r => r.some(c => c !== ''));
             newData[cfg.key] = { headers, rows };
             totalRows += rows.length;
         }
-        if (totalRows === 0) { sstAlert('Nenhuma linha de dados encontrada.', 'Arquivo vazio', 'warning'); return; }
-        _data = newData; _visibleCols = {};
-        saveToStorage(); saveVisibleCols();
-        showNotification('Importado', `${totalRows} registro(s) de ${file.name}.`, 'success');
-        try { await addHistory('Frota Excel Importação', '-', `${totalRows} registros de ${file.name}`); } catch (err) {}
-        if (notFound.length > 0) sstAlert(`Abas não encontradas: ${notFound.join(', ')}`, 'Aviso', 'warning');
-        const firstWithData = Object.entries(ABAS).find(([k, a]) => a.sheetKey && (newData[a.sheetKey]?.rows?.length || 0) > 0);
+
+        if (totalRows === 0) {
+            sstAlert('Nenhuma linha de dados encontrada.', 'Arquivo vazio', 'warning');
+            return;
+        }
+
+        _data = newData;
+        _visibleCols = {};
+        saveVisibleCols();
+
+        // ⬇️ GRAVA NO FIREBASE — sincroniza com todos os dispositivos
+        await persistAll();
+
+        showNotification('Importado', `${totalRows} registro(s) salvos no banco.`, 'success');
+        addHistory('Frota Importação', '-', `${totalRows} registros de ${file.name}`).catch(() => {});
+
+        if (notFound.length > 0) {
+            sstAlert(`Abas não encontradas: ${notFound.join(', ')}`, 'Aviso', 'warning');
+        }
+
+        const firstWithData = Object.entries(ABAS).find(
+            ([k, a]) => a.sheetKey && (newData[a.sheetKey]?.rows?.length || 0) > 0
+        );
         if (firstWithData) _activeAba = firstWithData[0];
         renderActivePanel();
-        updateStats();
     } catch (err) {
         console.error('[FleetExcel] Import error:', err);
         sstAlert(`Erro ao importar: ${err.message}`, 'Falha', 'danger');
-    } finally { e.target.value = ''; }
+    } finally {
+        e.target.value = '';
+    }
 }
 
 function normalizeName(name) {
-    return String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toLowerCase();
+    return String(name)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '')
+        .toLowerCase();
 }
 
+// ============================================================
+// EXPORTAÇÃO
+// ============================================================
 async function exportFleetExcel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
-    if (total === 0) { sstAlert('Não há dados para exportar.', 'Vazio', 'warning'); return; }
-    if (typeof window.XLSX === 'undefined') { sstAlert('Biblioteca XLSX não carregada.', 'Erro', 'danger'); return; }
+    if (total === 0) {
+        sstAlert('Não há dados para exportar.', 'Vazio', 'warning');
+        return;
+    }
+    if (typeof window.XLSX === 'undefined') {
+        sstAlert('Biblioteca XLSX não carregada.', 'Erro', 'danger');
+        return;
+    }
     try {
         const wb = window.XLSX.utils.book_new();
         for (const [sheetName, cfg] of Object.entries(SHEETS_CONFIG)) {
@@ -603,34 +844,45 @@ async function exportFleetExcel() {
         const fileName = `frota_ssot_${new Date().toISOString().slice(0, 10)}.xlsx`;
         window.XLSX.writeFile(wb, fileName);
         showNotification('Exportado', fileName, 'success');
-        try { await addHistory('Frota Excel Exportação', '-', fileName); } catch (err) {}
-    } catch (err) { console.error(err); sstAlert(`Erro ao exportar: ${err.message}`, 'Erro', 'danger'); }
-}
-
-async function resetFleetExcel() {
-    const ok = await sstConfirm('Zerar TODOS os dados importados? Esta ação não pode ser desfeita.', 'Zerar dados da frota', 'danger');
-    if (!ok) return;
-    _data = {}; _visibleCols = {}; _activeAba = 'viagens'; _searchTerm = ''; _page = 0;
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-    try { localStorage.removeItem(COLS_KEY); } catch (e) {}
-    showNotification('Zerado', 'Dados da frota removidos.', 'success');
-    try { await addHistory('Frota Excel Reset', '-', 'Dados zerados'); } catch (err) {}
-    renderActivePanel();
-    updateStats();
-}
-
-function loadFromStorage() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) { _data = {}; return; }
-        const parsed = JSON.parse(raw);
-        _data = parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (e) { _data = {}; }
-}
-function saveToStorage() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_data)); }
-    catch (e) {
-        if (e.name === 'QuotaExceededError') sstAlert('Armazenamento cheio. Exporte e zere os dados.', 'Armazenamento cheio', 'warning');
+        addHistory('Frota Exportação', '-', fileName).catch(() => {});
+    } catch (err) {
+        sstAlert(`Erro ao exportar: ${err.message}`, 'Erro', 'danger');
     }
 }
-function updateStats() { /* Menu superior gerencia contadores via main.js */ }
+
+// ============================================================
+// RESET
+// ============================================================
+async function resetFleetExcel() {
+    const ok = await sstConfirm(
+        'Zerar TODOS os dados da frota NO BANCO? Esta ação é sincronizada com todos os dispositivos e não pode ser desfeita.',
+        'Zerar dados da frota',
+        'danger'
+    );
+    if (!ok) return;
+
+    _data = {};
+    _visibleCols = {};
+    _activeAba = 'viagens';
+    _searchTerm = '';
+    _page = 0;
+    _sortCol = -1;
+    _sortDir = 1;
+    try { localStorage.removeItem(COLS_KEY); } catch (e) {}
+
+    if (_db) {
+        try { await remove(ref(_db, FLEET_DB)); } catch (e) {}
+    }
+
+    showNotification('Zerado', 'Dados da frota removidos do banco.', 'success');
+    addHistory('Frota Reset', '-', 'Dados zerados').catch(() => {});
+    renderActivePanel();
+}
+
+// ============================================================
+// EXPORTAÇÃO PARA O CHART BUILDER
+// ============================================================
+Object.defineProperty(window, '_fleetDataForCharts', {
+    get: () => _data,
+    configurable: true
+});

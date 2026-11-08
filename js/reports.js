@@ -1,5 +1,8 @@
 // ============================================================
-// SSOT - RELATÓRIOS (v11.0)
+// SSOT - RELATÓRIOS (v12.0)
+// Alterações:
+//  - Gráfico Dinâmico (Chart Builder) para Solicitações e Frota
+//  - Funções exportadas para a área de Operações
 // ============================================================
 
 import {
@@ -13,11 +16,21 @@ let _requests = [];
 let _currentUser = null;
 let _lastReportData = [];
 
+// Estado do Chart Builder
+let _chartBuilderState = {
+    chartType: 'bar',
+    dataset: 'requests',   // 'requests' | 'fleet'
+    instance: null
+};
+
 export function setReportsContext(requests, currentUser) {
     _requests = requests || [];
     _currentUser = currentUser;
 }
 
+// ============================================================
+// RELATÓRIO PADRÃO (tabela)
+// ============================================================
 export function generateReport() {
     const tipo = document.getElementById('report-type')?.value || 'todas';
     const statusF = document.getElementById('report-status-filter')?.value || '';
@@ -239,7 +252,7 @@ ${data.slice(0, 300).map(r => {
 </table>
 ${data.length > 300 ? `<p class="truncated">Exibindo 300 de ${data.length} registros.</p>` : ''}
 <p class="total"><strong>Total: ${data.length} registro(s)</strong></p>
-<div class="footer"><p>SSOT v11.0 · Relatório gerado automaticamente</p></div>
+<div class="footer"><p>SSOT · Relatório gerado automaticamente</p></div>
 </div>
 </body>
 </html>`;
@@ -276,4 +289,214 @@ async function _downloadReportAsPDF(htmlString, count) {
     }
 }
 
+// ============================================================
+// GRÁFICO DINÂMICO (Chart Builder)
+// ============================================================
+export function openChartBuilder(dataset = 'requests') {
+    _chartBuilderState.dataset = dataset;
+    _chartBuilderState.chartType = 'bar';
+    if (_chartBuilderState.instance) {
+        try { _chartBuilderState.instance.destroy(); } catch (e) {}
+        _chartBuilderState.instance = null;
+    }
+
+    const modal = document.getElementById('chart-builder-modal');
+    if (!modal) return;
+
+    // Mostra / esconde o seletor de aba (frota)
+    const sheetWrap = document.getElementById('cb-sheet-wrap');
+    if (sheetWrap) sheetWrap.style.display = dataset === 'fleet' ? '' : 'none';
+
+    // Popula "Agrupar por"
+    const groupSel = document.getElementById('cb-group');
+    if (groupSel) {
+        if (dataset === 'requests') {
+            groupSel.innerHTML = `
+                <option value="status">Status</option>
+                <option value="prioridade">Prioridade</option>
+                <option value="setor">Setor</option>
+                <option value="veiculo">Veículo</option>
+                <option value="dia">Dia da solicitação</option>
+                <option value="mes">Mês da solicitação</option>
+                <option value="destino">Destino</option>
+            `;
+        } else {
+            groupSel.innerHTML = '<option value="">Carregando...</option>';
+        }
+    }
+
+    // Popula o seletor de aba (frota)
+    if (dataset === 'fleet') {
+        const sheetSel = document.getElementById('cb-sheet');
+        if (sheetSel) {
+            const sheets = [
+                ['veiculos', 'Veículos'],
+                ['abastecimentos', 'Abastecimentos'],
+                ['servicos', 'Serviços'],
+                ['despesas', 'Despesas'],
+                ['leituras', 'Leituras'],
+                ['percursos', 'Percursos'],
+                ['checklist', 'Checklist']
+            ];
+            sheetSel.innerHTML = sheets.map(([k, label]) =>
+                `<option value="${k}">${label}</option>`
+            ).join('');
+            populateFleetGroupOptions();
+        }
+    }
+
+    // Reset do tipo de gráfico
+    document.querySelectorAll('.cb-chart-type').forEach(b => b.classList.remove('active'));
+    document.querySelector('.cb-chart-type[data-type="bar"]')?.classList.add('active');
+
+    // Limpa o canvas
+    const canvas = document.getElementById('cb-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    window.openModal('chart-builder-modal');
+}
+
+export function populateFleetGroupOptions() {
+    const sheetKey = document.getElementById('cb-sheet')?.value;
+    if (!sheetKey) return;
+    const data = window._fleetDataForCharts?.[sheetKey];
+    const groupSel = document.getElementById('cb-group');
+    if (!groupSel) return;
+    if (!data || !data.headers?.length) {
+        groupSel.innerHTML = '<option value="">Sem dados importados</option>';
+        return;
+    }
+    groupSel.innerHTML = data.headers.map((h, i) =>
+        `<option value="${i}">${escapeHtml(h)}</option>`
+    ).join('');
+}
+
+export function setChartType(type) {
+    _chartBuilderState.chartType = type;
+    document.querySelectorAll('.cb-chart-type').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.cb-chart-type[data-type="${type}"]`)?.classList.add('active');
+    renderDynamicChart();
+}
+
+export function generateDynamicChart() {
+    renderDynamicChart();
+}
+
+function renderDynamicChart() {
+    const canvas = document.getElementById('cb-canvas');
+    if (!canvas || !window.Chart) return;
+
+    const state = _chartBuilderState;
+    const groups = state.dataset === 'requests'
+        ? buildGroupsFromRequests(document.getElementById('cb-group')?.value)
+        : buildGroupsFromFleet();
+
+    if (state.instance) {
+        try { state.instance.destroy(); } catch (e) {}
+        state.instance = null;
+    }
+
+    if (!groups.labels.length) {
+        showNotification('Gráfico', 'Nenhum dado para exibir.', 'warning');
+        return;
+    }
+
+    state.instance = new Chart(canvas, {
+        type: state.chartType,
+        data: {
+            labels: groups.labels,
+            datasets: [{
+                label: 'Total',
+                data: groups.values,
+                backgroundColor: groups.labels.map((_, i) => getColor(i)),
+                borderColor: groups.labels.map((_, i) => getColor(i)),
+                borderWidth: 2,
+                fill: state.chartType === 'line'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { size: 11 }, padding: 10 }
+                }
+            },
+            scales: ['pie', 'doughnut', 'polarArea', 'radar'].includes(state.chartType)
+                ? {}
+                : { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+}
+
+function getColor(i) {
+    const palette = ['#3498db','#27ae60','#c0392b','#d68910','#9b59b6','#1abc9e','#e67e22','#34495e','#16a085','#f39c12'];
+    return palette[i % palette.length];
+}
+
+function buildGroupsFromRequests(field) {
+    const list = _requests || [];
+    if (!field) return { labels: [], values: [] };
+    const map = {};
+    list.forEach(r => {
+        let key;
+        if (field === 'dia') key = (r.saida || r.dataSolicitacao || '').slice(0, 10) || '—';
+        else if (field === 'mes') key = (r.saida || r.dataSolicitacao || '').slice(0, 7) || '—';
+        else if (field === 'veiculo') key = r.veiculo || '—';
+        else if (field === 'destino') key = r.destino || '—';
+        else key = r[field] || '—';
+        map[key] = (map[key] || 0) + 1;
+    });
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    return {
+        labels: sorted.map(e => String(e[0])),
+        values: sorted.map(e => e[1])
+    };
+}
+
+function buildGroupsFromFleet() {
+    const sheetKey = document.getElementById('cb-sheet')?.value;
+    const groupCol = parseInt(document.getElementById('cb-group')?.value);
+    const data = window._fleetDataForCharts?.[sheetKey];
+    if (!data || !data.rows?.length || isNaN(groupCol)) return { labels: [], values: [] };
+    const map = {};
+    data.rows.forEach(r => {
+        const key = String(r[groupCol] ?? '—').trim() || '—';
+        map[key] = (map[key] || 0) + 1;
+    });
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    return {
+        labels: sorted.map(e => String(e[0])),
+        values: sorted.map(e => e[1])
+    };
+}
+
+export function downloadDynamicChart() {
+    if (!_chartBuilderState.instance) {
+        showNotification('Gráfico', 'Gere o gráfico primeiro.', 'warning');
+        return;
+    }
+    const url = _chartBuilderState.instance.toBase64Image('image/png', 1.0);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `grafico_dinamico_${new Date().toISOString().slice(0, 10)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
 export function setupReportChartDownloads() {}
+
+// ============================================================
+// Exports globais (para onclick nos modais)
+// ============================================================
+window.openChartBuilder = openChartBuilder;
+window.populateFleetGroupOptions = populateFleetGroupOptions;
+window.setChartType = setChartType;
+window.generateDynamicChart = generateDynamicChart;
+window.downloadDynamicChart = downloadDynamicChart;

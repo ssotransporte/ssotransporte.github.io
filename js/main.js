@@ -1,5 +1,9 @@
 // ============================================================
-// SSOT - MAIN (v15.0 - PDF profissional + arquivar agenda)
+// SSOT - MAIN (v16.0 - Configurações + Calendário de Arquivados)
+// Alterações:
+//  - Menu "Serviços" → "Configurações"
+//  - Botão "Arquivar" abre o calendário de dias passados
+//  - Confirmação de arquivamento dentro do modal
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -65,7 +69,7 @@ function init() {
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
     auth = getAuth(app);
-    window._db = db; // expõe para schedule-archive
+    window._db = db;
 
     Signups.setSignupsContext(db, null, false);
     window._addHistoryInternal = (action, num, details) => History.addHistory(action, num, details).catch(() => {});
@@ -176,6 +180,7 @@ function setupGlobalExports() {
     window.openProfileTab = openProfileTab;
     window.selectArea = selectArea;
     window.switchArea = switchArea;
+    window.updateArchiveBadge = updateArchiveBadge;
 }
 
 function showAreaSelectModal() {
@@ -421,6 +426,7 @@ function gotoUserTab(tabId) {
 function renderOperacoesMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
+    // ⬇️ ALTERADO: "Serviços" → "Configurações"
     menu.innerHTML = `
         <li><a href="#" data-fleet-tab="viagens"><svg class="si si-fw"><use href="#i-route"/></svg> Viagens</a></li>
         <li><a href="#" data-fleet-tab="veiculos"><svg class="si si-fw"><use href="#i-car"/></svg> Veículos</a></li>
@@ -431,7 +437,7 @@ function renderOperacoesMenu() {
         <li><a href="#" data-fleet-tab="checklist"><svg class="si si-fw"><use href="#i-check-circle"/></svg> Checklist</a></li>
         <li><a href="#" data-fleet-tab="importar"><svg class="si si-fw"><use href="#i-upload"/></svg> Importar/Exportar</a></li>
         <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
-        <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+        <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Configurações</a></li>
     `;
     menu.querySelectorAll('[data-fleet-tab]').forEach(a => {
         a.addEventListener('click', (e) => {
@@ -477,6 +483,7 @@ function renderAdminMenu() {
         const title = document.getElementById('page-title');
         if (title) title.textContent = 'Frota';
     } else {
+        // ⬇️ ALTERADO: "Serviços" → "Configurações"
         menu.innerHTML = `
             <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
             <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
@@ -486,7 +493,7 @@ function renderAdminMenu() {
             <li><a href="#" data-tab="admin-historico"><svg class="si si-fw"><use href="#i-history"/></svg> Histórico</a></li>
             <li><a href="#" data-tab="admin-lixeira"><svg class="si si-fw"><use href="#i-trash"/></svg> Lixeira</a></li>
             <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
-            <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
+            <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Configurações</a></li>
         `;
         menu.querySelectorAll('a').forEach(a => {
             a.addEventListener('click', e => {
@@ -734,11 +741,17 @@ function setupEventListeners() {
         showNotification('Atualizado', 'Agenda atualizada.', 'success', 2000);
     });
 
-    // ⭐ NOVO: botão de arquivar agenda passada
+    // ⬇️ ALTERADO: botão "Arquivar" agora abre o calendário
     document.getElementById('archive-past-slots')?.addEventListener('click', async () => {
+        await ScheduleArchive.openArchiveCalendar(db);
+    });
+
+    // ⬇️ NOVO: confirmação de arquivamento dentro do modal
+    document.getElementById('archive-confirm-btn')?.addEventListener('click', async () => {
         await ScheduleArchive.archivePastSlots(db, () => {
             try { Schedule.renderSlotsAdmin(); } catch (e) {}
             updateArchiveBadge();
+            ScheduleArchive.closeArchiveModal();
         });
     });
 

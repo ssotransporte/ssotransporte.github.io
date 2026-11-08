@@ -1,6 +1,13 @@
+// ============================================================
+// SSOT - CONFIGURAÇÕES GLOBAIS (v11.0)
+// Alterações:
+//  - SESSION_IDLE_TIMEOUT: 8 minutos (era 6)
+//  - Renomeado "Serviços" → "Configurações" na aba
+// ============================================================
+
 export const APP_NAME = 'SSOT';
 export const APP_FULL_NAME = 'Sistema de Solicitações e Operações de Transporte';
-export const APP_VERSION = '10.9';
+export const APP_VERSION = '11.0';
 export const FIREBASE_PROJECT = 'ssot-ed9b1';
 
 export const TRASH_RETENTION_DAYS = 120;
@@ -11,7 +18,8 @@ export const SESSION_STORAGE_KEY = 'ssot_last_tab';
 export const SESSION_ACTIVE_KEY = 'ssot_active_session';
 export const THEME_STORAGE_KEY = 'ssot_theme';
 
-export const SESSION_IDLE_TIMEOUT = 6 * 60 * 1000;
+// ⬇️ ALTERADO: 8 minutos de inatividade (era 6)
+export const SESSION_IDLE_TIMEOUT = 8 * 60 * 1000;
 export const SESSION_WARNING_TIME = 60 * 1000;
 export const FIREBASE_LOAD_TIMEOUT = 8000;
 
@@ -74,7 +82,8 @@ export const TAB_TITLES = {
     'admin-historico': 'Histórico',
     'admin-lixeira': 'Lixeira',
     'admin-perfil': 'Meu Perfil',
-    'admin-servicos': 'Serviços',
+    // ⬇️ ALTERADO: "Serviços" → "Configurações"
+    'admin-servicos': 'Configurações',
     'user-solicitacoes': 'Solicitar Transporte',
     'user-perfil': 'Meu Perfil'
 };
@@ -89,6 +98,7 @@ export const TAB_SUBTITLES = {
     'admin-historico': 'Registro de ações',
     'admin-lixeira': 'Solicitações excluídas',
     'admin-perfil': 'Suas informações pessoais',
+    // ⬇️ ALTERADO
     'admin-servicos': 'Configurações e backup',
     'user-perfil': 'Suas informações pessoais'
 };

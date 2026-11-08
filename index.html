@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSOT - Sistema de Solicitações e Operações de Transporte</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <!-- ⬇️ NOVO: preconnect para performance -->
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="preconnect" href="https://firebasedatabase.googleapis.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
@@ -14,6 +20,10 @@
         .si-lg{width:1.5em;height:1.5em}
         .si-2x{width:2em;height:2em}
         .si-3x{width:3em;height:3em}
+        .logo-img{display:inline-block;vertical-align:-.125em;object-fit:contain}
+        .logo-img-fw{width:1.25em;height:1.25em}
+        .logo-img-lg{width:1.5em;height:1.5em}
+        .logo-img-3x{width:3em;height:3em}
     </style>
 </head>
 <body>
@@ -92,15 +102,19 @@
 
 <div id="conn-loading" class="conn-loading">
     <div class="loading-content">
-        <div class="loading-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+        <div class="loading-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
         <div class="spinner"></div>
         <p class="loading-title">Conectando...</p>
     </div>
 </div>
 
+<!-- ⬇️ ALTERADO: botão X adicionado no header do session-modal -->
 <div class="modal-overlay" id="session-modal">
     <div class="modal modal-small">
-        <div class="modal-header modal-header-warning"><h3>Sessão Inativa</h3></div>
+        <div class="modal-header modal-header-warning">
+            <h3>Sessão Inativa</h3>
+            <button class="modal-close" id="session-close-btn" title="Continuar conectado">&times;</button>
+        </div>
         <div class="modal-body modal-body-center">
             <div class="modal-icon-warning"><svg class="si si-2x"><use href="#i-clock"/></svg></div>
             <p class="modal-title-large">Você ainda está aí?</p>
@@ -132,7 +146,7 @@
     <div class="modal area-select-modal-custom">
         <div class="area-select-header">
             <div class="area-select-brand">
-                <svg class="si si-lg"><use href="#i-car"/></svg>
+                <img src="favicon.ico" alt="SSOT" class="logo-img logo-img-lg">
                 <span>SSOT</span>
             </div>
             <h2>Selecione o módulo</h2>
@@ -217,7 +231,7 @@
 <div id="login-page" class="login-container hidden">
     <div class="login-card">
         <div class="login-header">
-            <div class="login-logo"><svg class="si si-3x"><use href="#i-car"/></svg></div>
+            <div class="login-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
             <h2>SSOT</h2>
             <p>Sistema de Solicitações e Operações de Transporte</p>
         </div>
@@ -358,7 +372,7 @@
             <button class="mobile-menu-btn" id="mobile-menu-toggle">
                 <svg class="si si-lg"><use href="#i-menu"/></svg>
             </button>
-            <div class="top-menu-brand"><svg class="si si-fw"><use href="#i-car"/></svg><span>SSOT</span></div>
+            <div class="top-menu-brand"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-fw"><span>SSOT</span></div>
         </div>
         
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -889,8 +903,8 @@
                     <div class="card-header">
                         <div class="card-header-title"><svg class="si si-fw"><use href="#i-calendar-check"/></svg><h2>Agenda</h2></div>
                         <div class="action-buttons">
-                            <button id="archive-past-slots" class="btn btn-warning btn-sm" title="Arquivar dias passados">
-                                <svg class="si"><use href="#i-archive"/></svg> Arquivar Dias Passados
+                            <button id="archive-past-slots" class="btn btn-warning btn-sm" title="Ver calendário e arquivar dias passados">
+                                <svg class="si"><use href="#i-archive"/></svg> Arquivar
                                 <span class="card-header-count hidden" id="archive-count" style="margin-left:6px;background:#e67e22;">0</span>
                             </button>
                             <button id="refresh-slots" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
@@ -953,6 +967,10 @@
                             <button id="export-excel" class="btn btn-success">Excel</button>
                             <button id="export-pdf" class="btn btn-danger">PDF</button>
                             <button id="preview-pdf" class="btn btn-secondary">Visualizar</button>
+                            <!-- ⬇️ NOVO: Gráfico Dinâmico -->
+                            <button id="open-chart-builder" class="btn btn-info" onclick="openChartBuilder('requests')">
+                                <svg class="si"><use href="#i-chart-bar"/></svg> Gráfico Dinâmico
+                            </button>
                         </div>
                         <div id="report-results" style="margin-top: 18px;"></div>
                     </div>
@@ -1081,9 +1099,10 @@
                 </div>
             </div>
 
+            <!-- ⬇️ ALTERADO: h2 "Serviços" → "Configurações" -->
             <div class="tab-content" id="admin-servicos-tab">
                 <div class="card card-elevated">
-                    <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Serviços</h2></div></div>
+                    <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Configurações</h2></div></div>
                     <div class="card-body">
                         <div class="section-title"><svg class="si si-fw"><use href="#i-palette"/></svg> Aparência</div>
                         <div class="form-group">
@@ -1320,6 +1339,84 @@
         <div class="modal-header"><h3>Visualização</h3><button class="modal-close" id="close-pdf-modal">&times;</button></div>
         <div class="modal-body"><div class="pdf-preview-container"><iframe id="pdf-iframe"></iframe></div></div>
         <div class="modal-footer"><button class="btn btn-primary" id="download-pdf">Baixar PDF</button><button class="btn btn-danger" id="close-pdf-modal-btn">Fechar</button></div>
+    </div>
+</div>
+
+<!-- ⬇️ NOVO: Modal do Calendário de Arquivados -->
+<div class="modal-overlay" id="archive-modal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h3>Agenda — Dias Passados</h3>
+            <button class="modal-close" onclick="closeArchiveModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="archive-calendar-nav">
+                <button class="btn btn-secondary btn-sm" onclick="archiveChangeMonth(-1)">‹ Anterior</button>
+                <h4 id="archive-month-title">—</h4>
+                <button class="btn btn-secondary btn-sm" onclick="archiveChangeMonth(1)">Próximo ›</button>
+            </div>
+            <div id="archive-calendar-grid" class="archive-calendar-grid"></div>
+            <div id="archive-day-details" class="archive-day-details hidden"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-warning" id="archive-confirm-btn">
+                <svg class="si"><use href="#i-archive"/></svg> Arquivar Dias Passados
+            </button>
+            <button class="btn btn-secondary" onclick="closeArchiveModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ⬇️ NOVO: Modal de Gráfico Dinâmico -->
+<div class="modal-overlay" id="chart-builder-modal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h3>Gráfico Dinâmico</h3>
+            <button class="modal-close" onclick="closeModal('chart-builder-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="cb-toolbar">
+                <button class="cb-chart-type active" data-type="bar" onclick="setChartType('bar')" title="Barra">
+                    <svg class="si"><use href="#i-chart-bar"/></svg>
+                </button>
+                <button class="cb-chart-type" data-type="line" onclick="setChartType('line')" title="Linha">
+                    <svg class="si"><use href="#i-chart-line"/></svg>
+                </button>
+                <button class="cb-chart-type" data-type="pie" onclick="setChartType('pie')" title="Pizza">
+                    <svg class="si"><use href="#i-chart-pie"/></svg>
+                </button>
+                <button class="cb-chart-type" data-type="doughnut" onclick="setChartType('doughnut')" title="Rosca">◯</button>
+                <button class="cb-chart-type" data-type="polarArea" onclick="setChartType('polarArea')" title="Polar">✦</button>
+                <button class="cb-chart-type" data-type="radar" onclick="setChartType('radar')" title="Radar">◇</button>
+            </div>
+            <div class="cb-controls">
+                <div class="form-group" id="cb-sheet-wrap" style="display:none;">
+                    <label>Aba (dados)</label>
+                    <select id="cb-sheet" class="form-control" onchange="populateFleetGroupOptions()">
+                        <option value="veiculos">Veículos</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Agrupar por</label>
+                    <select id="cb-group" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="generateDynamicChart()">
+                        <svg class="si"><use href="#i-refresh"/></svg> Gerar
+                    </button>
+                </div>
+            </div>
+            <div class="cb-canvas-wrap">
+                <canvas id="cb-canvas"></canvas>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-success" onclick="downloadDynamicChart()">
+                <svg class="si"><use href="#i-download"/></svg> Baixar PNG
+            </button>
+            <button class="btn btn-secondary" onclick="closeModal('chart-builder-modal')">Fechar</button>
+        </div>
     </div>
 </div>
 

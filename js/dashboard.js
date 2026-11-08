@@ -1,5 +1,8 @@
 // ============================================================
-// SSOT - DASHBOARD (v10.3 - filtros por gráfico)
+// SSOT - DASHBOARD (v11.0 - performance + filtros por gráfico)
+// Alterações:
+//  - Adicionado `animation: false` em TODOS os gráficos
+//    (performance em PCs e celulares fracos)
 // ============================================================
 
 import {
@@ -103,7 +106,9 @@ function renderStatusChart(list) {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
             plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 }, usePointStyle: true } } }
         }
     });
@@ -128,7 +133,9 @@ function renderPrioridadeChart(list) {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
             plugins: { legend: { display: false } },
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f1f1' } },
@@ -149,7 +156,7 @@ function renderTimelineChart(list) {
     } else if (cfg.mode !== 'all' && cfg.mode !== 'custom') {
         days = parseInt(cfg.mode) || 7;
     }
-    days = Math.min(days, 90); // limite visual
+    days = Math.min(days, 90);
 
     const labels = [];
     const data = [];
@@ -178,7 +185,9 @@ function renderTimelineChart(list) {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
             plugins: { legend: { display: false } },
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f1f1' } },
@@ -209,7 +218,10 @@ function renderDestinosChart(list) {
             datasets: [{ data: top.map(d => d[1]), backgroundColor: '#1abc9c', borderRadius: 6, borderSkipped: false }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
+            indexAxis: 'y',
             plugins: { legend: { display: false } },
             scales: {
                 x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f1f1' } },
@@ -232,7 +244,10 @@ function renderVeiculosChart(list) {
         _charts.veiculos = new Chart(ctx, {
             type: 'doughnut',
             data: { labels: ['Sem dados'], datasets: [{ data: [1], backgroundColor: ['#e0e0e0'] }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            }
         });
         return;
     }
@@ -248,7 +263,9 @@ function renderVeiculosChart(list) {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
             plugins: { legend: { position: 'bottom', labels: { padding: 10, font: { size: 10 }, usePointStyle: true } } }
         }
     });
@@ -275,7 +292,10 @@ function renderSetoresChart(list) {
             datasets: [{ data: top.map(d => d[1]), backgroundColor: '#9b59b6', borderRadius: 6, borderSkipped: false }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,               // ⬅️ PERFORMANCE
+            indexAxis: 'y',
             plugins: { legend: { display: false } },
             scales: {
                 x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f1f1' } },
@@ -327,7 +347,6 @@ export function setupChartFilters() {
             if (value !== 'custom') {
                 renderChartByName(chartName);
             } else {
-                // Se já tem datas preenchidas, aplica
                 const startInput = document.querySelector(`[data-chart-start="${chartName}"]`);
                 const endInput = document.querySelector(`[data-chart-end="${chartName}"]`);
                 if (startInput?.value || endInput?.value) {

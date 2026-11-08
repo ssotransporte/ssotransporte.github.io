@@ -1,6 +1,7 @@
 /* ============================================================
    SSOT — SISTEMA DE SOLICITAÇÕES E OPERAÇÕES DE TRANSPORTE
-   v16.0 — CSS consolidado (base + Frota Excel + Mobile UX)
+   v17.0 — CSS consolidado
+   (base + Frota Excel + Mobile UX + Calendário Arquivo + Chart Builder)
    ============================================================ */
 
 /* ============================================================
@@ -1227,7 +1228,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   21. ÁREA — TELA DE SELEÇÃO (v2 - AZUL SÓLIDO/GRADIENTE, SEM ANIMAÇÃO)
+   21. ÁREA — TELA DE SELEÇÃO
    ============================================================ */
 #area-select-modal.area-select-overlay {
     background: linear-gradient(135deg, #1e3a5f 0%, #2471a3 55%, #1a5276 100%) !important;
@@ -1243,7 +1244,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     overflow: hidden !important;
     box-shadow: 0 24px 60px rgba(0,0,0,0.45) !important;
     border: none !important;
-    animation: none !important;          /* sem animação de entrada */
+    animation: none !important;
     transition: none !important;
 }
 
@@ -1291,7 +1292,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     margin-bottom: 20px;
 }
 
-/* CARDS — SEM transform, SEM transition */
 .area-card {
     background: #fff;
     border: 1.5px solid #e9ecef;
@@ -1304,13 +1304,13 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     flex-direction: column;
     gap: 14px;
     position: relative;
-    transition: none !important;         /* sem animação */
+    transition: none !important;
     transform: none !important;
 }
 .area-card:hover {
-    transform: none !important;          /* sem animação de hover */
+    transform: none !important;
     transition: none !important;
-    border-color: #2471a3;               /* feedback via cor somente */
+    border-color: #2471a3;
     box-shadow: 0 4px 12px rgba(36,113,163,0.15);
 }
 .area-card-operacoes:hover { border-color: #d68910; box-shadow: 0 4px 12px rgba(214,137,16,0.15); }
@@ -1348,7 +1348,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 .area-card-operacoes .area-card-features li::before { background: #d68910; }
 
-/* CTA — sem animação, feedback só de cor no hover */
 .area-card-cta {
     display: inline-flex; align-items: center; justify-content: space-between;
     gap: 8px; padding: 10px 14px; border-radius: 6px;
@@ -1466,7 +1465,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 }
 
 /* ============================================================
-   24. MODAIS (regras críticas para .hidden vs .active)
+   24. MODAIS
    ============================================================ */
 .modal-overlay {
     position: fixed;
@@ -2109,7 +2108,7 @@ body.dark-theme .fleet-kpi-label,
 body.dark-theme .fleet-kpi-sub { color: #b0b0b0 !important; }
 
 /* ============================================================
-   33. FROTA EXCEL v5.0 — SUB-TABS ESPECÍFICOS
+   33. FROTA EXCEL — SUB-TABS ESPECÍFICOS
    ============================================================ */
 #frota-subtabs {
     display: flex;
@@ -2287,7 +2286,7 @@ body.dark-theme .fleet-empty-state h3 { color: #e0e0e0; }
 body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
 
 /* ============================================================
-   34. MOBILE UX v1.0 — Melhorias gerais para celular
+   34. MOBILE UX — Melhorias gerais para celular
    ============================================================ */
 @media (max-width: 640px) {
     .top-menu {
@@ -2529,7 +2528,6 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
     .info-grid { grid-template-columns: 1fr !important; }
 }
 
-/* Área de seleção — responsivo */
 @media (max-width: 640px) {
     .area-select-modal-custom {
         width: 96% !important;
@@ -2572,8 +2570,9 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
         font-size: 0.8rem;
     }
 }
+
 /* ============================================================
-   NOVOS BOTÕES DA FROTA — Filtrar / Pesquisar / Adicionar
+   35. BOTÕES DA FROTA — Filtrar / Pesquisar / Adicionar
    ============================================================ */
 .fleet-toolbar {
     display: flex;
@@ -2593,7 +2592,6 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
     cursor: not-allowed;
 }
 
-/* Badge do botão "Arquivar Dias Passados" */
 #archive-past-slots { position: relative; }
 #archive-past-slots .archive-badge {
     position: absolute;
@@ -2606,9 +2604,6 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
 }
 #archive-past-slots.has-archive { border-color: #c0392b; }
 
-/* ============================================================
-   RESPONSIVO — Área de seleção + botões em telas pequenas
-   ============================================================ */
 @media (max-width: 640px) {
     .area-select-modal-custom {
         width: 96% !important;
@@ -2642,4 +2637,335 @@ body.dark-theme .fleet-empty-state p { color: #b0b0b0; }
         padding: 8px 10px;
     }
     .fleet-toolbar .btn svg { width: 13px; height: 13px; }
+}
+
+/* Fix: favicon maior e com contraste no menu superior */
+.top-menu-brand img.logo-img,
+.top-menu-brand img.logo-img-fw {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 6px;
+    display: block;
+    vertical-align: middle;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+/* ============================================================
+   36. CALENDÁRIO — ARQUIVO DE DIAS PASSADOS
+   ============================================================ */
+.archive-calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.archive-calendar-nav h4 {
+    font-size: 1.05rem;
+    color: var(--color-secondary);
+    font-weight: 600;
+    text-align: center;
+    flex: 1;
+    min-width: 140px;
+}
+
+.archive-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--color-gray-50);
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--color-gray-200);
+}
+
+.archive-calendar-grid .calendar-day-name {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--color-gray-600);
+    padding: 4px 0;
+}
+
+.archive-calendar-grid .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: #fff;
+    position: relative;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform 0.1s ease;
+    border: 1px solid var(--color-gray-200);
+    min-height: 42px;
+    user-select: none;
+}
+.archive-calendar-grid .calendar-day:hover {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+}
+.archive-calendar-grid .calendar-day.empty {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+}
+.archive-calendar-grid .calendar-day.empty:hover {
+    background: transparent;
+    border-color: transparent;
+}
+.archive-calendar-grid .calendar-day.today {
+    background: #fff3cd;
+    border-color: var(--color-warning);
+    font-weight: 700;
+    color: #856404;
+}
+.archive-calendar-grid .calendar-day.has-past-data {
+    background: #eaf4fc;
+    border-color: #3498db;
+    font-weight: 600;
+}
+.archive-calendar-grid .calendar-day.has-active-past {
+    border-color: #d68910;
+    border-width: 2px;
+}
+.archive-calendar-grid .calendar-day.selected {
+    background: var(--color-primary);
+    border-color: var(--color-primary-dark);
+    color: #fff;
+    font-weight: 700;
+}
+.archive-calendar-grid .calendar-day.selected .day-badge {
+    background: #fff;
+    color: var(--color-primary);
+}
+.archive-calendar-grid .calendar-day .day-number {
+    line-height: 1;
+}
+.archive-calendar-grid .calendar-day .day-badge {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    background: #3498db;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 0 5px;
+    line-height: 1.5;
+    min-width: 16px;
+    text-align: center;
+}
+
+.archive-day-details {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--color-gray-50);
+    border-radius: 8px;
+    border: 1px solid var(--color-gray-200);
+    max-height: 320px;
+    overflow-y: auto;
+}
+.archive-day-details.hidden { display: none !important; }
+.archive-day-details h4 {
+    font-size: 0.95rem;
+    color: var(--color-secondary);
+    margin-bottom: 10px;
+    text-transform: capitalize;
+    font-weight: 700;
+}
+.archive-day-details .archive-empty {
+    text-align: center;
+    color: var(--color-gray-500);
+    font-size: 0.85rem;
+    padding: 20px;
+    line-height: 1.5;
+}
+.archive-day-details .table {
+    margin-top: 0;
+    background: #fff;
+}
+.archive-day-details .table th {
+    font-size: 0.72rem;
+    padding: 8px 10px;
+}
+.archive-day-details .table td {
+    font-size: 0.82rem;
+    padding: 8px 10px;
+}
+
+body.dark-theme .archive-calendar-grid {
+    background: #262626;
+    border-color: #3a3a3a;
+}
+body.dark-theme .archive-calendar-grid .calendar-day {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+    color: #e0e0e0;
+}
+body.dark-theme .archive-calendar-grid .calendar-day:hover {
+    background: #333;
+    border-color: var(--color-primary);
+}
+body.dark-theme .archive-calendar-grid .calendar-day.has-past-data {
+    background: #1e3448;
+    border-color: #3498db;
+    color: #e0e0e0;
+}
+body.dark-theme .archive-calendar-grid .calendar-day.today {
+    background: #4a3a10;
+    border-color: var(--color-warning);
+    color: #ffc107;
+}
+body.dark-theme .archive-calendar-grid .calendar-day.selected {
+    background: var(--color-primary);
+    color: #fff;
+}
+body.dark-theme .archive-day-details {
+    background: #262626;
+    border-color: #3a3a3a;
+}
+body.dark-theme .archive-day-details h4 { color: #e0e0e0; }
+body.dark-theme .archive-day-details .table { background: #2a2a2a; }
+body.dark-theme .archive-day-details .table th { background: #333; color: #e0e0e0; }
+body.dark-theme .archive-day-details .table td { border-color: #3a3a3a; color: #e0e0e0; }
+body.dark-theme .archive-day-details .archive-empty { color: #b0b0b0; }
+
+@media (max-width: 640px) {
+    .archive-calendar-grid {
+        gap: 3px;
+        padding: 6px;
+    }
+    .archive-calendar-grid .calendar-day {
+        min-height: 36px;
+        font-size: 0.78rem;
+    }
+    .archive-calendar-grid .calendar-day .day-badge {
+        font-size: 0.55rem;
+        padding: 0 3px;
+        min-width: 14px;
+    }
+    .archive-day-details {
+        max-height: 260px;
+        padding: 10px;
+    }
+}
+
+/* ============================================================
+   37. CHART BUILDER — GRÁFICO DINÂMICO
+   ============================================================ */
+.cb-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 8px;
+    background: var(--color-gray-50);
+    border-radius: 8px;
+    border: 1px solid var(--color-gray-200);
+}
+.cb-chart-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-gray-300);
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--color-gray-600);
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+.cb-chart-type:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+.cb-chart-type.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(52,152,219,0.3);
+}
+.cb-chart-type svg {
+    width: 20px;
+    height: 20px;
+}
+
+.cb-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.cb-controls .form-group {
+    margin: 0;
+}
+
+.cb-canvas-wrap {
+    position: relative;
+    height: 340px;
+    background: #fff;
+    padding: 10px;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 8px;
+}
+.cb-canvas-wrap canvas {
+    max-height: 100%;
+}
+
+body.dark-theme .cb-toolbar {
+    background: #262626;
+    border-color: #3a3a3a;
+}
+body.dark-theme .cb-chart-type {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #b0b0b0;
+}
+body.dark-theme .cb-chart-type:hover {
+    background: #333;
+    color: var(--color-primary);
+}
+body.dark-theme .cb-chart-type.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+body.dark-theme .cb-canvas-wrap {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+@media (max-width: 640px) {
+    .cb-chart-type {
+        width: 38px;
+        height: 38px;
+        font-size: 0.95rem;
+    }
+    .cb-chart-type svg {
+        width: 16px;
+        height: 16px;
+    }
+    .cb-canvas-wrap {
+        height: 260px;
+    }
+    .cb-controls {
+        grid-template-columns: 1fr;
+    }
 }
