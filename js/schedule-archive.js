@@ -265,7 +265,7 @@ export async function archivePastSlots(db, onDone) {
 
     const ok = await sstConfirm(
         `Arquivar ${dayCount} dia(s) passado(s) (${slotCount} horário(s))?\n\n` +
-        `• Serão movidos para /schedule_archive (mantidos)\n` +
+        `• Serão movidos para Arquivo (mantidos)\n` +
         `• Nada será perdido\n` +
         `• A agenda ativa ficará apenas com dias futuros`,
         'Arquivar agenda passada',
