@@ -1,5 +1,8 @@
 // ============================================================
-// SSOT - NOTIFICAÇÕES
+// SSOT - NOTIFICAÇÕES (v12.0)
+// Alterações:
+//  - Modal de detalhes completos ao clicar na notificação
+//  - Sem truncamento na visualização
 // ============================================================
 
 import {
@@ -140,7 +143,7 @@ export function updateUserNotifBadge() {
 }
 
 // ============================================================
-// MODAL VISUALIZAR (usuário)
+// MODAL VISUALIZAR (usuário) — lista de cards clicáveis
 // ============================================================
 export function openNotifViewModal() {
     const modal = document.getElementById('notif-view-modal');
@@ -159,16 +162,23 @@ export function openNotifViewModal() {
     } else {
         list.innerHTML = mine.map(n => {
             const isRead = n.readBy && n.readBy[_currentUser.uid];
+            const preview = n.message.length > 120
+                ? escapeHtml(n.message.substring(0, 120)) + '…'
+                : escapeHtml(n.message);
             return `
-                <div class="notif-card ${n.type}" style="${isRead ? 'opacity:0.7;' : ''}">
+                <div class="notif-card ${n.type}" style="${isRead ? 'opacity:0.75;' : ''};cursor:pointer;"
+                     onclick="window.openNotifDetail('${n.id}')">
                     <div class="notif-header">
                         <div class="notif-title">${escapeHtml(n.title)}</div>
                         <span class="notif-type">${getTypeLabel(n.type)}</span>
                     </div>
-                    <div class="notif-message">${escapeHtml(n.message)}</div>
+                    <div class="notif-message">${preview}</div>
                     <div class="notif-footer">
                         <span>Enviado por: <strong>${escapeHtml(n.senderName || 'Admin')}</strong></span>
                         <span>${formatDateTime(n.timestamp)}</span>
+                    </div>
+                    <div style="margin-top:8px;text-align:right;">
+                        <span style="font-size:0.75rem;color:#3498db;font-weight:600;">Ver detalhes →</span>
                     </div>
                 </div>
             `;
@@ -187,6 +197,62 @@ export function openNotifViewModal() {
 
 export function closeNotifViewModal() {
     document.getElementById('notif-view-modal')?.classList.remove('active');
+}
+
+// ============================================================
+// MODAL DETALHE (aberto ao clicar numa notificação)
+// ============================================================
+export function openNotifDetail(notifId) {
+    const n = _notifications.find(x => x.id === notifId);
+    if (!n) return;
+
+    const modal = document.getElementById('notif-detail-modal');
+    const content = document.getElementById('notif-detail-content');
+    const title = document.getElementById('notif-detail-title');
+    if (!modal || !content) return;
+
+    if (title) title.textContent = n.title;
+
+    const typeLabels = {
+        'info': 'Informação',
+        'success': 'Sucesso',
+        'warning': 'Aviso',
+        'danger': 'Urgente'
+    };
+    const typeLabel = typeLabels[n.type] || 'Informação';
+
+    let targetLabel = 'Todos os usuários';
+    if (n.target && n.target !== 'all') {
+        const users = window._getUsersForNotif ? window._getUsersForNotif() : [];
+        const u = users.find(x => x.uid === n.target);
+        targetLabel = u ? `${u.name} (${u.email})` : n.target;
+    }
+
+    content.innerHTML = `
+        <div class="notif-detail-header ${n.type}">
+            <div class="notif-detail-type">${escapeHtml(typeLabel)}</div>
+            <div class="notif-detail-date">${formatDateTime(n.timestamp)}</div>
+        </div>
+        <div class="notif-detail-body">
+            ${escapeHtml(n.message).replace(/\n/g, '<br>')}
+        </div>
+        <div class="notif-detail-meta">
+            <div><strong>Enviado por:</strong> ${escapeHtml(n.senderName || 'Admin')}</div>
+            <div><strong>Destinatário:</strong> ${escapeHtml(targetLabel)}</div>
+        </div>
+    `;
+
+    modal.classList.add('active');
+
+    // Marca como lida
+    if (!n.readBy || !n.readBy[_currentUser.uid]) {
+        markNotificationAsRead(n.id);
+        setTimeout(() => updateUserNotifBadge(), 300);
+    }
+}
+
+export function closeNotifDetail() {
+    document.getElementById('notif-detail-modal')?.classList.remove('active');
 }
 
 // ============================================================
@@ -271,7 +337,10 @@ export function renderAdminNotificationsTable() {
                 <td>${escapeHtml(n.senderName || 'Admin')}</td>
                 <td class="table-actions-col">
                     <div class="action-buttons" style="justify-content:flex-end;">
-                        <button onclick="deleteNotification('${n.id}')" class="btn btn-danger btn-sm">
+                        <button onclick="window.openNotifDetail('${n.id}')" class="btn btn-primary btn-sm" title="Ver detalhes">
+                            <svg class="si"><use href="#i-eye"/></svg>
+                        </button>
+                        <button onclick="deleteNotification('${n.id}')" class="btn btn-danger btn-sm" title="Excluir">
                             <svg class="si"><use href="#i-trash"/></svg>
                         </button>
                     </div>
@@ -286,6 +355,9 @@ function getTypeLabel(type) {
     return labels[type] || 'Info';
 }
 
+// ============================================================
+// Exports globais
+// ============================================================
 window.deleteNotification = deleteNotification;
 window.openNotifModal = openNotifModal;
 window.closeNotifModal = closeNotifModal;
@@ -293,3 +365,5 @@ window.openNotifViewModal = openNotifViewModal;
 window.closeNotifViewModal = closeNotifViewModal;
 window.openNotifAdminModal = openNotifAdminModal;
 window.closeNotifAdminModal = closeNotifAdminModal;
+window.openNotifDetail = openNotifDetail;
+window.closeNotifDetail = closeNotifDetail;

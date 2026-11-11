@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSOT — Ajuda e Recuperação de Conta</title>
+    <meta name="description" content="Recupere o acesso à sua conta SSOT via e-mail ou SMS.">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="preconnect" href="https://firebasedatabase.googleapis.com">
+    <link rel="stylesheet" href="css/ajuda.css">
+</head>
+<body>
+
+<!-- Ícones SVG reutilizáveis -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+<symbol id="i-envelope" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-sign-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+</svg>
+
+<div class="help-container">
+    <div class="help-card">
+
+        <!-- Header -->
+        <div class="help-header">
+            <div class="help-logo">
+                <img src="favicon.ico" alt="SSOT">
+            </div>
+            <h1>Recuperação de Conta</h1>
+            <p>Recupere o acesso ao sistema via <strong>e-mail</strong> ou <strong>SMS</strong></p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="help-tabs" role="tablist">
+            <button type="button" class="help-tab active" data-tab="email" role="tab">
+                <svg class="si"><use href="#i-envelope"/></svg>
+                Recuperar por E-mail
+            </button>
+            <button type="button" class="help-tab" data-tab="sms" role="tab">
+                <svg class="si"><use href="#i-phone"/></svg>
+                Recuperar por SMS
+            </button>
+        </div>
+
+        <!-- ==================== PAINEL E-MAIL ==================== -->
+        <div class="help-panel active" id="panel-email" role="tabpanel">
+
+            <p class="help-intro">
+                Informe o e-mail cadastrado no sistema. Enviaremos um link para você redefinir sua senha.
+            </p>
+
+            <div id="email-alert" class="help-alert hidden"></div>
+
+            <form id="form-email" autocomplete="off">
+                <div class="help-form-group">
+                    <label for="email-input">E-mail cadastrado</label>
+                    <div class="help-input-wrap">
+                        <svg class="si help-input-icon"><use href="#i-envelope"/></svg>
+                        <input type="email" id="email-input" class="help-input"
+                               placeholder="seu@email.com" autocomplete="email" required>
+                    </div>
+                </div>
+                <button type="submit" class="help-btn-primary" id="email-send-btn">
+                    <svg class="si"><use href="#i-send"/></svg>
+                    Enviar link de recuperação
+                </button>
+            </form>
+
+            <div class="help-success-box hidden" id="email-success">
+                <div class="help-success-icon">
+                    <svg class="si si-2x"><use href="#i-check-circle"/></svg>
+                </div>
+                <h3>Link enviado!</h3>
+                <p>Verifique sua caixa de entrada e a pasta de <strong>spam</strong>.<br>
+                   O link é válido por 1 hora.</p>
+                <p class="help-small" id="email-success-address"></p>
+                <button type="button" class="help-btn-secondary" onclick="window.location.reload()">
+                    <svg class="si"><use href="#i-refresh"/></svg>
+                    Enviar novamente
+                </button>
+            </div>
+
+        </div>
+
+        <!-- ==================== PAINEL SMS ==================== -->
+        <div class="help-panel" id="panel-sms" role="tabpanel">
+
+            <p class="help-intro">
+                Informe o telefone cadastrado. Enviaremos um <strong>código SMS</strong> para confirmar sua identidade.
+            </p>
+
+            <div id="sms-alert" class="help-alert hidden"></div>
+
+            <!-- Etapa 1: telefone -->
+            <div id="sms-step-phone">
+                <div class="help-form-group">
+                    <label for="phone-input">Número de telefone</label>
+                    <div class="help-input-wrap">
+                        <svg class="si help-input-icon"><use href="#i-phone"/></svg>
+                        <input type="tel" id="phone-input" class="help-input"
+                               placeholder="+5511999999999" autocomplete="tel" inputmode="tel">
+                    </div>
+                    <span class="help-hint">Formato internacional: <strong>+55</strong> + DDD + número</span>
+                </div>
+                <button type="button" class="help-btn-primary" id="sms-send-btn">
+                    <svg class="si"><use href="#i-send"/></svg>
+                    Enviar código SMS
+                </button>
+                <div id="help-recaptcha"></div>
+            </div>
+
+            <!-- Etapa 2: código -->
+            <div id="sms-step-code" class="hidden">
+                <p class="help-intro" style="margin-top:0;">
+                    Digite o <strong>código de 6 dígitos</strong> recebido por SMS em <strong id="sms-phone-shown">—</strong>.
+                </p>
+                <div class="help-form-group">
+                    <label for="code-input">Código SMS</label>
+                    <div class="help-input-wrap">
+                        <svg class="si help-input-icon"><use href="#i-check-circle"/></svg>
+                        <input type="text" id="code-input" class="help-input help-input-code"
+                               placeholder="000000" maxlength="6" inputmode="numeric" pattern="\d{6}" autocomplete="one-time-code">
+                    </div>
+                </div>
+                <div class="help-actions-row">
+                    <button type="button" class="help-btn-secondary" id="sms-resend-btn">
+                        <svg class="si"><use href="#i-refresh"/></svg>
+                        Reenviar (<span id="sms-resend-count">60</span>s)
+                    </button>
+                    <button type="button" class="help-btn-primary" id="sms-verify-btn">
+                        <svg class="si"><use href="#i-check-circle"/></svg>
+                        Verificar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Etapa 3: resultado -->
+            <div id="sms-step-result" class="hidden">
+                <!-- preenchido por JS -->
+            </div>
+
+        </div>
+
+        <!-- Footer do card -->
+        <div class="help-footer">
+            <a href="index.html" class="help-back-link">
+                <svg class="si"><use href="#i-arrow-left"/></svg>
+                Voltar ao login
+            </a>
+            <span class="help-footer-sep">·</span>
+            <a href="index.html" class="help-footer-link">Solicitar cadastro</a>
+        </div>
+
+    </div>
+
+    <p class="help-copyright">
+        SSOT — Sistema de Solicitações e Operações de Transporte
+    </p>
+</div>
+
+<script type="module" src="js/ajuda.js"></script>
+</body>
+</html>

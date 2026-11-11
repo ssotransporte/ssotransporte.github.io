@@ -6,7 +6,6 @@
     <title>SSOT - Sistema de Solicitações e Operações de Transporte</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-    <!-- ⬇️ NOVO: preconnect para performance -->
     <link rel="preconnect" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://firebasedatabase.googleapis.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -108,7 +107,6 @@
     </div>
 </div>
 
-<!-- ⬇️ ALTERADO: botão X adicionado no header do session-modal -->
 <div class="modal-overlay" id="session-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-warning">
@@ -479,13 +477,25 @@
                                     <div class="form-col">
                                         <div class="form-group">
                                             <label for="u-destino">Destino <span class="required">*</span></label>
-                                            <input type="text" id="u-destino" class="form-control" required>
+                                            <div class="input-action-group">
+                                                <input type="text" id="u-destino" class="form-control" required list="u-destino-list">
+                                                <datalist id="u-destino-list"></datalist>
+                                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Destinos" onclick="openManageDestinations()">
+                                                    <svg class="si"><use href="#i-edit"/></svg> Gerenciar
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-col">
                                         <div class="form-group">
                                             <label for="u-origem">Origem</label>
-                                            <input type="text" id="u-origem" class="form-control">
+                                            <div class="input-action-group">
+                                                <input type="text" id="u-origem" class="form-control" list="u-origem-list">
+                                                <datalist id="u-origem-list"></datalist>
+                                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Origens" onclick="openManageOrigins()">
+                                                    <svg class="si"><use href="#i-edit"/></svg> Gerenciar
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -967,7 +977,6 @@
                             <button id="export-excel" class="btn btn-success">Excel</button>
                             <button id="export-pdf" class="btn btn-danger">PDF</button>
                             <button id="preview-pdf" class="btn btn-secondary">Visualizar</button>
-                            <!-- ⬇️ NOVO: Gráfico Dinâmico -->
                             <button id="open-chart-builder" class="btn btn-info" onclick="openChartBuilder('requests')">
                                 <svg class="si"><use href="#i-chart-bar"/></svg> Gráfico Dinâmico
                             </button>
@@ -1099,7 +1108,6 @@
                 </div>
             </div>
 
-            <!-- ⬇️ ALTERADO: h2 "Serviços" → "Configurações" -->
             <div class="tab-content" id="admin-servicos-tab">
                 <div class="card card-elevated">
                     <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Configurações</h2></div></div>
@@ -1126,6 +1134,10 @@
         </div>
     </div>
 </div>
+
+<!-- ============================================================
+     MODAIS AUXILIARES
+     ============================================================ -->
 
 <div class="modal-overlay" id="modal-gerenciar-veiculos">
     <div class="modal modal-large">
@@ -1212,8 +1224,30 @@
                 </div>
                 <div class="section-title"><svg class="si si-fw"><use href="#i-route"/></svg> Viagem</div>
                 <div class="form-row">
-                    <div class="form-col"><div class="form-group"><label for="ar-destino">Destino <span class="required">*</span></label><input type="text" id="ar-destino" class="form-control" required></div></div>
-                    <div class="form-col"><div class="form-group"><label for="ar-origem">Origem</label><input type="text" id="ar-origem" class="form-control"></div></div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="ar-destino">Destino <span class="required">*</span></label>
+                            <div class="input-action-group">
+                                <input type="text" id="ar-destino" class="form-control" required list="ar-destino-list">
+                                <datalist id="ar-destino-list"></datalist>
+                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Destinos" onclick="openManageDestinations()">
+                                    <svg class="si"><use href="#i-edit"/></svg> Gerenciar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="ar-origem">Origem</label>
+                            <div class="input-action-group">
+                                <input type="text" id="ar-origem" class="form-control" list="ar-origem-list">
+                                <datalist id="ar-origem-list"></datalist>
+                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Origens" onclick="openManageOrigins()">
+                                    <svg class="si"><use href="#i-edit"/></svg> Gerenciar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-col"><div class="form-group"><label for="ar-finalidade">Finalidade <span class="required">*</span></label><input type="text" id="ar-finalidade" class="form-control" required></div></div>
@@ -1253,6 +1287,40 @@
             <div class="qr-code-container"><h4>QR Code</h4><div class="qr-code" id="view-qr-code"></div><p style="margin-top:8px;font-size:0.75rem;color:#7f8c8d;">Escaneie para abrir esta solicitação</p></div>
         </div>
         <div class="modal-footer" id="view-modal-footer"></div>
+    </div>
+</div>
+
+<!-- ⬇️ NOVO: Modal Editar Horários -->
+<div class="modal-overlay" id="edit-hours-modal">
+    <div class="modal modal-small">
+        <div class="modal-header modal-header-warning">
+            <h3>Editar Horários</h3>
+            <button class="modal-close" onclick="closeModal('edit-hours-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:14px;color:#7f8c8d;font-size:0.9rem;">
+                Solicitação <strong id="edit-hours-numero">—</strong>
+                · Status: <span id="edit-hours-status">—</span>
+            </p>
+            <input type="hidden" id="edit-hours-request-id">
+            <div class="form-group">
+                <label for="edit-hours-saida">Saída <span class="required">*</span></label>
+                <input type="datetime-local" id="edit-hours-saida" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="edit-hours-retorno">Retorno</label>
+                <input type="datetime-local" id="edit-hours-retorno" class="form-control">
+            </div>
+            <div class="alert alert-info" style="font-size:0.82rem;margin-top:8px;">
+                <svg class="si"><use href="#i-info"/></svg>
+                <span>O horário antigo será liberado e o novo será reservado na agenda automaticamente.</span>
+            </div>
+            <div id="edit-hours-error" class="alert alert-danger hidden"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="edit-hours-save-btn" onclick="window.saveRequestHours()">Salvar</button>
+            <button class="btn btn-secondary" onclick="closeModal('edit-hours-modal')">Cancelar</button>
+        </div>
     </div>
 </div>
 
@@ -1323,6 +1391,22 @@
     </div>
 </div>
 
+<!-- ⬇️ NOVO: Modal Detalhe da Notificação -->
+<div class="modal-overlay" id="notif-detail-modal">
+    <div class="modal" style="max-width:560px;">
+        <div class="modal-header">
+            <h3 id="notif-detail-title">Notificação</h3>
+            <button class="modal-close" onclick="closeNotifDetail()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="notif-detail-content"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNotifDetail()">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="notif-admin-modal">
     <div class="modal modal-large">
         <div class="modal-header"><h3>Notificações Enviadas</h3><button class="modal-close" onclick="closeNotifAdminModal()">&times;</button></div>
@@ -1339,6 +1423,88 @@
         <div class="modal-header"><h3>Visualização</h3><button class="modal-close" id="close-pdf-modal">&times;</button></div>
         <div class="modal-body"><div class="pdf-preview-container"><iframe id="pdf-iframe"></iframe></div></div>
         <div class="modal-footer"><button class="btn btn-primary" id="download-pdf">Baixar PDF</button><button class="btn btn-danger" id="close-pdf-modal-btn">Fechar</button></div>
+    </div>
+</div>
+
+<!-- ⬇️ NOVO: Gerenciar Origens -->
+<div class="modal-overlay" id="manage-origins-modal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h3>Gerenciar Origens</h3>
+            <button class="modal-close" onclick="closeModal('manage-origins-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">
+                Cadastre origens pré-definidas para aparecerem como sugestão nos formulários.
+            </p>
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="new-origin-input">Nova Origem</label>
+                        <input type="text" id="new-origin-input" class="form-control" placeholder="Ex: Sede Central, Terminal, etc.">
+                    </div>
+                </div>
+                <div class="form-col form-col-button">
+                    <div class="form-group">
+                        <button class="btn btn-success" onclick="window.addOrigin()">
+                            <svg class="si"><use href="#i-plus"/></svg> Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive" style="margin-top:20px;">
+                <table class="table">
+                    <thead><tr><th>Nome</th><th class="table-actions-col">Ações</th></tr></thead>
+                    <tbody id="origins-list-table">
+                        <tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('manage-origins-modal')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ⬇️ NOVO: Gerenciar Destinos -->
+<div class="modal-overlay" id="manage-destinations-modal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h3>Gerenciar Destinos</h3>
+            <button class="modal-close" onclick="closeModal('manage-destinations-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">
+                Cadastre destinos pré-definidos para aparecerem como sugestão nos formulários.
+            </p>
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="new-destination-input">Novo Destino</label>
+                        <input type="text" id="new-destination-input" class="form-control" placeholder="Ex: Hospital Central, Prefeitura, etc.">
+                    </div>
+                </div>
+                <div class="form-col form-col-button">
+                    <div class="form-group">
+                        <button class="btn btn-success" onclick="window.addDestination()">
+                            <svg class="si"><use href="#i-plus"/></svg> Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive" style="margin-top:20px;">
+                <table class="table">
+                    <thead><tr><th>Nome</th><th class="table-actions-col">Ações</th></tr></thead>
+                    <tbody id="destinations-list-table">
+                        <tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('manage-destinations-modal')">Fechar</button>
+        </div>
     </div>
 </div>
 

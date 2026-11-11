@@ -1,9 +1,9 @@
 // ============================================================
-// SSOT - MAIN (v16.0 - Configurações + Calendário de Arquivados)
-// Alterações:
-//  - Menu "Serviços" → "Configurações"
-//  - Botão "Arquivar" abre o calendário de dias passados
-//  - Confirmação de arquivamento dentro do modal
+// SSOT - MAIN (v17.0)
+// Alterações desta versão:
+//  - Importa e assina Fleet (origens/destinos -> datalists)
+//  - Menu Operações: adiciona item "Relatórios"
+//  - Mantém handlers anteriores (archivar, edit-hours, notif-detail)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -30,6 +30,7 @@ import * as Schedule from './schedule.js';
 import * as Dashboard from './dashboard.js';
 import * as Trash from './trash.js';
 import * as FleetExcel from './fleet-excel.js';
+import * as Fleet from './fleet.js';                 // ⬅️ NOVO
 import * as Reports from './reports.js';
 import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
@@ -181,6 +182,14 @@ function setupGlobalExports() {
     window.selectArea = selectArea;
     window.switchArea = switchArea;
     window.updateArchiveBadge = updateArchiveBadge;
+
+    // ⬇️ Expostos por fleet.js, mas reforçados aqui por segurança:
+    if (typeof window.openManageOrigins !== 'function') {
+        window.openManageOrigins = () => Fleet.openManageOrigins();
+    }
+    if (typeof window.openManageDestinations !== 'function') {
+        window.openManageDestinations = () => Fleet.openManageDestinations();
+    }
 }
 
 function showAreaSelectModal() {
@@ -300,6 +309,7 @@ async function enterSystem() {
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
     FleetExcel.setFleetExcelContext(db, currentUser);
+    Fleet.setFleetContext(db, currentUser);              // ⬅️ NOVO
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
     Signups.setSignupsContext(db, currentUser, isAdmin);
@@ -373,6 +383,7 @@ function activateSubscribers() {
     });
     Schedule.subscribeSlots();
     Notifications.subscribeNotifications();
+    Fleet.subscribeFleet();                              // ⬅️ NOVO
     if (isAdmin) {
         History.subscribeHistory();
         Trash.subscribeTrash();
@@ -389,6 +400,7 @@ function deactivateSubscribers() {
     Trash.unsubscribeTrash();
     Signups.unsubscribeSignups();
     Notifications.unsubscribeNotifications();
+    Fleet.unsubscribeFleet();                            // ⬅️ NOVO
     Dashboard.destroyDashboardCharts();
 }
 
@@ -426,7 +438,6 @@ function gotoUserTab(tabId) {
 function renderOperacoesMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
-    // ⬇️ ALTERADO: "Serviços" → "Configurações"
     menu.innerHTML = `
         <li><a href="#" data-fleet-tab="viagens"><svg class="si si-fw"><use href="#i-route"/></svg> Viagens</a></li>
         <li><a href="#" data-fleet-tab="veiculos"><svg class="si si-fw"><use href="#i-car"/></svg> Veículos</a></li>
@@ -435,6 +446,7 @@ function renderOperacoesMenu() {
         <li><a href="#" data-fleet-tab="despesas"><svg class="si si-fw"><use href="#i-file-text"/></svg> Despesas</a></li>
         <li><a href="#" data-fleet-tab="leituras"><svg class="si si-fw"><use href="#i-clock"/></svg> Leituras</a></li>
         <li><a href="#" data-fleet-tab="checklist"><svg class="si si-fw"><use href="#i-check-circle"/></svg> Checklist</a></li>
+        <li><a href="#" data-fleet-tab="relatorios"><svg class="si si-fw"><use href="#i-chart-bar"/></svg> Relatórios</a></li>
         <li><a href="#" data-fleet-tab="importar"><svg class="si si-fw"><use href="#i-upload"/></svg> Importar/Exportar</a></li>
         <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
         <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Configurações</a></li>
@@ -453,7 +465,7 @@ function renderOperacoesMenu() {
             const titles = {
                 viagens: 'Viagens', veiculos: 'Veículos', abastecimentos: 'Abastecimentos',
                 servicos: 'Serviços', despesas: 'Despesas', leituras: 'Leituras',
-                checklist: 'Checklist', importar: 'Importar/Exportar'
+                checklist: 'Checklist', relatorios: 'Relatórios', importar: 'Importar/Exportar'
             };
             const title = document.getElementById('page-title');
             if (title) title.textContent = titles[tabKey] || 'Frota';
@@ -483,7 +495,6 @@ function renderAdminMenu() {
         const title = document.getElementById('page-title');
         if (title) title.textContent = 'Frota';
     } else {
-        // ⬇️ ALTERADO: "Serviços" → "Configurações"
         menu.innerHTML = `
             <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
             <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
@@ -741,12 +752,12 @@ function setupEventListeners() {
         showNotification('Atualizado', 'Agenda atualizada.', 'success', 2000);
     });
 
-    // ⬇️ ALTERADO: botão "Arquivar" agora abre o calendário
+    // Arquivar — abre calendário
     document.getElementById('archive-past-slots')?.addEventListener('click', async () => {
         await ScheduleArchive.openArchiveCalendar(db);
     });
 
-    // ⬇️ NOVO: confirmação de arquivamento dentro do modal
+    // Confirmação dentro do modal do calendário
     document.getElementById('archive-confirm-btn')?.addEventListener('click', async () => {
         await ScheduleArchive.archivePastSlots(db, () => {
             try { Schedule.renderSlotsAdmin(); } catch (e) {}

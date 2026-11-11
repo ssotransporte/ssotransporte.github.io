@@ -1,6 +1,8 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE TRANSPORTE (v11.2)
-// PDF corrigido: delega para pdf-generator.js (1 página A4)
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v12.0)
+// Alterações:
+//  - Botão "Editar Horários" para status Em Andamento / Concluída
+//  - Modal para alterar apenas saída/retorno (com ajuste na agenda)
 // ============================================================
 
 import {
@@ -172,6 +174,142 @@ export async function changeRequestStatus(id, newStatus) {
     } catch (err) {
         console.error(err);
         showNotification('Erro', 'Não foi possível atualizar.', 'danger');
+    }
+}
+
+// ============================================================
+// EDITAR HORÁRIOS (Em Andamento / Concluída)
+// ============================================================
+export function openEditHoursModal(id) {
+    const r = _requests.find(x => x.id === id);
+    if (!r) {
+        showNotification('Erro', 'Solicitação não encontrada.', 'danger');
+        return;
+    }
+    if (r.status !== 'em-andamento' && r.status !== 'concluida') {
+        showNotification('Não permitido',
+            'Só é possível editar horários de solicitações Em Andamento ou Concluídas.',
+            'warning');
+        return;
+    }
+
+    const idEl = document.getElementById('edit-hours-request-id');
+    const numEl = document.getElementById('edit-hours-numero');
+    const statusEl = document.getElementById('edit-hours-status');
+    const saidaEl = document.getElementById('edit-hours-saida');
+    const retornoEl = document.getElementById('edit-hours-retorno');
+
+    if (!idEl || !saidaEl || !retornoEl) {
+        console.error('[Requests] Modal de edição de horários não encontrado.');
+        return;
+    }
+
+    idEl.value = id;
+    if (numEl) numEl.textContent = r.numero;
+    if (statusEl) statusEl.textContent = getStatusText(r.status);
+
+    saidaEl.value = toDatetimeLocal(r.saida);
+    retornoEl.value = toDatetimeLocal(r.retorno);
+
+    const errBox = document.getElementById('edit-hours-error');
+    if (errBox) { errBox.classList.add('hidden'); errBox.textContent = ''; }
+
+    window.openModal('edit-hours-modal');
+}
+
+function toDatetimeLocal(value) {
+    if (!value) return '';
+    const s = String(value).trim();
+    // Já está no formato YYYY-MM-DDTHH:mm(:ss)? — só corta
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) {
+        return s.slice(0, 16);
+    }
+    // YYYY-MM-DD puro
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        return `${s}T00:00`;
+    }
+    // Tenta parsear (ISO com Z etc.)
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export async function saveRequestHours() {
+    const id = document.getElementById('edit-hours-request-id')?.value;
+    if (!id) return;
+
+    const r = _requests.find(x => x.id === id);
+    if (!r) return;
+
+    if (r.status !== 'em-andamento' && r.status !== 'concluida') {
+        showNotification('Não permitido', 'Status não permite edição.', 'warning');
+        return;
+    }
+
+    const newSaida = document.getElementById('edit-hours-saida')?.value || '';
+    const newRetorno = document.getElementById('edit-hours-retorno')?.value || '';
+    const errBox = document.getElementById('edit-hours-error');
+
+    if (!newSaida) {
+        if (errBox) { errBox.textContent = 'A data/hora de saída é obrigatória.'; errBox.classList.remove('hidden'); }
+        return;
+    }
+
+    const oldSaida = r.saida || '';
+    const oldRetorno = r.retorno || '';
+
+    const btn = document.getElementById('edit-hours-save-btn');
+    const originalHTML = btn?.innerHTML;
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+    if (errBox) errBox.classList.add('hidden');
+
+    try {
+        // Ajuste da agenda — libera slot antigo, reserva novo
+        if (newSaida !== oldSaida) {
+            // Libera antigo
+            if (oldSaida && oldSaida.includes('T')) {
+                const [oldDate, oldTime] = oldSaida.split('T');
+                if (oldDate && oldTime) {
+                    try {
+                        const schedule = await import('./schedule.js');
+                        await schedule.freeSlot(oldDate, oldTime.substring(0, 5));
+                    } catch (e) { console.warn('[Requests] freeSlot:', e); }
+                }
+            }
+            // Reserva novo
+            if (newSaida.includes('T')) {
+                const [newDate, newTime] = newSaida.split('T');
+                if (newDate && newTime) {
+                    try {
+                        const schedule = await import('./schedule.js');
+                        await schedule.reserveSlot(newDate, newTime.substring(0, 5), r.numero);
+                    } catch (e) { console.warn('[Requests] reserveSlot:', e); }
+                }
+            }
+        }
+
+        await update(ref(_db, 'requests/' + id), {
+            saida: newSaida,
+            retorno: newRetorno,
+            updatedAt: new Date().toISOString(),
+            updatedBy: _currentUser?.name || 'Sistema'
+        });
+
+        const oldSaidaFmt = oldSaida ? formatDateTime(oldSaida) : '—';
+        const newSaidaFmt = formatDateTime(newSaida);
+        const detail = `Saída: ${oldSaidaFmt} → ${newSaidaFmt} | Retorno: ${newRetorno ? formatDateTime(newRetorno) : '—'} | Por: ${_currentUser?.name}`;
+
+        await addHistory('Horários Editados', r.numero, detail);
+
+        window.closeModal('edit-hours-modal');
+        showNotification('Atualizado', 'Horários atualizados com sucesso.', 'success');
+    } catch (err) {
+        console.error('[Requests] saveRequestHours:', err);
+        if (errBox) { errBox.textContent = 'Não foi possível salvar: ' + (err.message || ''); errBox.classList.remove('hidden'); }
+        else showNotification('Erro', 'Não foi possível salvar.', 'danger');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = originalHTML; }
     }
 }
 
@@ -447,6 +585,10 @@ export function viewRequest(id, adminView) {
         if (r.status === 'em-andamento') {
             buttons += `<button class="btn btn-info" onclick="changeStatus('${r.id}', 'concluida')"><svg class="si"><use href="#i-flag"/></svg> Concluir</button>`;
         }
+        // ⬇️ NOVO: editar horários (em-andamento / concluida)
+        if (r.status === 'em-andamento' || r.status === 'concluida') {
+            buttons += `<button class="btn btn-warning" onclick="window.openEditHoursModal('${r.id}')"><svg class="si"><use href="#i-clock"/></svg> Editar Horários</button>`;
+        }
         buttons += `
             <button class="btn btn-danger" onclick="deleteRequest('${r.id}')"><svg class="si"><use href="#i-trash"/></svg> Excluir</button>
             <button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>
@@ -517,7 +659,6 @@ export function renderTodayRequestsWidget() {
 
 // ============================================================
 // PDF DO COMPROVANTE — delega para pdf-generator.js
-// (produz 1 página A4 vetorial, sem "print de tela")
 // ============================================================
 export async function downloadUserRequestPDF(requestId) {
     const r = _requests.find(x => x.id === requestId);
@@ -536,9 +677,14 @@ export async function downloadUserRequestPDF(requestId) {
     }
 }
 
+// ============================================================
+// Exports globais
+// ============================================================
 window.viewRequest = viewRequest;
 window.closeViewModal = closeViewModal;
 window.downloadUserRequestPDF = downloadUserRequestPDF;
+window.openEditHoursModal = openEditHoursModal;
+window.saveRequestHours = saveRequestHours;
 window.changeStatus = async (id, status) => {
     await changeRequestStatus(id, status);
     closeViewModal();
