@@ -2757,3 +2757,229 @@ body.dark-theme input[type="datetime-local"] { color-scheme: dark; }
         .notification-panel { top: calc(12px + env(safe-area-inset-top)); }
     }
 }
+
+/* ============================================================
+   39. ÍCONE DE USUÁRIOS NO TOPO + ROUTER
+   ============================================================ */
+.top-icon.active {
+    background: var(--color-primary) !important;
+    color: #fff !important;
+}
+
+/* ============================================================
+   40. BADGE DE TIPO DE GRÁFICO
+   ============================================================ */
+.chart-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-left: 6px;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    border-radius: var(--radius-round);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    vertical-align: middle;
+}
+
+/* ============================================================
+   41. CONTAINER DO ECHARTS
+   ============================================================ */
+.echarts-container {
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    background: #fff;
+    border-radius: var(--radius-md);
+}
+body.dark-theme .echarts-container { background: #2a2a2a; }
+
+/* ============================================================
+   42. DASHBOARD VAZIO
+   ============================================================ */
+.dashboard-empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--color-gray-500);
+    background: #fff;
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--color-gray-300);
+}
+.dashboard-empty-state h3 {
+    font-size: 1.05rem;
+    color: var(--color-gray-700);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.dashboard-empty-state p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+.dashboard-empty-state strong { color: var(--color-primary); }
+body.dark-theme .dashboard-empty-state {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+body.dark-theme .dashboard-empty-state h3 { color: #e0e0e0; }
+
+/* ============================================================
+   43. DASHBOARD SETTINGS (Configurações → Dashboard)
+   ============================================================ */
+.dashboard-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.dashboard-settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-md);
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+    flex-wrap: wrap;
+}
+.dashboard-settings-item:hover {
+    border-color: var(--color-primary);
+}
+.dashboard-settings-item.disabled {
+    opacity: 0.5;
+}
+.dashboard-settings-item.disabled .ds-type-select,
+.dashboard-settings-item.disabled .ds-order-buttons {
+    pointer-events: none;
+}
+
+.ds-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 200px;
+}
+.ds-item-icon { color: var(--color-primary); }
+.ds-item-label {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--color-secondary);
+}
+
+.ds-toggle {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.ds-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.ds-toggle-mark {
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+    background: var(--color-gray-300);
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.2s ease;
+}
+.ds-toggle-mark::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+}
+.ds-toggle input:checked + .ds-toggle-mark {
+    background: var(--color-success);
+}
+.ds-toggle input:checked + .ds-toggle-mark::after {
+    transform: translateX(16px);
+}
+
+.ds-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.ds-type-select {
+    min-width: 170px;
+    height: 36px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+.ds-order-buttons {
+    display: inline-flex;
+    gap: 4px;
+}
+.ds-order-buttons .btn {
+    padding: 5px 8px;
+    min-width: 0;
+}
+.ds-order-buttons .btn:disabled {
+    opacity: 0.35;
+}
+
+@media (max-width: 640px) {
+    .dashboard-settings-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .ds-item-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .ds-type-select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+body.dark-theme .dashboard-settings-item {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+body.dark-theme .ds-item-label { color: #e0e0e0; }
+body.dark-theme .ds-toggle-mark { background: #444; }
+body.dark-theme .ds-toggle input:checked + .ds-toggle-mark { background: var(--color-success); }
+body.dark-theme .chart-type-badge {
+    background: #1a3448;
+    color: #6bb6f0;
+}
+
+/* ============================================================
+   44. ÍCONE IMPORTAR/EXPORTAR NO TOPO
+   ============================================================ */
+.top-icon.active {
+    background: var(--color-primary) !important;
+    color: #fff !important;
+}
+
+/* ============================================================
+   45. FIX Z-INDEX — MODAL DE DETALHE DA NOTIFICAÇÃO
+   Garante que ele fique ACIMA do modal de lista e do admin
+   ============================================================ */
+#notif-detail-modal {
+    z-index: 2100;
+}
+#notif-view-modal,
+#notif-admin-modal {
+    z-index: 2000;
+}
+#notif-modal {
+    z-index: 2000;
+}

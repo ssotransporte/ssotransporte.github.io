@@ -1,9 +1,9 @@
 // ============================================================
-// SSOT - MAIN (v17.0)
-// Alterações desta versão:
-//  - Importa e assina Fleet (origens/destinos -> datalists)
-//  - Menu Operações: adiciona item "Relatórios"
-//  - Mantém handlers anteriores (archivar, edit-hours, notif-detail)
+// SSOT - MAIN (v19.0)
+// Alterações:
+//  - Ícone Importar/Exportar no topo (visível só em Operações)
+//  - Mensagem "Desconectado por segurança" ao expirar inatividade
+//  - Aba "importar" removida do menu visual (acessível pelo ícone)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -14,7 +14,8 @@ import { firebaseConfig } from './firebase-config.js';
 import {
     TAB_TITLES, TAB_SUBTITLES, ROLE_LABELS, ADMIN_ROLES,
     SESSION_STORAGE_KEY, SESSION_ACTIVE_KEY,
-    FIREBASE_LOAD_TIMEOUT, APP_VERSION
+    FIREBASE_LOAD_TIMEOUT, APP_VERSION,
+    ROUTES, TAB_TO_ROUTE, FLEET_TAB_TO_ROUTE
 } from './config.js';
 
 import { showNotification, showAlert, downloadJSON, getInitials } from './utils.js';
@@ -30,13 +31,16 @@ import * as Schedule from './schedule.js';
 import * as Dashboard from './dashboard.js';
 import * as Trash from './trash.js';
 import * as FleetExcel from './fleet-excel.js';
-import * as Fleet from './fleet.js';                 // ⬅️ NOVO
+import * as Fleet from './fleet.js';
 import * as Reports from './reports.js';
 import * as Settings from './settings.js';
 import * as Notifications from './notifications.js';
 import * as Profile from './profile.js';
 import * as ScheduleArchive from './schedule-archive.js';
 
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
 let app, db, auth;
 let currentUser = null;
 let isAdmin = false;
@@ -47,24 +51,142 @@ let _enterSystemDone = false;
 let _pendingDeepLink = null;
 let _areaMode = null;
 let _fleetCurrentTab = 'viagens';
+let _routerActive = false;
 
 const AREA_KEY = 'ssot_area_';
 
-function getAreaFromHash() {
-    const h = window.location.hash;
-    if (h === '#/operacoes') return 'operacoes';
-    if (h === '#/solicitacoes') return 'solicitacoes';
-    return null;
+// ============================================================
+// ROUTER
+// ============================================================
+function parseHashRoute() {
+    const raw = window.location.hash.replace(/^#\/?/, '');
+    if (!raw) return null;
+    return ROUTES[raw] || null;
 }
-function setAreaHash(area) { window.location.hash = `#/${area}`; }
-function clearAreaHash() {
-    if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search);
+function getHashRouteKey() {
+    return window.location.hash.replace(/^#\/?/, '');
 }
-window.addEventListener('hashchange', () => {
-    const area = getAreaFromHash();
-    if (area && currentUser && isAdmin) { _areaMode = area; renderAdminMenu(); }
-});
+function setHashRoute(routeKey) {
+    const desired = `#/${routeKey}`;
+    if (window.location.hash === desired) return;
+    history.replaceState(null, '', desired);
+}
+function clearHashRoute() {
+    if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+}
+function updateHashForArea(area) {
+    if (area === 'operacoes') {
+        const route = FLEET_TAB_TO_ROUTE[_fleetCurrentTab] || 'operacoes/viagens';
+        setHashRoute(route);
+    } else if (area === 'solicitacoes') {
+        setHashRoute('solicitacoes/dashboard');
+    }
+}
+function updateHashForTab(tabId) {
+    let route = TAB_TO_ROUTE[tabId];
+    if (tabId === 'admin-perfil') {
+        route = _areaMode === 'operacoes' ? 'operacoes/perfil' : 'solicitacoes/perfil';
+    } else if (tabId === 'admin-servicos') {
+        route = _areaMode === 'operacoes' ? 'operacoes/configuracoes' : 'solicitacoes/configuracoes';
+    }
+    if (route) setHashRoute(route);
+}
+function updateHashForFleetTab(fleetTab) {
+    const route = FLEET_TAB_TO_ROUTE[fleetTab];
+    if (route) setHashRoute(route);
+}
 
+function applyRouteFromHash() {
+    if (!_routerActive) return;
+    const route = parseHashRoute();
+    if (!route) return;
+
+    if (route.type === 'screen') {
+        if (currentUser) { navigateToDefaultArea(); return; }
+        applyAuthScreen(route.screen, route.mode);
+        return;
+    }
+
+    if (!currentUser) return;
+
+    if (route.type === 'tab') {
+        if (route.area === 'user') {
+            if (isAdmin) { navigateToDefaultArea(); return; }
+            gotoUserTab(route.tab);
+            return;
+        }
+        if (route.area === 'solicitacoes' || route.area === 'operacoes') {
+            if (!isAdmin) { navigateToDefaultArea(); return; }
+            if (_areaMode !== route.area) {
+                _areaMode = route.area;
+                sessionStorage.setItem(AREA_KEY + currentUser.uid, route.area);
+                updateAreaChrome(route.area);
+                renderAdminMenu();
+            }
+            gotoAdminTab(route.tab);
+            return;
+        }
+    }
+
+    if (route.type === 'fleet') {
+        if (!isAdmin) { navigateToDefaultArea(); return; }
+        if (_areaMode !== 'operacoes') {
+            _areaMode = 'operacoes';
+            sessionStorage.setItem(AREA_KEY + currentUser.uid, 'operacoes');
+            updateAreaChrome('operacoes');
+            renderAdminMenu();
+        }
+        activateFleetTab(route.tab);
+        return;
+    }
+}
+
+function applyAuthScreen(screen, mode) {
+    if (screen === 'login') goToLoginFn(mode || 'user', true);
+    else if (screen === 'requerimento') goToRequerimentoFn(true);
+    else if (screen === 'select') backToSelectFn(true);
+}
+
+function navigateToDefaultArea() {
+    if (!currentUser) return;
+    if (isAdmin) {
+        const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
+        if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
+            _areaMode = savedArea;
+            updateAreaChrome(savedArea);
+            renderAdminMenu();
+            updateHashForArea(savedArea);
+        } else {
+            _areaMode = null;
+            showAreaSelectModal();
+        }
+    } else {
+        gotoUserTab('user-solicitacoes');
+        setHashRoute('user/solicitar');
+    }
+}
+
+function updateAreaChrome(area) {
+    const bc = document.getElementById('breadcrumb-area');
+    if (bc) bc.textContent = area === 'operacoes' ? 'Operações' : 'Solicitações';
+    const btn = document.getElementById('area-switch-btn');
+    if (btn) btn.classList.remove('hidden');
+
+    // ✅ Ícone de importar — só aparece em Operações
+    const importBtn = document.getElementById('import-icon-btn');
+    if (importBtn) {
+        if (area === 'operacoes') importBtn.classList.remove('hidden');
+        else importBtn.classList.add('hidden');
+    }
+}
+
+window.addEventListener('hashchange', () => applyRouteFromHash());
+
+// ============================================================
+// INIT
+// ============================================================
 function init() {
     console.log(`[SSOT] Inicializando v${APP_VERSION}...`);
     app = initializeApp(firebaseConfig);
@@ -105,6 +227,9 @@ function init() {
     });
 }
 
+// ============================================================
+// MOBILE / MODAIS
+// ============================================================
 function setupMobileSidebar() {
     const t = document.getElementById('mobile-menu-toggle');
     const n = document.getElementById('main-nav');
@@ -154,6 +279,9 @@ function setupUsersTabs() {
     });
 }
 
+// ============================================================
+// EXPORTS GLOBAIS
+// ============================================================
 function setupGlobalExports() {
     window.goToLogin = goToLoginFn;
     window.goToRequerimento = goToRequerimentoFn;
@@ -183,7 +311,6 @@ function setupGlobalExports() {
     window.switchArea = switchArea;
     window.updateArchiveBadge = updateArchiveBadge;
 
-    // ⬇️ Expostos por fleet.js, mas reforçados aqui por segurança:
     if (typeof window.openManageOrigins !== 'function') {
         window.openManageOrigins = () => Fleet.openManageOrigins();
     }
@@ -192,10 +319,16 @@ function setupGlobalExports() {
     }
 }
 
+// ============================================================
+// ÁREA
+// ============================================================
 function showAreaSelectModal() {
     const btn = document.getElementById('area-switch-btn');
     if (btn) btn.classList.add('hidden');
+    const importBtn = document.getElementById('import-icon-btn');
+    if (importBtn) importBtn.classList.add('hidden');
     window.openModal('area-select-modal');
+    setHashRoute('auth/selecao');
 }
 
 function selectArea(mode) {
@@ -204,22 +337,21 @@ function selectArea(mode) {
     _areaMode = mode;
     sessionStorage.setItem(AREA_KEY + currentUser.uid, mode);
     window.closeModal('area-select-modal');
-    setAreaHash(mode);
-    const btn = document.getElementById('area-switch-btn');
-    if (btn) btn.classList.remove('hidden');
-    const bc = document.getElementById('breadcrumb-area');
-    if (bc) bc.textContent = mode === 'operacoes' ? 'Operações' : 'Solicitações';
+    updateAreaChrome(mode);
     renderAdminMenu();
+    updateHashForArea(mode);
 }
 
 function switchArea() {
     if (!currentUser) return;
     sessionStorage.removeItem(AREA_KEY + currentUser.uid);
     _areaMode = null;
-    clearAreaHash();
     showAreaSelectModal();
 }
 
+// ============================================================
+// LOGIN / LOGOUT
+// ============================================================
 async function handleUserLoggedIn(user) {
     try {
         if (currentUser && currentUser.uid === user.uid) return;
@@ -253,6 +385,11 @@ function handleUserLoggedOut() {
     document.getElementById('conn-loading')?.classList.add('hidden');
     document.getElementById('login-page')?.classList.remove('hidden');
     document.getElementById('app-container')?.classList.add('hidden');
+    document.getElementById('import-icon-btn')?.classList.add('hidden');
+    document.getElementById('users-icon-btn')?.classList.add('hidden');
+
+    const route = parseHashRoute();
+    if (route && route.type !== 'screen') setHashRoute('auth/selecao');
 }
 
 function buildUser(fbUser, data) {
@@ -269,7 +406,16 @@ function showLoginPage() {
     document.getElementById('login-page')?.classList.remove('hidden');
     document.getElementById('app-container')?.classList.add('hidden');
     document.getElementById('conn-loading')?.classList.add('hidden');
-    backToSelectFn();
+    document.getElementById('import-icon-btn')?.classList.add('hidden');
+    document.getElementById('users-icon-btn')?.classList.add('hidden');
+
+    const route = parseHashRoute();
+    if (route && route.type === 'screen') {
+        applyAuthScreen(route.screen, route.mode);
+    } else {
+        backToSelectFn(true);
+        setHashRoute('auth/selecao');
+    }
 }
 
 function showResumeModal(fbUser, data) {
@@ -289,6 +435,9 @@ function showResumeModal(fbUser, data) {
     };
 }
 
+// ============================================================
+// ENTER SYSTEM
+// ============================================================
 async function enterSystem() {
     _enterSystemDone = true;
     document.getElementById('current-user').textContent = currentUser.name;
@@ -303,55 +452,44 @@ async function enterSystem() {
     document.getElementById('app-container').classList.remove('hidden');
     sessionStorage.setItem(SESSION_ACTIVE_KEY, currentUser.uid);
 
+    // Contextos
     Users.setUsersContext(db, currentUser);
     Requests.setRequestsContext(db, currentUser);
     Schedule.setScheduleContext(db, currentUser);
     History.setHistoryContext(db, currentUser, isAdmin);
     Trash.setTrashContext(db, currentUser, isAdmin);
     FleetExcel.setFleetExcelContext(db, currentUser);
-    Fleet.setFleetContext(db, currentUser);              // ⬅️ NOVO
+    Fleet.setFleetContext(db, currentUser);
+    Dashboard.setDashboardContext(currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
     Signups.setSignupsContext(db, currentUser, isAdmin);
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
 
+    // Área visível
     if (isAdmin) {
         document.getElementById('user-area').classList.add('hidden');
         document.getElementById('admin-area').classList.remove('hidden');
-        const hashArea = getAreaFromHash();
-        if (hashArea) {
-            _areaMode = hashArea;
-            const bc = document.getElementById('breadcrumb-area');
-            if (bc) bc.textContent = hashArea === 'operacoes' ? 'Operações' : 'Solicitações';
-            const btn = document.getElementById('area-switch-btn');
-            if (btn) btn.classList.remove('hidden');
-            renderAdminMenu();
-        } else {
-            const savedArea = sessionStorage.getItem(AREA_KEY + currentUser.uid);
-            if (savedArea === 'operacoes' || savedArea === 'solicitacoes') {
-                _areaMode = savedArea;
-                setAreaHash(savedArea);
-                const bc = document.getElementById('breadcrumb-area');
-                if (bc) bc.textContent = savedArea === 'operacoes' ? 'Operações' : 'Solicitações';
-                const btn = document.getElementById('area-switch-btn');
-                if (btn) btn.classList.remove('hidden');
-                renderAdminMenu();
-            } else {
-                _areaMode = null;
-                showAreaSelectModal();
-            }
-        }
+        document.getElementById('users-icon-btn')?.classList.remove('hidden');
     } else {
         document.getElementById('admin-area').classList.add('hidden');
         document.getElementById('user-area').classList.remove('hidden');
         document.getElementById('area-switch-btn')?.classList.add('hidden');
-        renderUserMenu();
-        prefillUserForm();
+        document.getElementById('users-icon-btn')?.classList.add('hidden');
+        document.getElementById('import-icon-btn')?.classList.add('hidden');
     }
 
     activateSubscribers();
-    Session.startSessionWatch(() => doLogout(true));
+
+    // ⬇️ Sessão — passa o motivo da desconexão
+    Session.startSessionWatch((reason) => doLogout(reason));
+
+    _routerActive = true;
+
+    const route = parseHashRoute();
+    if (route) applyRouteFromHash();
+    else navigateToDefaultArea();
 
     if (_pendingDeepLink) {
         const id = _pendingDeepLink; _pendingDeepLink = null;
@@ -373,6 +511,9 @@ async function enterSystem() {
     showNotification('Bem-vindo(a)', `Olá, ${currentUser.name}!`, 'success');
 }
 
+// ============================================================
+// SUBSCRIBERS
+// ============================================================
 function activateSubscribers() {
     if (subscribersActive) return;
     subscribersActive = true;
@@ -383,7 +524,7 @@ function activateSubscribers() {
     });
     Schedule.subscribeSlots();
     Notifications.subscribeNotifications();
-    Fleet.subscribeFleet();                              // ⬅️ NOVO
+    Fleet.subscribeFleet();
     if (isAdmin) {
         History.subscribeHistory();
         Trash.subscribeTrash();
@@ -400,10 +541,13 @@ function deactivateSubscribers() {
     Trash.unsubscribeTrash();
     Signups.unsubscribeSignups();
     Notifications.unsubscribeNotifications();
-    Fleet.unsubscribeFleet();                            // ⬅️ NOVO
+    Fleet.unsubscribeFleet();
     Dashboard.destroyDashboardCharts();
 }
 
+// ============================================================
+// USER MENU
+// ============================================================
 function renderUserMenu() {
     const menu = document.getElementById('top-menu-list');
     menu.innerHTML = `
@@ -433,11 +577,17 @@ function gotoUserTab(tabId) {
     if (sub) { subtitle.textContent = sub; subtitle.classList.remove('hidden'); }
     else subtitle.classList.add('hidden');
     if (tabId === 'user-perfil') { Profile.refreshProfileState(); Profile.populateProfileForm(); }
+    updateHashForTab(tabId);
 }
 
+// ============================================================
+// ADMIN MENU — OPERAÇÕES (aba "importar" foi REMOVIDA do menu visual)
+// ============================================================
 function renderOperacoesMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
+
+    // ⬇️ SEM aba "importar" — será acessível pelo ícone do topo
     menu.innerHTML = `
         <li><a href="#" data-fleet-tab="viagens"><svg class="si si-fw"><use href="#i-route"/></svg> Viagens</a></li>
         <li><a href="#" data-fleet-tab="veiculos"><svg class="si si-fw"><use href="#i-car"/></svg> Veículos</a></li>
@@ -447,28 +597,13 @@ function renderOperacoesMenu() {
         <li><a href="#" data-fleet-tab="leituras"><svg class="si si-fw"><use href="#i-clock"/></svg> Leituras</a></li>
         <li><a href="#" data-fleet-tab="checklist"><svg class="si si-fw"><use href="#i-check-circle"/></svg> Checklist</a></li>
         <li><a href="#" data-fleet-tab="relatorios"><svg class="si si-fw"><use href="#i-chart-bar"/></svg> Relatórios</a></li>
-        <li><a href="#" data-fleet-tab="importar"><svg class="si si-fw"><use href="#i-upload"/></svg> Importar/Exportar</a></li>
         <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
         <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Configurações</a></li>
     `;
     menu.querySelectorAll('[data-fleet-tab]').forEach(a => {
         a.addEventListener('click', (e) => {
             e.preventDefault();
-            const tabKey = a.getAttribute('data-fleet-tab');
-            document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('admin-frota-tab')?.classList.add('active');
-            try { FleetExcel.initFleetExcel(); } catch (err) { console.error(err); }
-            _fleetCurrentTab = tabKey;
-            if (typeof window.fleetExcelSwitchTab === 'function') window.fleetExcelSwitchTab(tabKey);
-            menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
-            a.classList.add('active');
-            const titles = {
-                viagens: 'Viagens', veiculos: 'Veículos', abastecimentos: 'Abastecimentos',
-                servicos: 'Serviços', despesas: 'Despesas', leituras: 'Leituras',
-                checklist: 'Checklist', relatorios: 'Relatórios', importar: 'Importar/Exportar'
-            };
-            const title = document.getElementById('page-title');
-            if (title) title.textContent = titles[tabKey] || 'Frota';
+            activateFleetTab(a.getAttribute('data-fleet-tab'));
         });
     });
     menu.querySelectorAll('[data-tab]').forEach(a => {
@@ -477,17 +612,66 @@ function renderOperacoesMenu() {
             gotoAdminTab(a.getAttribute('data-tab'));
         });
     });
-    const activeLink = menu.querySelector(`[data-fleet-tab="${_fleetCurrentTab}"]`);
-    if (activeLink) activeLink.classList.add('active');
-    try { FleetExcel.initFleetExcel(); } catch (err) { console.error(err); }
-    setTimeout(() => {
-        if (typeof window.fleetExcelSwitchTab === 'function') window.fleetExcelSwitchTab(_fleetCurrentTab);
-    }, 100);
+
+    // Se o _fleetCurrentTab atual é "importar", não está no menu
+    // — logo após abrir o menu, ativa o que estiver armazenado
+    if (_fleetCurrentTab === 'importar') {
+        activateFleetTab('importar', true);
+    } else {
+        activateFleetTab(_fleetCurrentTab, true);
+    }
 }
 
+function activateFleetTab(tabKey, silent) {
+    if (!tabKey) return;
+    _fleetCurrentTab = tabKey;
+
+    const menu = document.getElementById('top-menu-list');
+    if (menu) {
+        menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
+        const link = menu.querySelector(`[data-fleet-tab="${tabKey}"]`);
+        if (link) link.classList.add('active');
+    }
+
+    document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('admin-frota-tab')?.classList.add('active');
+    document.getElementById('users-icon-btn')?.classList.remove('active');
+
+    // ✅ Ícone de importar — só aparece em Operações
+    const importBtn = document.getElementById('import-icon-btn');
+    if (importBtn) {
+        if (_areaMode === 'operacoes') {
+            importBtn.classList.remove('hidden');
+            if (tabKey === 'importar') importBtn.classList.add('active');
+            else importBtn.classList.remove('active');
+        } else {
+            importBtn.classList.add('hidden');
+        }
+    }
+
+    try { FleetExcel.initFleetExcel(); } catch (err) { console.error(err); }
+    if (typeof window.fleetExcelSwitchTab === 'function') window.fleetExcelSwitchTab(tabKey);
+
+    const titles = {
+        viagens: 'Viagens', veiculos: 'Veículos', abastecimentos: 'Abastecimentos',
+        servicos: 'Serviços', despesas: 'Despesas', leituras: 'Leituras',
+        checklist: 'Checklist', relatorios: 'Relatórios', importar: 'Importar/Exportar'
+    };
+    const title = document.getElementById('page-title');
+    const subtitle = document.getElementById('page-subtitle');
+    if (title) title.textContent = titles[tabKey] || 'Frota';
+    if (subtitle) subtitle.classList.add('hidden');
+
+    if (!silent) updateHashForFleetTab(tabKey);
+}
+
+// ============================================================
+// ADMIN MENU — SOLICITAÇÕES
+// ============================================================
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
+
     if (_areaMode === 'operacoes') {
         renderOperacoesMenu();
         document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
@@ -498,7 +682,6 @@ function renderAdminMenu() {
         menu.innerHTML = `
             <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
             <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
-            <li><a href="#" data-tab="admin-usuarios"><svg class="si si-fw"><use href="#i-users-cog"/></svg> Usuários</a></li>
             <li><a href="#" data-tab="admin-agenda"><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Agenda</a></li>
             <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
             <li><a href="#" data-tab="admin-historico"><svg class="si si-fw"><use href="#i-history"/></svg> Histórico</a></li>
@@ -511,10 +694,18 @@ function renderAdminMenu() {
                 e.preventDefault(); gotoAdminTab(a.getAttribute('data-tab')); closeMobileSidebar();
             });
         });
-        gotoAdminTab('admin-dashboard');
+        const wasOnUsers = document.getElementById('admin-usuarios-tab')?.classList.contains('active');
+        if (wasOnUsers) gotoAdminTab('admin-usuarios');
+        else gotoAdminTab('admin-dashboard');
+
+        // ✅ Esconde ícone de importar quando está em Solicitações
+        document.getElementById('import-icon-btn')?.classList.add('hidden');
     }
 }
 
+// ============================================================
+// GOTO ADMIN TAB
+// ============================================================
 export function gotoAdminTab(tabId) {
     if (!tabId) return;
     const solicitacoesOnly = ['admin-solicitacoes', 'admin-usuarios', 'admin-agenda', 'admin-historico', 'admin-lixeira', 'admin-dashboard', 'admin-relatorios'];
@@ -523,10 +714,26 @@ export function gotoAdminTab(tabId) {
 
     document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById(tabId + '-tab')?.classList.add('active');
+
     document.querySelectorAll('#top-menu-list a').forEach(a => {
         a.classList.remove('active');
         if (a.getAttribute('data-tab') === tabId) a.classList.add('active');
     });
+
+    const usersIcon = document.getElementById('users-icon-btn');
+    if (usersIcon) {
+        if (tabId === 'admin-usuarios') usersIcon.classList.add('active');
+        else usersIcon.classList.remove('active');
+    }
+
+    // ✅ Ícone de importar só em Operações
+    const importBtn = document.getElementById('import-icon-btn');
+    if (importBtn) {
+        if (_areaMode === 'operacoes') importBtn.classList.remove('hidden');
+        else importBtn.classList.add('hidden');
+        importBtn.classList.remove('active'); // nunca fica ativo fora da aba importar
+    }
+
     const title = document.getElementById('page-title');
     const subtitle = document.getElementById('page-subtitle');
     if (title) title.textContent = TAB_TITLES[tabId] || 'Painel';
@@ -554,13 +761,21 @@ export function gotoAdminTab(tabId) {
         case 'admin-lixeira': Trash.updateTrashTable(); break;
         case 'admin-usuarios': Users.updateUsersTable(); Signups.subscribeSignups(); break;
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
-        case 'admin-servicos': updateNetworkStatus(); break;
+        case 'admin-servicos':
+            updateNetworkStatus();
+            Settings.renderDashboardSettings();
+            break;
         case 'admin-frota':
             try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Frota Excel:', e); }
             break;
     }
+
+    updateHashForTab(tabId);
 }
 
+// ============================================================
+// ARCHIVE BADGE
+// ============================================================
 async function updateArchiveBadge() {
     const btn = document.getElementById('archive-past-slots');
     if (!btn) return;
@@ -582,6 +797,9 @@ async function updateArchiveBadge() {
     } catch (e) {}
 }
 
+// ============================================================
+// PERFIL / PREFILL
+// ============================================================
 function openProfileTab() {
     if (!isAdmin) gotoUserTab('user-perfil');
     else gotoAdminTab('admin-perfil');
@@ -594,27 +812,48 @@ function prefillUserForm() {
     set('u-ramal', currentUser.ramal); set('u-setor', currentUser.setor); set('u-cargo', currentUser.cargo);
 }
 
-async function doLogout(silent = false) {
+// ============================================================
+// LOGOUT — agora recebe 'reason'
+// ============================================================
+async function doLogout(reason = 'manual') {
+    const wasTimeout = reason === 'timeout';
+
     if (currentUser && !currentUser.isGuest) {
-        try { await History.addHistory('Logout', '-', `Usuário ${currentUser.name}`); } catch (e) {}
+        try { await History.addHistory('Logout', '-', `Usuário ${currentUser.name}${wasTimeout ? ' (inatividade)' : ''}`); } catch (e) {}
     }
     if (currentUser) sessionStorage.removeItem(AREA_KEY + currentUser.uid);
     _areaMode = null;
-    clearAreaHash();
+    _routerActive = false;
     Session.stopSessionWatch();
     deactivateSubscribers();
     sessionStorage.removeItem(SESSION_ACTIVE_KEY);
     currentUser = null; isAdmin = false; isResuming = false;
     _loginInProgress = false; _enterSystemDone = false;
     try { await Auth.logoutUser(); } catch (e) {}
+
     document.getElementById('app-container')?.classList.add('hidden');
     document.getElementById('conn-loading')?.classList.add('hidden');
+    document.getElementById('users-icon-btn')?.classList.add('hidden');
+    document.getElementById('import-icon-btn')?.classList.add('hidden');
     showLoginPage();
-    if (silent) showNotification('Sessão encerrada', 'Você ficou inativo e foi desconectado.', 'warning', 6000);
+    setHashRoute('auth/selecao');
+
+    if (wasTimeout) {
+        // ✅ Mensagem clara de desconexão por segurança
+        showNotification(
+            'Desconectado por segurança',
+            'Sua sessão expirou após 8 minutos de inatividade. Faça login novamente para continuar.',
+            'warning',
+            8000
+        );
+    }
 }
 
-function goToLoginFn(mode) {
-    window._loginMode = mode;
+// ============================================================
+// AUTH SCREENS
+// ============================================================
+function goToLoginFn(mode, silent) {
+    window._loginMode = mode || 'user';
     document.getElementById('screen-select').classList.add('hidden');
     document.getElementById('screen-login').classList.remove('hidden');
     document.getElementById('screen-requerimento').classList.add('hidden');
@@ -625,8 +864,11 @@ function goToLoginFn(mode) {
     document.getElementById('login-info')?.classList.add('hidden');
     const u = document.getElementById('username'); const p = document.getElementById('password');
     if (u) u.value = ''; if (p) p.value = ''; u?.focus();
+    if (!silent) setHashRoute(mode === 'admin' ? 'auth/login-setor' : 'auth/login');
 }
-function goToRequerimentoFn() {
+window.goToLogin = (mode) => goToLoginFn(mode, false);
+
+function goToRequerimentoFn(silent) {
     document.getElementById('screen-select').classList.add('hidden');
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('screen-requerimento').classList.remove('hidden');
@@ -634,8 +876,11 @@ function goToRequerimentoFn() {
     document.getElementById('requerimento-success')?.classList.add('hidden');
     document.getElementById('requerimento-form')?.reset();
     document.getElementById('r-nome')?.focus();
+    if (!silent) setHashRoute('auth/requerimento');
 }
-function backToSelectFn() {
+window.goToRequerimento = () => goToRequerimentoFn(false);
+
+function backToSelectFn(silent) {
     document.getElementById('screen-select').classList.remove('hidden');
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('screen-requerimento').classList.add('hidden');
@@ -643,7 +888,10 @@ function backToSelectFn() {
     document.getElementById('login-info')?.classList.add('hidden');
     document.getElementById('requerimento-error')?.classList.add('hidden');
     document.getElementById('requerimento-success')?.classList.add('hidden');
+    if (!silent) setHashRoute('auth/selecao');
 }
+window.backToSelect = () => backToSelectFn(false);
+
 function togglePassFn(id, el) {
     const p = document.getElementById(id); if (!p) return;
     const use = el.querySelector('use');
@@ -651,11 +899,33 @@ function togglePassFn(id, el) {
     else { p.type = 'password'; if (use) use.setAttribute('href', '#i-eye'); }
 }
 
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
 function setupEventListeners() {
     document.getElementById('login-form')?.addEventListener('submit', handleLoginSubmit);
     document.getElementById('google-login-btn')?.addEventListener('click', handleGoogleLogin);
     document.getElementById('requerimento-form')?.addEventListener('submit', handleSignupSubmit);
     document.getElementById('user-request-form')?.addEventListener('submit', handleRequestSubmit);
+
+    // ✅ Ícone de usuários
+    document.getElementById('users-icon-btn')?.addEventListener('click', () => {
+        if (!isAdmin) return;
+        if (_areaMode !== 'solicitacoes') {
+            _areaMode = 'solicitacoes';
+            sessionStorage.setItem(AREA_KEY + currentUser.uid, 'solicitacoes');
+            updateAreaChrome('solicitacoes');
+            renderAdminMenu();
+        }
+        gotoAdminTab('admin-usuarios');
+    });
+
+    // ✅ NOVO: Ícone de Importar/Exportar (só em Operações)
+    document.getElementById('import-icon-btn')?.addEventListener('click', () => {
+        if (!isAdmin) return;
+        if (_areaMode !== 'operacoes') return;
+        activateFleetTab('importar');
+    });
 
     document.getElementById('admin-new-request-btn')?.addEventListener('click', () => {
         document.getElementById('admin-request-form').reset();
@@ -687,7 +957,7 @@ function setupEventListeners() {
     document.getElementById('admin-request-form')?.addEventListener('submit', handleAdminRequestSubmit);
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
         const ok = await sstConfirm('Deseja realmente sair?', 'Sair', 'warning');
-        if (ok) doLogout(false);
+        if (ok) doLogout('manual');
     });
     document.getElementById('toggle-password')?.addEventListener('click', function () { togglePassFn('password', this); });
     document.getElementById('password')?.addEventListener('keyup', function (e) {
@@ -752,12 +1022,9 @@ function setupEventListeners() {
         showNotification('Atualizado', 'Agenda atualizada.', 'success', 2000);
     });
 
-    // Arquivar — abre calendário
     document.getElementById('archive-past-slots')?.addEventListener('click', async () => {
         await ScheduleArchive.openArchiveCalendar(db);
     });
-
-    // Confirmação dentro do modal do calendário
     document.getElementById('archive-confirm-btn')?.addEventListener('click', async () => {
         await ScheduleArchive.archivePastSlots(db, () => {
             try { Schedule.renderSlotsAdmin(); } catch (e) {}
@@ -801,6 +1068,9 @@ function setupEventListeners() {
     window.addEventListener('offline', updateNetworkStatus);
 }
 
+// ============================================================
+// LOGIN HANDLERS (restantes iguais ao original)
+// ============================================================
 async function handleLoginSubmit(e) {
     e.preventDefault();
     const email = document.getElementById('username')?.value.trim() || '';
@@ -839,6 +1109,7 @@ async function handleLoginSubmit(e) {
         if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     }
 }
+
 async function handleGoogleLogin() {
     const btn = document.getElementById('google-login-btn');
     const errBox = document.getElementById('login-error');
@@ -883,6 +1154,7 @@ async function handleGoogleLogin() {
         if (errBox) { errBox.textContent = msg; errBox.classList.remove('hidden'); }
     } finally { if (btn) btn.disabled = false; }
 }
+
 async function handleSignupSubmit(e) {
     e.preventDefault();
     const nome = document.getElementById('r-nome')?.value.trim() || '';
@@ -910,6 +1182,7 @@ async function handleSignupSubmit(e) {
     } catch (err) { errBox.textContent = err.message || 'Erro.'; errBox.classList.remove('hidden'); }
     finally { if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitação'; } }
 }
+
 async function handleRequestSubmit(e) {
     e.preventDefault();
     const formData = {
@@ -946,6 +1219,7 @@ async function handleRequestSubmit(e) {
         showNotification('Enviada', `Solicitação ${created.numero} registrada!`, 'success');
     } catch (err) { showAlert('Erro: ' + (err.message || ''), 'danger'); }
 }
+
 async function handleAdminRequestSubmit(e) {
     e.preventDefault();
     const formData = {
@@ -975,6 +1249,7 @@ async function handleAdminRequestSubmit(e) {
     } catch (err) { showAlert('Erro: ' + (err.message || ''), 'danger'); }
     finally { if (btn) { btn.disabled = false; btn.textContent = original; } }
 }
+
 async function handleSendNotification() {
     const target = document.getElementById('notif-target')?.value || 'all';
     const type = document.getElementById('notif-type')?.value || 'info';
@@ -1000,6 +1275,7 @@ function handleBackup() {
     History.addHistory('Backup Realizado', '-', `Por: ${currentUser?.name}`);
     showNotification('Backup', 'Arquivo gerado!', 'success');
 }
+
 async function handleImportBackup(file) {
     if (!file) return;
     const ok = await sstConfirm('Importar? Os dados serão MANTIDOS.', 'Importar Backup');
@@ -1021,7 +1297,9 @@ async function handleImportBackup(file) {
         showNotification('Importado', `${imported} registros.`, 'success');
     } catch (err) { showAlert('Erro ao importar.', 'danger'); }
 }
+
 function closePdfModal() { document.getElementById('pdf-modal')?.classList.remove('active'); }
+
 function updateNetworkStatus() {
     const el = document.getElementById('servicos-network-status'); if (!el) return;
     el.textContent = navigator.onLine ? 'Online' : 'Offline';

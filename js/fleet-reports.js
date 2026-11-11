@@ -1,6 +1,7 @@
 // ============================================================
-// SSOT · FROTA — RELATÓRIOS DE OPERAÇÕES (v1.0)
-// 10 relatórios específicos + filtros + KPI + CSV
+// SSOT · FROTA — RELATÓRIOS DE OPERAÇÕES (v1.1)
+// Alterações:
+//  - Botão "Gráfico Dinâmico" movido para cá (estava em Import)
 // ============================================================
 
 import {
@@ -8,9 +9,6 @@ import {
 } from './utils.js';
 import { addHistory } from './history.js';
 
-// ============================================================
-// ESTADO
-// ============================================================
 let _activeReport = 'resumo';
 let _filters = { start: '', end: '', veiculo: '' };
 let _lastData = null;
@@ -29,9 +27,6 @@ const REPORTS = {
     ranking:        { label: 'Ranking de Veículos',  icon: 'i-flag',         sheet: null }
 };
 
-// ============================================================
-// ACESSO A DADOS
-// ============================================================
 function getData() {
     return window._fleetDataForCharts || {};
 }
@@ -40,9 +35,6 @@ function getSheetData(sheetKey) {
     return d[sheetKey] || { headers: [], rows: [] };
 }
 
-// ============================================================
-// DETECÇÃO DE COLUNAS
-// ============================================================
 const DATE_PATTERNS    = ['data', 'date', 'dia', 'vencimento'];
 const VALUE_PATTERNS   = ['valor', 'total', 'custo', 'preco', 'preço', 'amount'];
 const VEHICLE_PATTERNS = ['placa', 'veiculo', 'veículo', 'vehicle', 'carro', 'frota'];
@@ -65,9 +57,6 @@ function findColumn(headers, patterns) {
     return -1;
 }
 
-// ============================================================
-// FORMATAÇÃO
-// ============================================================
 function fmtCurrency(n) {
     if (typeof n !== 'number' || isNaN(n)) return '—';
     return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -84,9 +73,6 @@ function parseNum(v) {
     return isNaN(n) ? 0 : n;
 }
 
-// ============================================================
-// FILTROS
-// ============================================================
 function filterRows(rows, headers) {
     const dateCol = findColumn(headers, DATE_PATTERNS);
     const vehCol = findColumn(headers, VEHICLE_PATTERNS);
@@ -148,6 +134,10 @@ export function initFleetReports(container) {
                     <h2>Relatórios de Operações</h2>
                 </div>
                 <div class="action-buttons">
+                    <!-- ⬇️ NOVO: Gráfico Dinâmico (movido do Import) -->
+                    <button class="btn btn-info btn-sm" onclick="window.openChartBuilder('fleet')">
+                        <svg class="si"><use href="#i-chart-bar"/></svg> Gráfico Dinâmico
+                    </button>
                     <button class="btn btn-success btn-sm" onclick="window.fleetReportExportCSV()">
                         <svg class="si"><use href="#i-file-excel"/></svg> CSV
                     </button>
@@ -213,9 +203,6 @@ export function initFleetReports(container) {
     });
 }
 
-// ============================================================
-// DISPATCH DO CORPO
-// ============================================================
 function renderReportBody(key) {
     switch (key) {
         case 'resumo':         return renderResumo();
@@ -232,9 +219,6 @@ function renderReportBody(key) {
     }
 }
 
-// ============================================================
-// RESUMO DA FROTA
-// ============================================================
 function renderResumo() {
     const d = getData();
     const stats = [
@@ -271,14 +255,11 @@ function renderResumo() {
         <div class="fleet-kpi-grid">${cards}</div>
         <div class="alert alert-info" style="margin-top:16px;font-size:0.85rem;display:flex;gap:8px;align-items:flex-start;">
             <svg class="si" style="flex-shrink:0;margin-top:2px;"><use href="#i-info"/></svg>
-            <span>Os dados são sincronizados em tempo real. Para importar planilhas, vá em <strong>Importar/Exportar</strong>.</span>
+            <span>Os dados são sincronizados em tempo real. Para importar planilhas, use o <strong>ícone de upload</strong> no topo.</span>
         </div>
     `;
 }
 
-// ============================================================
-// RELATÓRIO GENÉRICO POR PERÍODO
-// ============================================================
 function renderPorPeriodo(sheetKey) {
     const sheet = getSheetData(sheetKey);
     const headers = sheet.headers || [];
@@ -354,9 +335,6 @@ function renderPorPeriodo(sheetKey) {
     `;
 }
 
-// ============================================================
-// CONSUMO MÉDIO (km/L)
-// ============================================================
 function renderConsumo() {
     const sheet = getSheetData('abastecimentos');
     const headers = sheet.headers || [];
@@ -473,9 +451,6 @@ function renderConsumo() {
     `;
 }
 
-// ============================================================
-// CUSTO POR VEÍCULO
-// ============================================================
 function renderCustoVeiculo() {
     const d = getData();
     const sheets = ['abastecimentos', 'servicos', 'despesas'];
@@ -561,9 +536,6 @@ function renderCustoVeiculo() {
     `;
 }
 
-// ============================================================
-// RANKING DE VEÍCULOS
-// ============================================================
 function renderRanking() {
     const d = getData();
     const byVehicle = {};
@@ -573,7 +545,6 @@ function renderRanking() {
         return byVehicle[v];
     };
 
-    // Percursos
     const perc = d.percursos;
     if (perc?.headers?.length) {
         const vc = findColumn(perc.headers, VEHICLE_PATTERNS);
@@ -586,7 +557,6 @@ function renderRanking() {
         }
     }
 
-    // Abastecimentos
     const ab = d.abastecimentos;
     if (ab?.headers?.length) {
         const vc = findColumn(ab.headers, VEHICLE_PATTERNS);
@@ -602,7 +572,6 @@ function renderRanking() {
         }
     }
 
-    // Serviços
     const sv = d.servicos;
     if (sv?.headers?.length) {
         const vc = findColumn(sv.headers, VEHICLE_PATTERNS);
@@ -666,9 +635,6 @@ function renderRanking() {
     `;
 }
 
-// ============================================================
-// EXPORTAÇÃO
-// ============================================================
 export function fleetReportExportCSV() {
     if (!_lastData || !_lastData.rows?.length) {
         showNotification('Exportação', 'Gere um relatório com dados primeiro.', 'warning');
@@ -692,9 +658,6 @@ export function fleetReportExportPDF() {
     );
 }
 
-// ============================================================
-// APLICAR / LIMPAR FILTROS
-// ============================================================
 export function fleetReportApply() {
     _filters.start = document.getElementById('fr-start')?.value || '';
     _filters.end = document.getElementById('fr-end')?.value || '';
@@ -710,9 +673,6 @@ export function fleetReportClear() {
     document.getElementById('fleet-report-results').innerHTML = renderReportBody(_activeReport);
 }
 
-// ============================================================
-// EXPORTS GLOBAIS
-// ============================================================
 window.initFleetReports = initFleetReports;
 window.fleetReportApply = fleetReportApply;
 window.fleetReportClear = fleetReportClear;

@@ -1,8 +1,8 @@
 // ============================================================
-// SSOT - NOTIFICAÇÕES (v12.0)
-// Alterações:
-//  - Modal de detalhes completos ao clicar na notificação
-//  - Sem truncamento na visualização
+// SSOT - NOTIFICAÇÕES (v12.1)
+// Correções:
+//  - openNotifDetail agora FECHA o modal de listagem antes de abrir
+//  - z-index do detail-modal é elevado (ver style.css)
 // ============================================================
 
 import {
@@ -40,9 +40,7 @@ export function subscribeNotifications() {
         });
         _notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        if (_isAdmin) {
-            renderAdminNotificationsTable();
-        }
+        if (_isAdmin) renderAdminNotificationsTable();
         updateUserNotifBadge();
     }, (error) => console.error('[Notifications]', error));
 
@@ -54,9 +52,6 @@ export function unsubscribeNotifications() {
     _isSubscribed = false;
 }
 
-// ============================================================
-// ENVIAR (admin)
-// ============================================================
 export async function sendNotification(data) {
     if (!_db || !_currentUser) throw new Error('Não autenticado.');
     if (!_isAdmin) throw new Error('Apenas administradores podem enviar.');
@@ -90,10 +85,8 @@ export async function sendNotification(data) {
 export async function deleteNotification(id) {
     const n = _notifications.find(x => x.id === id);
     if (!n) return;
-
     const ok = await sstConfirm(`Excluir a notificação "${n.title}"?`, 'Excluir', 'danger');
     if (!ok) return;
-
     try {
         await remove(ref(_db, 'notifications/' + id));
         await addHistory('Notificação Excluída', '-', `Título: ${n.title}`);
@@ -113,9 +106,6 @@ export async function markNotificationAsRead(notifId) {
     }
 }
 
-// ============================================================
-// FILTROS
-// ============================================================
 function getMyNotifications() {
     if (!_currentUser) return [];
     return _notifications.filter(n => {
@@ -143,7 +133,7 @@ export function updateUserNotifBadge() {
 }
 
 // ============================================================
-// MODAL VISUALIZAR (usuário) — lista de cards clicáveis
+// MODAL LISTA (usuário)
 // ============================================================
 export function openNotifViewModal() {
     const modal = document.getElementById('notif-view-modal');
@@ -185,9 +175,7 @@ export function openNotifViewModal() {
         }).join('');
 
         mine.forEach(n => {
-            if (!n.readBy || !n.readBy[_currentUser.uid]) {
-                markNotificationAsRead(n.id);
-            }
+            if (!n.readBy || !n.readBy[_currentUser.uid]) markNotificationAsRead(n.id);
         });
     }
 
@@ -200,11 +188,15 @@ export function closeNotifViewModal() {
 }
 
 // ============================================================
-// MODAL DETALHE (aberto ao clicar numa notificação)
+// MODAL DETALHE — CORRIGIDO
 // ============================================================
 export function openNotifDetail(notifId) {
     const n = _notifications.find(x => x.id === notifId);
     if (!n) return;
+
+    // ✅ CORREÇÃO: fecha o modal de listagem antes de abrir o detalhe
+    closeNotifViewModal();
+    closeNotifAdminModal();
 
     const modal = document.getElementById('notif-detail-modal');
     const content = document.getElementById('notif-detail-content');
@@ -244,7 +236,6 @@ export function openNotifDetail(notifId) {
 
     modal.classList.add('active');
 
-    // Marca como lida
     if (!n.readBy || !n.readBy[_currentUser.uid]) {
         markNotificationAsRead(n.id);
         setTimeout(() => updateUserNotifBadge(), 300);
@@ -256,7 +247,7 @@ export function closeNotifDetail() {
 }
 
 // ============================================================
-// MODAL ADMIN (listar enviadas)
+// MODAL ADMIN (lista enviadas)
 // ============================================================
 export function openNotifAdminModal() {
     if (!_isAdmin) return;
@@ -269,7 +260,7 @@ export function closeNotifAdminModal() {
 }
 
 // ============================================================
-// MODAL ENVIAR (admin)
+// MODAL ENVIAR
 // ============================================================
 export function openNotifModal() {
     if (!_isAdmin) return;
@@ -355,9 +346,6 @@ function getTypeLabel(type) {
     return labels[type] || 'Info';
 }
 
-// ============================================================
-// Exports globais
-// ============================================================
 window.deleteNotification = deleteNotification;
 window.openNotifModal = openNotifModal;
 window.closeNotifModal = closeNotifModal;

@@ -1,5 +1,7 @@
 // ============================================================
-// SSOT - AGENDA DE HORÁRIOS (v10.5 - freeSlot adicionado)
+// SSOT - AGENDA DE HORÁRIOS (v11.0)
+// Alteração:
+//  - populateUserTimeSlots filtra horários que já passaram no dia atual
 // ============================================================
 
 import {
@@ -47,10 +49,8 @@ function generateIntervals(start, end) {
     const result = [];
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
-
     let cur = sh * 60 + sm;
     const endMin = eh * 60 + em;
-
     while (cur <= endMin) {
         const h = Math.floor(cur / 60);
         const m = cur % 60;
@@ -61,26 +61,12 @@ function generateIntervals(start, end) {
 }
 
 export async function addSlotBlock(date, start, end) {
-    if (!_db) {
-        await sstAlert('Sistema não conectado.', 'Erro', 'danger');
-        return;
-    }
-
-    if (!date || !start || !end) {
-        await sstAlert('Preencha data, hora inicial e hora final.', 'Campos obrigatórios', 'warning');
-        return;
-    }
-
-    if (start >= end) {
-        await sstAlert('A hora inicial deve ser anterior à final.', 'Horário inválido', 'warning');
-        return;
-    }
+    if (!_db) { await sstAlert('Sistema não conectado.', 'Erro', 'danger'); return; }
+    if (!date || !start || !end) { await sstAlert('Preencha data, hora inicial e hora final.', 'Campos obrigatórios', 'warning'); return; }
+    if (start >= end) { await sstAlert('A hora inicial deve ser anterior à final.', 'Horário inválido', 'warning'); return; }
 
     const intervals = generateIntervals(start, end);
-    if (intervals.length === 0) {
-        await sstAlert('Nenhum horário gerado.', 'Erro', 'warning');
-        return;
-    }
+    if (intervals.length === 0) { await sstAlert('Nenhum horário gerado.', 'Erro', 'warning'); return; }
 
     const existingToday = _slots[date] ? Object.keys(_slots[date]).length : 0;
     if (existingToday > 0) {
@@ -104,10 +90,8 @@ export async function addSlotBlock(date, start, end) {
 
     try {
         await update(ref(_db, 'schedule/' + date), updates);
-        await addHistory('Agenda Atualizada', date,
-            `${intervals.length} horários adicionados (${start} às ${end})`);
-        showNotification('Bloco Adicionado',
-            `${intervals.length} horários criados para ${formatDate(date)}.`, 'success');
+        await addHistory('Agenda Atualizada', date, `${intervals.length} horários adicionados (${start} às ${end})`);
+        showNotification('Bloco Adicionado', `${intervals.length} horários criados para ${formatDate(date)}.`, 'success');
     } catch (err) {
         console.error('[Schedule]', err);
         await sstAlert('Não foi possível adicionar.\n\nVerifique as regras do Firebase.', 'Erro', 'danger');
@@ -117,7 +101,6 @@ export async function addSlotBlock(date, start, end) {
 export async function removeSlot(date, time) {
     const ok = await sstConfirm(`Remover ${time} de ${formatDate(date)}?`, 'Remover Horário', 'warning');
     if (!ok) return;
-
     const timeKey = time.replace(':', '-');
     try {
         await remove(ref(_db, `schedule/${date}/${timeKey}`));
@@ -130,19 +113,10 @@ export async function removeSlot(date, time) {
 }
 
 export async function removeDay(date) {
-    if (!_slots[date]) {
-        showNotification('Aviso', 'Nenhum horário neste dia.', 'warning');
-        return;
-    }
-
+    if (!_slots[date]) { showNotification('Aviso', 'Nenhum horário neste dia.', 'warning'); return; }
     const count = Object.keys(_slots[date]).length;
-    const ok = await sstConfirm(
-        `Remover TODOS os ${count} horários de ${formatDate(date)}?\n\nAção irreversível.`,
-        'Remover Dia',
-        'danger'
-    );
+    const ok = await sstConfirm(`Remover TODOS os ${count} horários de ${formatDate(date)}?\n\nAção irreversível.`, 'Remover Dia', 'danger');
     if (!ok) return;
-
     try {
         await remove(ref(_db, 'schedule/' + date));
         await addHistory('Agenda Atualizada', date, `Todos os horários removidos`);
@@ -204,26 +178,41 @@ export function renderSlotsAdmin() {
     }).join('');
 }
 
+// ============================================================
+// POPULAR SELECT DO USUÁRIO — agora filtra horários passados no dia atual
+// ============================================================
 export function populateUserTimeSlots() {
     const select = document.getElementById('u-saida');
     if (!select) return;
 
     select.innerHTML = '<option value="">Selecione uma data disponível...</option>';
 
-    const today = new Date().toISOString().slice(0, 10);
-    let hasAny = false;
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
+    let hasAny = false;
     const sortedDays = Object.keys(_slots).sort();
 
     sortedDays.forEach(date => {
-        if (date < today) return;
+        if (date < todayKey) return;
 
         const dayData = _slots[date] || {};
         const available = [];
 
         Object.entries(dayData).forEach(([key, val]) => {
             if (val.available === false || val.requestId) return;
-            available.push(key.replace('-', ':'));
+
+            const time = key.replace('-', ':');   // "HH:mm"
+
+            // ⬇️ Se for o dia de hoje, PULA horários que já passaram
+            if (date === todayKey) {
+                const [h, m] = time.split(':').map(Number);
+                const slotMinutes = h * 60 + m;
+                if (slotMinutes <= nowMinutes) return;
+            }
+
+            available.push(time);
         });
 
         if (available.length === 0) return;
@@ -241,7 +230,7 @@ export function populateUserTimeSlots() {
     });
 
     if (!hasAny) {
-        select.innerHTML = '<option value="">Nenhum horário disponível</option>';
+        select.innerHTML = '<option value="">Nenhum horário disponível hoje</option>';
     }
 }
 
@@ -253,26 +242,20 @@ export async function reserveSlot(date, time, requestNum) {
             reservedAt: new Date().toISOString(),
             reservedBy: _currentUser?.name || 'Sistema'
         });
-    } catch (err) {
-        console.error('[Schedule] Erro ao reservar:', err);
-    }
+    } catch (err) { console.error('[Schedule] Erro ao reservar:', err); }
 }
 
-// ⭐ NOVO: libera um horário (chamado quando a solicitação é excluída)
 export async function freeSlot(date, time) {
     if (!_db || !date || !time) return;
     const timeKey = String(time).substring(0, 5).replace(':', '-');
     if (!_slots[date] || !_slots[date][timeKey]) return;
     try {
         await update(ref(_db, `schedule/${date}/${timeKey}`), {
-            requestId: null,
-            available: true,
+            requestId: null, available: true,
             freedAt: new Date().toISOString(),
             freedBy: _currentUser?.name || 'Sistema'
         });
-    } catch (err) {
-        console.error('[Schedule] freeSlot:', err);
-    }
+    } catch (err) { console.error('[Schedule] freeSlot:', err); }
 }
 
 export function renderUpcomingSlotsWidget() {
@@ -312,24 +295,14 @@ export function renderUpcomingSlotsWidget() {
 }
 
 export async function addSingleSlot(date, time) {
-    if (!_db) {
-        await sstAlert('Sistema não conectado.', 'Erro', 'danger');
-        return;
-    }
-    if (!date || !time) {
-        await sstAlert('Informe a data e o horário.', 'Campos obrigatórios', 'warning');
-        return;
-    }
+    if (!_db) { await sstAlert('Sistema não conectado.', 'Erro', 'danger'); return; }
+    if (!date || !time) { await sstAlert('Informe a data e o horário.', 'Campos obrigatórios', 'warning'); return; }
 
     const timeKey = time.replace(':', '-');
     const existing = _slots[date]?.[timeKey];
 
     if (existing) {
-        const ok = await sstConfirm(
-            `Já existe um horário ${time} em ${formatDate(date)}.\n\nDeseja sobrescrever?`,
-            'Horário existente',
-            'warning'
-        );
+        const ok = await sstConfirm(`Já existe um horário ${time} em ${formatDate(date)}.\n\nDeseja sobrescrever?`, 'Horário existente', 'warning');
         if (!ok) return;
     }
 

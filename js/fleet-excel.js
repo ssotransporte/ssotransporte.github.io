@@ -1,11 +1,9 @@
 // ============================================================
-// SSOT · FROTA — Cadastro Personalizado + Firebase (v9.0)
+// SSOT · FROTA — Cadastro Personalizado + Firebase (v10.0)
 // Alterações:
-//  - Novo modo "Cards" (padrão) — visual de cadastro, não de planilha
-//  - Modo "Tabela" mantido como opção (via toggle)
-//  - Aba "Relatórios" integrada (delega para fleet-reports.js)
-//  - Filtros de colunas, ordenação, busca, paginação mantidos
-//  - Persistência em /fleet no Firebase + sincronização em tempo real
+//  - Importa initFleetReports diretamente (relatórios funcionam)
+//  - Botão "Gráfico" removido do painel de Import
+//  - Aba "importar" continua funcional (acessível pelo ícone do topo)
 // ============================================================
 
 import {
@@ -15,6 +13,7 @@ import {
 import { showNotification, escapeHtml } from './utils.js';
 import { sstConfirm, sstAlert } from './dialogs.js';
 import { addHistory } from './history.js';
+import { initFleetReports } from './fleet-reports.js';   // ⬅️ NOVO: import direto
 
 const FLEET_DB  = 'fleet';
 const COLS_KEY  = 'ssot_fleet_visible_cols_v3';
@@ -43,9 +42,6 @@ const ABAS = {
     relatorios:     { label: 'Relatórios',        icon: 'i-chart-bar',    render: 'reports' }
 };
 
-// ============================================================
-// ESTADO
-// ============================================================
 let _db = null;
 let _currentUser = null;
 let _data = {};
@@ -61,11 +57,8 @@ let _sortCol = -1;
 let _sortDir = 1;
 let _unsub = null;
 let _firebaseReady = false;
-let _viewMode = 'cards'; // 'cards' | 'table'
+let _viewMode = 'cards';
 
-// ============================================================
-// UTILITÁRIOS DE MODAL
-// ============================================================
 function openModalSafe(id) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -86,17 +79,11 @@ function closeModalSafe(id) {
     el.style.display = 'none';
 }
 
-// ============================================================
-// CONTEXTO
-// ============================================================
 export function setFleetExcelContext(db, currentUser) {
     _db = db || null;
     _currentUser = currentUser || null;
 }
 
-// ============================================================
-// INIT
-// ============================================================
 export function initFleetExcel(target) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => initFleetExcel(target), { once: true });
@@ -151,9 +138,6 @@ function bindGlobals() {
     window.fleetExcelSetView   = setViewMode;
 }
 
-// ============================================================
-// SUBSCRIÇÃO FIREBASE
-// ============================================================
 function subscribeFleet() {
     if (!_db) return;
     if (_unsub) { try { _unsub(); } catch (e) {} }
@@ -209,9 +193,6 @@ function persistAll() {
     return set(ref(_db, FLEET_DB), payload).catch(err => console.error('[FleetExcel] persistAll:', err));
 }
 
-// ============================================================
-// PREFERÊNCIAS LOCAIS
-// ============================================================
 function loadVisibleCols() {
     try { const raw = localStorage.getItem(COLS_KEY); _visibleCols = raw ? JSON.parse(raw) : {}; }
     catch (e) { _visibleCols = {}; }
@@ -242,9 +223,6 @@ function setViewMode(mode) {
     renderActivePanel();
 }
 
-// ============================================================
-// NAVEGAÇÃO
-// ============================================================
 function switchTab(key) {
     if (!ABAS[key]) return;
     _activeAba = key;
@@ -264,12 +242,13 @@ function renderActivePanel() {
         container.innerHTML = renderImportPanel();
     } else if (aba.render === 'reports') {
         container.innerHTML = '';
-        if (typeof window.initFleetReports === 'function') {
-            window.initFleetReports(container);
-        } else {
+        try {
+            initFleetReports(container);
+        } catch (e) {
+            console.error('[FleetExcel] initFleetReports:', e);
             container.innerHTML = `<div class="fleet-empty-state">
-                <svg class="si si-3x"><use href="#i-chart-bar"/></svg>
-                <h3>Módulo de Relatórios não carregado</h3>
+                <svg class="si si-3x"><use href="#i-alert"/></svg>
+                <h3>Erro ao carregar relatórios</h3>
                 <p>Recarregue a página com Ctrl+F5.</p>
             </div>`;
         }
@@ -278,9 +257,6 @@ function renderActivePanel() {
     }
 }
 
-// ============================================================
-// ORDENAÇÃO
-// ============================================================
 function setSort(abaKey, colIdx) {
     if (colIdx === '' || colIdx === null || colIdx === undefined) { clearSort(); return; }
     const idx = parseInt(colIdx);
@@ -299,14 +275,10 @@ function clearSort() {
     renderActivePanel();
 }
 
-// ============================================================
-// HELPERS DE APRESENTAÇÃO
-// ============================================================
 function detectFieldRole(header, value) {
     const h = String(header || '').toLowerCase();
     const v = String(value || '').trim();
 
-    // Papel semântico para escolher destaque no card
     if (/placa|veiculo|veículo|veiculo\/placa/.test(h)) return 'primary';
     if (/nome|motorista|responsavel|responsável|colaborador/.test(h)) return 'primary';
     if (/data|date/.test(h)) return 'date';
@@ -314,7 +286,6 @@ function detectFieldRole(header, value) {
     if (/km|odometro|odômetro|quilometragem/.test(h)) return 'km';
     if (/litro|combustivel|combustível/.test(h)) return 'fuel';
 
-    // Fallback por formato
     if (/^\d{4}-\d{2}-\d{2}/.test(v) || /^\d{2}\/\d{2}\/\d{4}/.test(v)) return 'date';
     if (/^R\$\s?[\d.,]+$/.test(v)) return 'value';
 
@@ -324,15 +295,12 @@ function detectFieldRole(header, value) {
 function formatFieldValue(role, value) {
     const s = String(value ?? '').trim();
     if (!s) return '—';
-
     if (role === 'date') {
-        // 2024-01-15 -> 15/01/2024
         const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (m) return `${m[3]}/${m[2]}/${m[1]}`;
         return s;
     }
     if (role === 'value') {
-        // Se já tem R$, mantém. Se é número puro, formata.
         if (/^R\$/.test(s)) return s;
         const n = parseFloat(s.replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
         if (!isNaN(n)) return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -347,7 +315,8 @@ function truncateValue(v, max = 80) {
 }
 
 // ============================================================
-// PAINEL: IMPORTAR / EXPORTAR
+// PAINEL IMPORTAR / EXPORTAR
+// (botão "Gráfico" foi REMOVIDO — agora está em Relatórios)
 // ============================================================
 function renderImportPanel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
@@ -374,9 +343,6 @@ function renderImportPanel() {
                     </button>
                     <button class="btn btn-success btn-sm" onclick="window.fleetExcelExport()" ${!hasData ? 'disabled' : ''}>
                         <svg class="si"><use href="#i-download"/></svg> Exportar
-                    </button>
-                    <button class="btn btn-info btn-sm" onclick="window.openChartBuilder('fleet')" ${!hasData ? 'disabled title="Importe dados primeiro"' : ''}>
-                        <svg class="si"><use href="#i-chart-bar"/></svg> Gráfico
                     </button>
                     <button class="btn btn-danger btn-sm" onclick="window.fleetExcelReset()" ${!hasData ? 'disabled' : ''}>
                         <svg class="si"><use href="#i-broom"/></svg> Zerar
@@ -426,9 +392,6 @@ function renderImportPanel() {
     `;
 }
 
-// ============================================================
-// PAINEL: DADOS (Cards ou Tabela)
-// ============================================================
 function renderDataPanel(key, aba) {
     const sheetData = _data[aba.sheetKey] || { headers: [], rows: [] };
     const headers = sheetData.headers || [];
@@ -486,11 +449,11 @@ function renderDataPanel(key, aba) {
                 <div class="action-buttons fleet-toolbar">
                     <div class="fleet-view-toggle">
                         <button class="btn btn-sm ${_viewMode === 'cards' ? 'btn-primary' : 'btn-secondary'}"
-                                onclick="window.fleetExcelSetView('cards')" title="Visualizar como Cards">
+                                onclick="window.fleetExcelSetView('cards')" title="Cards">
                             <svg class="si"><use href="#i-image"/></svg> Cards
                         </button>
                         <button class="btn btn-sm ${_viewMode === 'table' ? 'btn-primary' : 'btn-secondary'}"
-                                onclick="window.fleetExcelSetView('table')" title="Visualizar como Tabela">
+                                onclick="window.fleetExcelSetView('table')" title="Tabela">
                             <svg class="si"><use href="#i-file-text"/></svg> Tabela
                         </button>
                     </div>
@@ -547,10 +510,7 @@ function renderDataPanel(key, aba) {
                     ? `<div class="fleet-empty-state">
                         <svg class="si si-3x"><use href="#${aba.icon}"/></svg>
                         <h3>Nenhum dado em "${escapeHtml(aba.sheetName)}"</h3>
-                        <p>Importe um arquivo Excel para começar a usar esta guia.</p>
-                        <button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="window.fleetExcelSwitchTab('importar')">
-                            <svg class="si"><use href="#i-upload"/></svg> Ir para Importar
-                        </button>
+                        <p>Importe um arquivo Excel para começar.</p>
                        </div>`
                     : total === 0
                     ? `<div class="fleet-empty-state">
@@ -579,16 +539,11 @@ function renderDataPanel(key, aba) {
     `;
 }
 
-// ============================================================
-// RENDER: CARDS (visual de cadastro)
-// ============================================================
 function renderCardsView(key, aba, headers, pageRows, colsToShow, startIndex) {
     return `
         <div class="fleet-card-grid">
             ${pageRows.map((row, i) => {
                 const realIndex = startIndex + i;
-
-                // Classifica cada campo visível
                 const fields = colsToShow.map(j => ({
                     idx: j,
                     header: headers[j],
@@ -596,7 +551,6 @@ function renderCardsView(key, aba, headers, pageRows, colsToShow, startIndex) {
                     role: detectFieldRole(headers[j], row[j])
                 }));
 
-                // Escolhe campos de destaque: até 2 "primary" no título, até 2 "meta" no header
                 const primaries = fields.filter(f => f.role === 'primary').slice(0, 2);
                 const metas = fields.filter(f => ['date', 'value'].includes(f.role)).slice(0, 3);
                 const usedIdxs = new Set([...primaries.map(f => f.idx), ...metas.map(f => f.idx)]);
@@ -653,9 +607,6 @@ function renderCardsView(key, aba, headers, pageRows, colsToShow, startIndex) {
     `;
 }
 
-// ============================================================
-// RENDER: TABELA (mantido, com estilo sistema)
-// ============================================================
 function renderTableView(key, aba, headers, pageRows, colsToShow, startIndex) {
     return `
         <div class="frota-table-container">
@@ -705,9 +656,6 @@ function renderTableView(key, aba, headers, pageRows, colsToShow, startIndex) {
     `;
 }
 
-// ============================================================
-// BUSCA / COLUNAS
-// ============================================================
 function focusSearch() {
     const input = document.getElementById('fleet-search-input');
     if (input) {
@@ -772,9 +720,6 @@ function changePage(p) {
     renderActivePanel();
 }
 
-// ============================================================
-// CRUD
-// ============================================================
 function viewRow(abaKey, index) {
     const aba = ABAS[abaKey];
     const sheetData = _data[aba.sheetKey];
@@ -828,7 +773,6 @@ function openCrudModal(mode, abaKey, index) {
         const role = detectFieldRole(h, value);
         let inputType = 'text';
         if (role === 'date') inputType = 'date';
-        if (role === 'value') inputType = 'text';
         if (role === 'km' || role === 'fuel') inputType = 'number';
 
         let inputValue = value;
@@ -903,9 +847,6 @@ async function deleteRow(abaKey, index) {
     renderActivePanel();
 }
 
-// ============================================================
-// IMPORTAÇÃO
-// ============================================================
 function triggerImport() {
     let input = document.getElementById('fleet-file-input');
     if (!input) {
@@ -1006,9 +947,6 @@ function normalizeName(name) {
         .toLowerCase();
 }
 
-// ============================================================
-// EXPORTAÇÃO
-// ============================================================
 async function exportFleetExcel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
     if (total === 0) {
@@ -1037,9 +975,6 @@ async function exportFleetExcel() {
     }
 }
 
-// ============================================================
-// RESET
-// ============================================================
 async function resetFleetExcel() {
     const ok = await sstConfirm(
         'Zerar TODOS os dados da frota NO BANCO? Esta ação é sincronizada com todos os dispositivos e não pode ser desfeita.',
@@ -1066,9 +1001,6 @@ async function resetFleetExcel() {
     renderActivePanel();
 }
 
-// ============================================================
-// EXPORTAÇÃO PARA O CHART BUILDER
-// ============================================================
 Object.defineProperty(window, '_fleetDataForCharts', {
     get: () => _data,
     configurable: true

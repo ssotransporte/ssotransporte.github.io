@@ -1,8 +1,8 @@
 // ============================================================
-// SSOT - CONTROLE DE SESSÃO E INATIVIDADE (v11.0)
-// FIX AFK: movimento do mouse NÃO fecha o modal de aviso.
-//          Só X / "Continuar" / "Sair" fecham.
-// Timeout: 8 minutos (definido em config.js)
+// SSOT - CONTROLE DE SESSÃO (v12.0)
+// Alterações:
+//  - Passa um "reason" ao callback: 'timeout' | 'manual'
+//  - Permite ao main.js mostrar mensagem específica de segurança
 // ============================================================
 
 import { SESSION_IDLE_TIMEOUT, SESSION_WARNING_TIME } from './config.js';
@@ -28,10 +28,13 @@ export function startSessionWatch(onLogout) {
     const logoutBtn = document.getElementById('session-logout-btn');
     const closeBtn  = document.getElementById('session-close-btn');
 
-    // ✅ Fechar APENAS por ação explícita do usuário
     if (stayBtn)   stayBtn.onclick   = () => { hideWarning(); resetIdleTimer(); };
     if (closeBtn)  closeBtn.onclick  = () => { hideWarning(); resetIdleTimer(); };
-    if (logoutBtn) logoutBtn.onclick = () => { hideWarning(); stopSessionWatch(); if (_logoutCallback) _logoutCallback(); };
+    if (logoutBtn) logoutBtn.onclick = () => {
+        hideWarning();
+        stopSessionWatch();
+        if (_logoutCallback) _logoutCallback('manual');
+    };
 
     resetIdleTimer();
 }
@@ -48,9 +51,6 @@ export function stopSessionWatch() {
 function resetIdleTimer() {
     if (!_isWatching) return;
 
-    // ✅ CORRIGIDO: se o modal de aviso já está visível,
-    // atividade do mouse/teclado NÃO fecha o modal.
-    // Só X / Continuar / Sair agora fecham.
     const modal = document.getElementById('session-modal');
     if (modal && modal.classList.contains('active')) return;
 
@@ -89,5 +89,5 @@ function hideWarning() {
 
 function forceLogout() {
     stopSessionWatch();
-    if (_logoutCallback) _logoutCallback();
+    if (_logoutCallback) _logoutCallback('timeout');   // ⬅️ agora passa o motivo
 }
