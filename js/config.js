@@ -1,13 +1,12 @@
 // ============================================================
-// SSOT - CONFIGURAÇÕES GLOBAIS (v12.0)
-// Novidades:
-//  - Sistema de rotas hash completas (#/solicitacoes/dashboard etc.)
-//  - Configuração padrão do dashboard personalizável
+// SSOT - CONFIGURAÇÕES GLOBAIS (v12.1)
+// Novidades v12.1:
+//  - MENU_LAYOUT_KEY / HIDDEN_TABS_KEY / DEFAULT_MENU_LAYOUT
 // ============================================================
 
 export const APP_NAME = 'SSOT';
 export const APP_FULL_NAME = 'Sistema de Solicitações e Operações de Transporte';
-export const APP_VERSION = '12.0';
+export const APP_VERSION = '12.1';
 export const FIREBASE_PROJECT = 'ssot-ed9b1';
 
 export const TRASH_RETENTION_DAYS = 120;
@@ -18,6 +17,11 @@ export const SESSION_STORAGE_KEY = 'ssot_last_tab';
 export const SESSION_ACTIVE_KEY = 'ssot_active_session';
 export const THEME_STORAGE_KEY = 'ssot_theme';
 export const DASHBOARD_CONFIG_KEY = 'ssot_dashboard_config';
+
+// ---- Menu / Guias ----
+export const MENU_LAYOUT_KEY = 'ssot_menu_layout';       // 'horizontal' | 'vertical'
+export const HIDDEN_TABS_KEY = 'ssot_hidden_tabs';       // array JSON de tabIds
+export const DEFAULT_MENU_LAYOUT = 'horizontal';
 
 export const SESSION_IDLE_TIMEOUT = 8 * 60 * 1000;
 export const SESSION_WARNING_TIME = 60 * 1000;
@@ -42,34 +46,19 @@ export const STATUS_BADGE = {
 };
 
 export const PRIORIDADE_LABELS = {
-    'baixa': 'Baixa',
-    'normal': 'Normal',
-    'alta': 'Alta',
-    'urgente': 'Urgente'
+    'baixa': 'Baixa', 'normal': 'Normal', 'alta': 'Alta', 'urgente': 'Urgente'
 };
-
 export const PRIORIDADE_BADGE = {
-    'baixa': 'badge-secondary',
-    'normal': 'badge-primary',
-    'alta': 'badge-warning',
-    'urgente': 'badge-danger'
+    'baixa': 'badge-secondary', 'normal': 'badge-primary',
+    'alta': 'badge-warning', 'urgente': 'badge-danger'
 };
 
 export const VEHICLE_LABELS = {
-    'carro': 'Carro',
-    'van': 'Van',
-    'micro-onibus': 'Micro-ônibus',
-    'onibus': 'Ônibus',
-    'ambulancia': 'Ambulância',
-    'caminhonete': 'Caminhonete'
+    'carro': 'Carro', 'van': 'Van', 'micro-onibus': 'Micro-ônibus',
+    'onibus': 'Ônibus', 'ambulancia': 'Ambulância', 'caminhonete': 'Caminhonete'
 };
 
-export const ROLE_LABELS = {
-    'admin': 'Administrador',
-    'setor': 'Setor',
-    'user': 'Usuário'
-};
-
+export const ROLE_LABELS = { 'admin': 'Administrador', 'setor': 'Setor', 'user': 'Usuário' };
 export const ADMIN_ROLES = ['admin', 'setor'];
 
 export const TAB_TITLES = {
@@ -104,20 +93,15 @@ export const TAB_SUBTITLES = {
 // ============================================================
 // SISTEMA DE ROTAS HASH
 // ============================================================
-// Formato: #/<area>/<tab> ou #/auth/<screen>
-// ============================================================
 export const ROUTES = {
-    // ----- Autenticação -----
     'auth/login':              { type: 'screen', screen: 'login', mode: 'user' },
     'auth/login-setor':        { type: 'screen', screen: 'login', mode: 'admin' },
     'auth/requerimento':       { type: 'screen', screen: 'requerimento' },
     'auth/selecao':            { type: 'screen', screen: 'select' },
 
-    // ----- Área do usuário comum -----
     'user/solicitar':          { type: 'tab', area: 'user', tab: 'user-solicitacoes' },
     'user/perfil':             { type: 'tab', area: 'user', tab: 'user-perfil' },
 
-    // ----- Área de Solicitações (admin/setor) -----
     'solicitacoes/dashboard':               { type: 'tab', area: 'solicitacoes', tab: 'admin-dashboard' },
     'solicitacoes/solicitacoes-transporte': { type: 'tab', area: 'solicitacoes', tab: 'admin-solicitacoes' },
     'solicitacoes/usuarios':                { type: 'tab', area: 'solicitacoes', tab: 'admin-usuarios' },
@@ -128,7 +112,6 @@ export const ROUTES = {
     'solicitacoes/perfil':                  { type: 'tab', area: 'solicitacoes', tab: 'admin-perfil' },
     'solicitacoes/configuracoes':           { type: 'tab', area: 'solicitacoes', tab: 'admin-servicos' },
 
-    // ----- Área de Operações (admin/setor) -----
     'operacoes/viagens':        { type: 'fleet', tab: 'viagens' },
     'operacoes/veiculos':       { type: 'fleet', tab: 'veiculos' },
     'operacoes/abastecimentos': { type: 'fleet', tab: 'abastecimentos' },
@@ -142,7 +125,6 @@ export const ROUTES = {
     'operacoes/configuracoes':  { type: 'tab', area: 'operacoes', tab: 'admin-servicos' }
 };
 
-// Mapa inverso: tabId → rota
 export const TAB_TO_ROUTE = {
     'admin-dashboard':    'solicitacoes/dashboard',
     'admin-solicitacoes': 'solicitacoes/solicitacoes-transporte',
@@ -157,7 +139,6 @@ export const TAB_TO_ROUTE = {
     'user-perfil':        'user/perfil'
 };
 
-// Mapa inverso para Operações (fleet tab → rota)
 export const FLEET_TAB_TO_ROUTE = {
     'viagens':        'operacoes/viagens',
     'veiculos':       'operacoes/veiculos',
@@ -171,7 +152,7 @@ export const FLEET_TAB_TO_ROUTE = {
 };
 
 // ============================================================
-// DASHBOARD PERSONALIZÁVEL — CONFIG PADRÃO
+// DASHBOARD PERSONALIZÁVEL
 // ============================================================
 export const DASHBOARD_CHARTS = {
     status:     { label: 'Por Status',      icon: 'i-chart-pie',  family: 'requests' },
@@ -182,24 +163,19 @@ export const DASHBOARD_CHARTS = {
     setores:    { label: 'Top Setores',     icon: 'i-building',   family: 'requests' }
 };
 
-// Tipos de gráfico disponíveis (2D usa Chart.js / 3D usa ECharts GL)
 export const CHART_TYPES = {
-    // 2D (Chart.js)
     doughnut:   { label: 'Rosca (2D)',      engine: 'chartjs', kind: 'doughnut' },
     pie:        { label: 'Pizza (2D)',      engine: 'chartjs', kind: 'pie' },
     bar:        { label: 'Barra (2D)',      engine: 'chartjs', kind: 'bar' },
     line:       { label: 'Linha (2D)',      engine: 'chartjs', kind: 'line' },
     polarArea:  { label: 'Polar (2D)',      engine: 'chartjs', kind: 'polarArea' },
     radar:      { label: 'Radar (2D)',      engine: 'chartjs', kind: 'radar' },
-
-    // 3D (ECharts GL)
     'bar3d':     { label: 'Barra 3D',       engine: 'echarts-gl', kind: 'bar3D' },
     'line3d':    { label: 'Linha 3D',       engine: 'echarts-gl', kind: 'line3D' },
     'scatter3d': { label: 'Dispersão 3D',   engine: 'echarts-gl', kind: 'scatter3D' },
     'pie3d':     { label: 'Pizza 3D',       engine: 'echarts-style', kind: 'pie3d-style' }
 };
 
-// Configuração padrão (será mesclada com preferências salvas)
 export const DEFAULT_DASHBOARD_CONFIG = {
     charts: [
         { id: 'status',     type: 'doughnut',  visible: true, order: 1 },

@@ -227,140 +227,147 @@
 </div>
 
 <div id="login-page" class="login-container hidden">
-    <div class="login-card">
-        <div class="login-header">
-            <div class="login-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
-            <h2>SSOT</h2>
-            <p>Sistema de Solicitações e Operações de Transporte</p>
-        </div>
-
-        <div id="screen-select">
-            <p class="screen-prompt">Como você deseja acessar?</p>
-            <div class="access-buttons">
-                <button type="button" class="access-btn setor" onclick="goToLogin('admin')">
-                    <div class="access-icon"><svg class="si si-lg"><use href="#i-user-tie"/></svg></div>
-                    <div class="access-text"><h4>Sou Setor</h4><p>Acesso administrativo</p></div>
-                    <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
-                </button>
-                <button type="button" class="access-btn usuario" onclick="goToLogin('user')">
-                    <div class="access-icon"><svg class="si si-lg"><use href="#i-user"/></svg></div>
-                    <div class="access-text"><h4>Sou Usuário</h4><p>Acessar minhas solicitações</p></div>
-                    <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
-                </button>
-                <button type="button" class="access-btn requerimento" onclick="goToRequerimento()">
-                    <div class="access-icon"><svg class="si si-lg"><use href="#i-file-signature"/></svg></div>
-                    <div class="access-text"><h4>Solicitar Cadastro</h4><p>Pedir uma conta</p></div>
-                    <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
-                </button>
-            </div>
-        </div>
-
-        <div id="screen-login" class="hidden">
-            <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
-            <div class="screen-title" id="login-title">Entrar</div>
-            <div class="screen-subtitle" id="login-subtitle">Acesso ao sistema</div>
-            <div id="login-error" class="alert alert-danger hidden"></div>
-            <div id="login-info" class="alert alert-info hidden"></div>
-
-            <form id="login-form" autocomplete="on">
-                <div class="form-group">
-                    <label for="username">E-mail</label>
-                    <input type="text" id="username" class="form-control" placeholder="seu@email.com" required autocomplete="username">
+    <div class="login-split">
+        <div class="login-left">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
+                    <h2>SSOT</h2>
+                    <p>Sistema de Solicitações e Operações de Transporte</p>
                 </div>
-                <div class="form-group">
-                    <label for="password">Senha</label>
-                    <div class="password-container">
-                        <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required autocomplete="current-password">
-                        <span class="toggle-password" id="toggle-password"><svg class="si"><use href="#i-eye"/></svg></span>
+
+                <div id="screen-select">
+                    <p class="screen-prompt">Como você deseja acessar?</p>
+                    <div class="access-buttons">
+                        <button type="button" class="access-btn setor" onclick="goToLogin('admin')">
+                            <div class="access-icon"><svg class="si si-lg"><use href="#i-user-tie"/></svg></div>
+                            <div class="access-text"><h4>Sou Setor</h4><p>Acesso administrativo</p></div>
+                            <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
+                        </button>
+                        <button type="button" class="access-btn usuario" onclick="goToLogin('user')">
+                            <div class="access-icon"><svg class="si si-lg"><use href="#i-user"/></svg></div>
+                            <div class="access-text"><h4>Sou Usuário</h4><p>Acessar minhas solicitações</p></div>
+                            <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
+                        </button>
+                        <button type="button" class="access-btn requerimento" onclick="goToRequerimento()">
+                            <div class="access-icon"><svg class="si si-lg"><use href="#i-file-signature"/></svg></div>
+                            <div class="access-text"><h4>Solicitar Cadastro</h4><p>Pedir uma conta</p></div>
+                            <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
+                        </button>
                     </div>
-                    <div class="capslock-warning" id="capslock-warning">Caps Lock ativado</div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">Entrar</button>
-            </form>
 
-            <div class="login-divider"><span>ou</span></div>
+                <div id="screen-login" class="hidden">
+                    <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
+                    <div class="screen-title" id="login-title">Entrar</div>
+                    <div class="screen-subtitle" id="login-subtitle">Acesso ao sistema</div>
+                    <div id="login-error" class="alert alert-danger hidden"></div>
+                    <div id="login-info" class="alert alert-info hidden"></div>
 
-            <button type="button" class="btn-google" id="google-login-btn">
-                <svg class="si si-fw" viewBox="0 0 48 48" style="fill:none;stroke:none"><use href="#i-google"/></svg>
-                <span>Entrar com Google</span>
-            </button>
-
-            <div class="forgot-password-link">
-                <a href="#" onclick="openForgotPassword(event)">Esqueci minha senha</a>
-            </div>
-        </div>
-
-        <div id="screen-requerimento" class="hidden">
-            <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
-            <div class="screen-title">Solicitar Cadastro</div>
-            <div class="screen-subtitle">Preencha seus dados. Um administrador aprovará sua conta.</div>
-            <div id="requerimento-error" class="alert alert-danger hidden"></div>
-            <div id="requerimento-success" class="alert alert-success hidden"></div>
-
-            <form id="requerimento-form">
-                <div class="form-group">
-                    <label for="r-nome">Nome Completo <span class="required">*</span></label>
-                    <input type="text" id="r-nome" class="form-control" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-col">
+                    <form id="login-form" autocomplete="on">
                         <div class="form-group">
-                            <label for="r-email">E-mail <span class="required">*</span></label>
-                            <input type="email" id="r-email" class="form-control" required>
+                            <label for="username">E-mail</label>
+                            <input type="text" id="username" class="form-control" placeholder="seu@email.com" required autocomplete="username">
                         </div>
-                    </div>
-                    <div class="form-col">
                         <div class="form-group">
-                            <label for="r-ramal">Ramal <span class="required">*</span></label>
-                            <input type="text" id="r-ramal" class="form-control" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-setor">Setor <span class="required">*</span></label>
-                            <input type="text" id="r-setor" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-cargo">Cargo</label>
-                            <input type="text" id="r-cargo" class="form-control">
-                        </div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-senha">Senha <span class="required">*</span></label>
+                            <label for="password">Senha</label>
                             <div class="password-container">
-                                <input type="password" id="r-senha" class="form-control" placeholder="Mínimo 6 caracteres" required>
-                                <span class="toggle-password" onclick="togglePass('r-senha', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                                <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required autocomplete="current-password">
+                                <span class="toggle-password" id="toggle-password"><svg class="si"><use href="#i-eye"/></svg></span>
+                            </div>
+                            <div class="capslock-warning" id="capslock-warning">Caps Lock ativado</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">Entrar</button>
+                    </form>
+
+                    <div class="login-divider"><span>ou</span></div>
+
+                    <button type="button" class="btn-google" id="google-login-btn">
+                        <svg class="si si-fw" viewBox="0 0 48 48" style="fill:none;stroke:none"><use href="#i-google"/></svg>
+                        <span>Entrar com Google</span>
+                    </button>
+
+                    <div class="forgot-password-link">
+                        <a href="#" onclick="openForgotPassword(event)">Esqueci minha senha</a>
+                    </div>
+                </div>
+
+                <div id="screen-requerimento" class="hidden">
+                    <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
+                    <div class="screen-title">Solicitar Cadastro</div>
+                    <div class="screen-subtitle">Preencha seus dados. Um administrador aprovará sua conta.</div>
+                    <div id="requerimento-error" class="alert alert-danger hidden"></div>
+                    <div id="requerimento-success" class="alert alert-success hidden"></div>
+
+                    <form id="requerimento-form">
+                        <div class="form-group">
+                            <label for="r-nome">Nome Completo <span class="required">*</span></label>
+                            <input type="text" id="r-nome" class="form-control" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="r-email">E-mail <span class="required">*</span></label>
+                                    <input type="email" id="r-email" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="r-ramal">Ramal <span class="required">*</span></label>
+                                    <input type="text" id="r-ramal" class="form-control" required>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="r-senha2">Confirmar Senha <span class="required">*</span></label>
-                            <div class="password-container">
-                                <input type="password" id="r-senha2" class="form-control" required>
-                                <span class="toggle-password" onclick="togglePass('r-senha2', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="r-setor">Setor <span class="required">*</span></label>
+                                    <input type="text" id="r-setor" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="r-cargo">Cargo</label>
+                                    <input type="text" id="r-cargo" class="form-control">
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="r-senha">Senha <span class="required">*</span></label>
+                                    <div class="password-container">
+                                        <input type="password" id="r-senha" class="form-control" placeholder="Mínimo 6 caracteres" required>
+                                        <span class="toggle-password" onclick="togglePass('r-senha', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="r-senha2">Confirmar Senha <span class="required">*</span></label>
+                                    <div class="password-container">
+                                        <input type="password" id="r-senha2" class="form-control" required>
+                                        <span class="toggle-password" onclick="togglePass('r-senha2', this)"><svg class="si"><use href="#i-eye"/></svg></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="r-justificativa">Justificativa (opcional)</label>
+                            <textarea id="r-justificativa" class="form-control" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-block btn-lg" id="requerimento-submit-btn">Enviar Solicitação</button>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="r-justificativa">Justificativa (opcional)</label>
-                    <textarea id="r-justificativa" class="form-control" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn btn-success btn-block btn-lg" id="requerimento-submit-btn">Enviar Solicitação</button>
-            </form>
-        </div>
 
-        <div class="login-footer">
-            <p><a href="ajuda.html" target="_blank">Ajuda</a></p>
+                <div class="login-footer">
+                    <p><a href="ajuda.html">Ajuda</a></p>
+                </div>
+            </div>
         </div>
+        <aside class="login-right">
+            <img src="accesslogin.png" alt="SSOT — Sistema de Solicitações e Operações de Transporte">
+        </aside>
     </div>
 </div>
 
@@ -680,7 +687,7 @@
 
         <div id="admin-area" class="hidden">
             <div class="tab-content" id="admin-dashboard-tab">
-                <!-- ⬇️ ALTERADO: grid dinâmico (populado por dashboard.js) -->
+                <!-- ⬇️ grid dinâmico (populado por dashboard.js) -->
                 <div class="charts-grid" id="dashboard-charts-grid"></div>
 
                 <div class="widgets-grid">
@@ -697,6 +704,7 @@
                         <div class="action-buttons">
                             <button id="admin-new-request-btn" class="btn btn-primary btn-sm"><svg class="si"><use href="#i-plus-circle"/></svg> Nova Solicitação</button>
                             <button id="admin-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
+                            <button id="admin-print-requests" class="btn btn-secondary btn-sm" title="Imprimir lista atual"><svg class="si"><use href="#i-file-text"/></svg> Imprimir</button>
                             <button id="admin-export-pdf" class="btn btn-success btn-sm"><svg class="si"><use href="#i-file-pdf"/></svg> PDF</button>
                             <button id="admin-export-excel" class="btn btn-success btn-sm"><svg class="si"><use href="#i-file-excel"/></svg> Excel</button>
                         </div>
@@ -994,7 +1002,7 @@
                 <div class="card card-elevated">
                     <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Configurações</h2></div></div>
                     <div class="card-body">
-                        <!-- ⬇️ NOVO: Dashboard Personalizado -->
+                        <!-- Dashboard Personalizado -->
                         <div class="section-title"><svg class="si si-fw"><use href="#i-chart-bar"/></svg> Dashboard Personalizado</div>
                         <div id="dashboard-settings-container">
                             <p class="notes-empty">Carregando configurações...</p>
@@ -1005,6 +1013,24 @@
                             <label for="theme-selector">Tema</label>
                             <select id="theme-selector" class="form-control"><option value="light">Claro</option><option value="dark">Escuro</option></select>
                         </div>
+
+                        <!-- NOVO: Menu e Navegação -->
+                        <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-menu"/></svg> Menu e Navegação</div>
+                        <div class="form-group">
+                            <label for="menu-layout-selector">Posição da Barra de Guias</label>
+                            <select id="menu-layout-selector" class="form-control">
+                                <option value="horizontal">Horizontal (topo)</option>
+                                <option value="vertical">Lateral (esquerda)</option>
+                            </select>
+                            <small class="form-hint">A alteração é aplicada imediatamente.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Guias Visíveis</label>
+                            <div id="tabs-visibility-container" class="tabs-visibility-container">
+                                <p class="notes-empty">Carregando...</p>
+                            </div>
+                        </div>
+
                         <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-database"/></svg> Backup</div>
                         <div class="action-buttons">
                             <button id="run-backup" class="btn btn-success">Baixar Backup</button>

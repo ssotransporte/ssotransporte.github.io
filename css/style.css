@@ -2983,3 +2983,200 @@ body.dark-theme .chart-type-badge {
 #notif-modal {
     z-index: 2000;
 }
+/* ============================================================
+   SSOT v20.1 — Correções
+   ============================================================ */
+
+/* ---------- FIX CRÍTICO: login/loading/app hidden sempre vencem ---------- */
+#login-page.hidden,
+#app-container.hidden,
+#conn-loading.hidden,
+.login-container.hidden {
+    display: none !important;
+}
+
+/* ---------- (6) Área Select com fundo branco ---------- */
+.area-select-overlay { background: rgba(15, 23, 42, 0.55) !important; }
+.area-select-modal-custom { background: #fff !important; color: #2c3e50; }
+.area-select-header {
+    background: #fff !important;
+    color: #2c3e50 !important;
+    border-bottom: 1px solid #e6ebf0;
+}
+.area-select-header h2,
+.area-select-header p,
+.area-select-brand span { color: #2c3e50 !important; }
+.area-select-body { background: #fff !important; }
+.area-select-footer { color: #7f8c8d; }
+
+/* ---------- (4) Login em 2 colunas ---------- */
+.login-container:not(.hidden) {
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    background: #f5f7fa;
+}
+.login-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    max-width: 1280px;
+    min-height: 100vh;
+}
+.login-left {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: #f5f7fa;
+}
+.login-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+    overflow: hidden;
+    position: relative;
+}
+.login-right img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+@media (max-width: 900px) {
+    .login-split { grid-template-columns: 1fr; }
+    .login-right { display: none; }
+    .login-left { padding: 16px; }
+}
+
+/* ---------- (5) Layout VERTICAL do menu ---------- */
+body.menu-vertical #app-container { padding-top: 0 !important; }
+body.menu-vertical .top-menu {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: 240px;
+    height: 100vh;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px 10px !important;
+    overflow-y: auto;
+    border-right: 1px solid #e6ebf0;
+    z-index: 900;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.04);
+}
+body.menu-vertical .top-menu-left { display: flex; align-items: center; margin-bottom: 14px; }
+body.menu-vertical .top-menu-brand { font-size: 1rem; }
+body.menu-vertical .top-menu-nav {
+    display: block !important;
+    width: 100%;
+    margin: 0 !important;
+    position: static !important;
+    background: transparent !important;
+    border: none !important;
+    max-height: none !important;
+}
+body.menu-vertical .top-menu-nav ul {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+body.menu-vertical .top-menu-nav li { width: 100%; }
+body.menu-vertical .top-menu-nav a {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px !important;
+    border-radius: 8px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+body.menu-vertical .top-menu-nav a.active,
+body.menu-vertical .top-menu-nav a:hover {
+    background: #eef5fb;
+    color: #2980b9;
+}
+body.menu-vertical .top-menu-icons {
+    margin-top: auto !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid #e6ebf0;
+}
+body.menu-vertical .main-content {
+    margin-left: 240px !important;
+    width: calc(100% - 240px) !important;
+}
+body.menu-vertical .mobile-menu-btn { display: none !important; }
+@media (max-width: 900px) {
+    body.menu-vertical .top-menu {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        flex-direction: row !important;
+        border-right: none;
+        border-bottom: 1px solid #e6ebf0;
+        overflow-x: auto;
+    }
+    body.menu-vertical .top-menu-nav { display: none !important; }
+    body.menu-vertical .top-menu-nav.active { display: block !important; }
+    body.menu-vertical .main-content { margin-left: 0 !important; width: 100% !important; }
+    body.menu-vertical .mobile-menu-btn { display: inline-flex !important; }
+}
+
+/* ---------- UI "Guias Visíveis" nas Configurações ---------- */
+.tabs-visibility-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+}
+@media (max-width: 720px) { .tabs-visibility-container { grid-template-columns: 1fr; } }
+.tabs-visibility-group {
+    border: 1px solid #e6ebf0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fafbfc;
+}
+.tabs-visibility-group-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7f8c8d;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #e1e8ed;
+}
+.tabs-visibility-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+.tabs-visibility-item:hover { background: #eef5fb; }
+.tabs-visibility-item input[type="checkbox"] { accent-color: #3498db; cursor: pointer; width: 16px; height: 16px; }
+.tabs-visibility-item.is-locked { opacity: 0.8; cursor: not-allowed; }
+.tabs-visibility-item.is-locked input { cursor: not-allowed; }
+.tabs-visibility-lock { margin-left: auto; font-size: 0.8rem; opacity: 0.7; }
+.form-hint { display: block; margin-top: 4px; font-size: 0.78rem; color: #95a5a6; }
+
+/* ---------- FIX: bloqueia scroll de fundo quando modal/sidebar abertos ---------- */
+body.modal-open { overflow: hidden !important; }
+
+/* Fallback moderno (navegadores recentes) — cobre todos os casos mesmo antes do JS */
+body:has(.modal-overlay.active),
+body:has(.sidebar-overlay.active) {
+    overflow: hidden !important;
+}

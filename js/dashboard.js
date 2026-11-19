@@ -1,7 +1,5 @@
 // ============================================================
-// SSOT - DASHBOARD PERSONALIZÁVEL (v12.1)
-// Alterações:
-//  - Removido badge do tipo de gráfico (aquele "Rosca (2D)" ao lado do nome)
+// SSOT - DASHBOARD PERSONALIZÁVEL (v12.2)
 // ============================================================
 
 import {
@@ -163,7 +161,6 @@ export function renderDashboardGrid() {
             ? `<canvas id="chart-${c.id}"></canvas>`
             : `<div id="chart-${c.id}" class="echarts-container"></div>`;
 
-        // ⬇️ Removido o <span class="chart-type-badge">…</span>
         return `
             <div class="chart-card" data-chart="${c.id}" data-type="${c.type}" data-engine="${engine}">
                 <div class="chart-header">
@@ -617,4 +614,3 @@ export function destroyDashboardCharts() {
 
 export function setupChartDownloads() {}
 export function setupChartFilters() {}
-export function setupGlobalFilter() {}

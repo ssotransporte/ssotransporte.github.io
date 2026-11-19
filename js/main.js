@@ -1,9 +1,9 @@
 // ============================================================
-// SSOT - MAIN (v19.0)
-// Alterações:
-//  - Ícone Importar/Exportar no topo (visível só em Operações)
-//  - Mensagem "Desconectado por segurança" ao expirar inatividade
-//  - Aba "importar" removida do menu visual (acessível pelo ícone)
+// SSOT - MAIN (v20.1)
+// Alterações v20.1:
+//  - FIX: renderAdminMenu agora SEMPRE ativa uma guia (corrige tela em branco pós-login)
+//  - FIX: setupScrollLock() impede scroll de fundo com modal/sidebar aberto
+//  - Mantidas todas as funcionalidades v20 (menu h/v, guias ocultas, imprimir)
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -15,10 +15,11 @@ import {
     TAB_TITLES, TAB_SUBTITLES, ROLE_LABELS, ADMIN_ROLES,
     SESSION_STORAGE_KEY, SESSION_ACTIVE_KEY,
     FIREBASE_LOAD_TIMEOUT, APP_VERSION,
-    ROUTES, TAB_TO_ROUTE, FLEET_TAB_TO_ROUTE
+    ROUTES, TAB_TO_ROUTE, FLEET_TAB_TO_ROUTE,
+    MENU_LAYOUT_KEY, HIDDEN_TABS_KEY, DEFAULT_MENU_LAYOUT
 } from './config.js';
 
-import { showNotification, showAlert, downloadJSON, getInitials } from './utils.js';
+import { showNotification, showAlert, downloadJSON, getInitials, escapeHtml } from './utils.js';
 import { sstAlert, sstConfirm, sstPrompt } from './dialogs.js';
 
 import * as Auth from './auth.js';
@@ -173,8 +174,6 @@ function updateAreaChrome(area) {
     if (bc) bc.textContent = area === 'operacoes' ? 'Operações' : 'Solicitações';
     const btn = document.getElementById('area-switch-btn');
     if (btn) btn.classList.remove('hidden');
-
-    // ✅ Ícone de importar — só aparece em Operações
     const importBtn = document.getElementById('import-icon-btn');
     if (importBtn) {
         if (area === 'operacoes') importBtn.classList.remove('hidden');
@@ -202,6 +201,8 @@ function init() {
     const reqId = params.get('request');
     if (reqId) _pendingDeepLink = reqId;
 
+    applyMenuLayout(getMenuLayout());
+
     Settings.setupServices();
     updateNetworkStatus();
     setupEventListeners();
@@ -209,6 +210,7 @@ function init() {
     setupFormTabs();
     setupUsersTabs();
     setupMobileSidebar();
+    setupScrollLock();
 
     const safetyTimeout = setTimeout(() => {
         const loading = document.getElementById('conn-loading');
@@ -224,6 +226,141 @@ function init() {
         if (_enterSystemDone && user && currentUser && currentUser.uid === user.uid) return;
         if (user) await handleUserLoggedIn(user);
         else handleUserLoggedOut();
+    });
+}
+
+// ============================================================
+// SCROLL LOCK — bloqueia scroll do body quando overlay estiver ativo
+// ============================================================
+function setupScrollLock() {
+    const targets = document.querySelectorAll('.modal-overlay, .sidebar-overlay');
+
+    const update = () => {
+        const hasActive = document.querySelector('.modal-overlay.active, .sidebar-overlay.active');
+        document.body.classList.toggle('modal-open', !!hasActive);
+    };
+
+    const observer = new MutationObserver(update);
+    targets.forEach(el => {
+        observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    // Cobre modais criados dinamicamente
+    const bodyObserver = new MutationObserver(() => {
+        document.querySelectorAll('.modal-overlay:not([data-sl-bound]), .sidebar-overlay:not([data-sl-bound])')
+            .forEach(el => {
+                el.setAttribute('data-sl-bound', '1');
+                observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            });
+        update();
+    });
+    bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+    update();
+}
+
+// ============================================================
+// MENU LAYOUT (horizontal / vertical)
+// ============================================================
+export function getMenuLayout() {
+    try {
+        const v = localStorage.getItem(MENU_LAYOUT_KEY);
+        return (v === 'vertical' || v === 'horizontal') ? v : DEFAULT_MENU_LAYOUT;
+    } catch (e) { return DEFAULT_MENU_LAYOUT; }
+}
+
+export function applyMenuLayout(layout) {
+    const l = (layout === 'vertical') ? 'vertical' : 'horizontal';
+    document.body.classList.toggle('menu-vertical', l === 'vertical');
+    try { localStorage.setItem(MENU_LAYOUT_KEY, l); } catch (e) {}
+    window.dispatchEvent(new Event('resize'));
+}
+
+// ============================================================
+// HIDDEN TABS
+// ============================================================
+function _hiddenKey() {
+    return HIDDEN_TABS_KEY + '_' + (currentUser?.uid || 'anon');
+}
+export function getHiddenTabs() {
+    try {
+        const raw = localStorage.getItem(_hiddenKey());
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+}
+export function isTabHidden(tabId) {
+    if (tabId === 'admin-dashboard' || tabId === 'admin-servicos') return false;
+    return getHiddenTabs().includes(tabId);
+}
+export function setTabHidden(tabId, hidden) {
+    if (tabId === 'admin-dashboard' || tabId === 'admin-servicos') return;
+    const cur = new Set(getHiddenTabs());
+    if (hidden) cur.add(tabId); else cur.delete(tabId);
+    try { localStorage.setItem(_hiddenKey(), JSON.stringify([...cur])); } catch (e) {}
+}
+
+const ALL_ADMIN_TABS = [
+    { id: 'admin-dashboard',   label: 'Dashboard',      icon: 'i-chart-line',     area: 'solicitacoes' },
+    { id: 'admin-solicitacoes', label: 'Solicitações',  icon: 'i-clipboard',      area: 'solicitacoes' },
+    { id: 'admin-agenda',      label: 'Agenda',         icon: 'i-calendar-check', area: 'solicitacoes' },
+    { id: 'admin-relatorios',  label: 'Relatórios',     icon: 'i-file-text',      area: 'solicitacoes' },
+    { id: 'admin-historico',   label: 'Histórico',      icon: 'i-history',        area: 'solicitacoes' },
+    { id: 'admin-lixeira',     label: 'Lixeira',        icon: 'i-trash',          area: 'solicitacoes' },
+    { id: 'admin-perfil',      label: 'Perfil',         icon: 'i-user',           area: 'both' },
+    { id: 'admin-servicos',    label: 'Configurações',  icon: 'i-cog',            area: 'both' },
+    { id: 'viagens',           label: 'Viagens',        icon: 'i-route',          area: 'operacoes' },
+    { id: 'veiculos',          label: 'Veículos',       icon: 'i-car',            area: 'operacoes' },
+    { id: 'abastecimentos',    label: 'Abastecimentos', icon: 'i-truck',          area: 'operacoes' },
+    { id: 'servicos',          label: 'Serviços',       icon: 'i-cog',            area: 'operacoes' },
+    { id: 'despesas',          label: 'Despesas',       icon: 'i-file-text',      area: 'operacoes' },
+    { id: 'leituras',          label: 'Leituras',       icon: 'i-clock',          area: 'operacoes' },
+    { id: 'checklist',         label: 'Checklist',      icon: 'i-check-circle',   area: 'operacoes' },
+    { id: 'relatorios',        label: 'Relatórios',     icon: 'i-chart-bar',      area: 'operacoes' }
+];
+const PROTECTED_TABS = ['admin-dashboard', 'admin-servicos'];
+
+function renderTabsVisibilityUI() {
+    const container = document.getElementById('tabs-visibility-container');
+    if (!container) return;
+
+    const hidden = getHiddenTabs();
+    const sol = ALL_ADMIN_TABS.filter(t => t.area === 'solicitacoes' || t.area === 'both');
+    const ope = ALL_ADMIN_TABS.filter(t => t.area === 'operacoes' || t.area === 'both');
+
+    const renderGroup = (title, tabs) => `
+        <div class="tabs-visibility-group">
+            <div class="tabs-visibility-group-title">${title}</div>
+            ${tabs.map(t => {
+                const locked = PROTECTED_TABS.includes(t.id);
+                const checked = locked ? true : !hidden.includes(t.id);
+                return `
+                    <label class="tabs-visibility-item${locked ? ' is-locked' : ''}">
+                        <input type="checkbox" data-tab-visibility="${t.id}" ${checked ? 'checked' : ''} ${locked ? 'disabled' : ''}>
+                        <svg class="si"><use href="#${t.icon}"/></svg>
+                        <span>${t.label}</span>
+                        ${locked ? '<span class="tabs-visibility-lock" title="Sempre visível">🔒</span>' : ''}
+                    </label>
+                `;
+            }).join('')}
+        </div>
+    `;
+
+    container.innerHTML = renderGroup('Solicitações', sol) + renderGroup('Operações', ope);
+
+    container.querySelectorAll('[data-tab-visibility]').forEach(cb => {
+        if (cb.disabled) return;
+        cb.addEventListener('change', function () {
+            const tabId = this.getAttribute('data-tab-visibility');
+            setTabHidden(tabId, !this.checked);
+            if (_areaMode) renderAdminMenu();
+            if (!this.checked && _fleetCurrentTab === tabId) activateFleetTab('viagens', true);
+            if (!this.checked && document.getElementById(tabId + '-tab')?.classList.contains('active')) {
+                gotoAdminTab(_areaMode === 'operacoes' ? 'admin-frota' : 'admin-dashboard');
+            }
+            showNotification('Salvo', 'Preferência de guia atualizada.', 'success', 1500);
+        });
     });
 }
 
@@ -280,6 +417,107 @@ function setupUsersTabs() {
 }
 
 // ============================================================
+// IMPRESSÃO DE SOLICITAÇÕES
+// ============================================================
+function openPrintWindow(data) {
+    const now = new Date().toLocaleString('pt-BR');
+    const user = currentUser?.name || 'Sistema';
+    const area = _areaMode === 'operacoes' ? 'Operações' : 'Solicitações';
+
+    const rowsHtml = data.map(r => `
+        <tr>
+            <td>${escapeHtml(r.numero)}</td>
+            <td>${escapeHtml(r.solicitante)}</td>
+            <td>${escapeHtml(r.setor)}</td>
+            <td>${escapeHtml(r.destino)}</td>
+            <td>${escapeHtml(r.saida)}</td>
+            <td>${escapeHtml(r.prioridade)}</td>
+            <td>${escapeHtml(r.status)}</td>
+        </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Solicitações - SSOT</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; color: #2c3e50; }
+    header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #3498db; padding-bottom: 8px; margin-bottom: 8px; }
+    h1 { font-size: 18px; margin: 0; color: #2c3e50; }
+    .meta { font-size: 11px; color: #7f8c8d; margin-bottom: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e1e8ed; text-align: left; vertical-align: top; }
+    th { background: #f5f7fa; font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; color: #34495e; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .footer { margin-top: 24px; font-size: 10px; color: #95a5a6; text-align: center; }
+    @media print { body { padding: 12px; } th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+    <header>
+        <h1>SSOT — Solicitações de Transporte</h1>
+        <div style="font-size: 11px; color: #7f8c8d;">${escapeHtml(area)}</div>
+    </header>
+    <div class="meta">
+        Gerado em ${escapeHtml(now)} · Por ${escapeHtml(user)} · Total: <strong>${data.length}</strong>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Nº</th><th>Solicitante</th><th>Setor</th><th>Destino</th>
+                <th>Saída</th><th>Prioridade</th><th>Status</th>
+            </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="footer">Documento gerado automaticamente pelo SSOT</div>
+    <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=1000,height=720');
+    if (!win) {
+        showNotification('Popup bloqueado', 'Permita pop-ups para imprimir.', 'danger');
+        return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+}
+
+window.printAdminRequests = function () {
+    if (!isAdmin) return;
+    const tbody = document.getElementById('admin-requests-table');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    if (!rows.length || rows[0].querySelector('.table-empty')) {
+        showNotification('Vazio', 'Nenhuma solicitação para imprimir.', 'warning');
+        return;
+    }
+    const data = [];
+    rows.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        if (cells.length < 7) return;
+        data.push({
+            numero:       cells[0].textContent.trim(),
+            solicitante:  cells[1].textContent.trim(),
+            setor:        cells[2].textContent.trim(),
+            destino:      cells[3].textContent.trim(),
+            saida:        cells[4].textContent.trim(),
+            prioridade:   cells[5].textContent.trim(),
+            status:       cells[6].textContent.trim()
+        });
+    });
+    if (!data.length) {
+        showNotification('Vazio', 'Nenhuma solicitação para imprimir.', 'warning');
+        return;
+    }
+    openPrintWindow(data);
+};
+
+// ============================================================
 // EXPORTS GLOBAIS
 // ============================================================
 function setupGlobalExports() {
@@ -310,6 +548,8 @@ function setupGlobalExports() {
     window.selectArea = selectArea;
     window.switchArea = switchArea;
     window.updateArchiveBadge = updateArchiveBadge;
+    window.printAdminRequests = window.printAdminRequests;
+    window.applyMenuLayout = applyMenuLayout;
 
     if (typeof window.openManageOrigins !== 'function') {
         window.openManageOrigins = () => Fleet.openManageOrigins();
@@ -452,7 +692,8 @@ async function enterSystem() {
     document.getElementById('app-container').classList.remove('hidden');
     sessionStorage.setItem(SESSION_ACTIVE_KEY, currentUser.uid);
 
-    // Contextos
+    applyMenuLayout(getMenuLayout());
+
     Users.setUsersContext(db, currentUser);
     Requests.setRequestsContext(db, currentUser);
     Schedule.setScheduleContext(db, currentUser);
@@ -467,7 +708,6 @@ async function enterSystem() {
     Notifications.setNotificationsContext(db, currentUser, isAdmin);
     Profile.setProfileContext(db, currentUser, isAdmin);
 
-    // Área visível
     if (isAdmin) {
         document.getElementById('user-area').classList.add('hidden');
         document.getElementById('admin-area').classList.remove('hidden');
@@ -481,10 +721,7 @@ async function enterSystem() {
     }
 
     activateSubscribers();
-
-    // ⬇️ Sessão — passa o motivo da desconexão
     Session.startSessionWatch((reason) => doLogout(reason));
-
     _routerActive = true;
 
     const route = parseHashRoute();
@@ -581,49 +818,56 @@ function gotoUserTab(tabId) {
 }
 
 // ============================================================
-// ADMIN MENU — OPERAÇÕES (aba "importar" foi REMOVIDA do menu visual)
+// ADMIN MENU — OPERAÇÕES
 // ============================================================
 function renderOperacoesMenu() {
     const menu = document.getElementById('top-menu-list');
     if (!menu) return;
 
-    // ⬇️ SEM aba "importar" — será acessível pelo ícone do topo
-    menu.innerHTML = `
-        <li><a href="#" data-fleet-tab="viagens"><svg class="si si-fw"><use href="#i-route"/></svg> Viagens</a></li>
-        <li><a href="#" data-fleet-tab="veiculos"><svg class="si si-fw"><use href="#i-car"/></svg> Veículos</a></li>
-        <li><a href="#" data-fleet-tab="abastecimentos"><svg class="si si-fw"><use href="#i-truck"/></svg> Abastecimentos</a></li>
-        <li><a href="#" data-fleet-tab="servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Serviços</a></li>
-        <li><a href="#" data-fleet-tab="despesas"><svg class="si si-fw"><use href="#i-file-text"/></svg> Despesas</a></li>
-        <li><a href="#" data-fleet-tab="leituras"><svg class="si si-fw"><use href="#i-clock"/></svg> Leituras</a></li>
-        <li><a href="#" data-fleet-tab="checklist"><svg class="si si-fw"><use href="#i-check-circle"/></svg> Checklist</a></li>
-        <li><a href="#" data-fleet-tab="relatorios"><svg class="si si-fw"><use href="#i-chart-bar"/></svg> Relatórios</a></li>
-        <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
-        <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Configurações</a></li>
-    `;
+    const defs = [
+        { id: 'viagens',        icon: 'i-route',        label: 'Viagens' },
+        { id: 'veiculos',       icon: 'i-car',          label: 'Veículos' },
+        { id: 'abastecimentos', icon: 'i-truck',        label: 'Abastecimentos' },
+        { id: 'servicos',       icon: 'i-cog',          label: 'Serviços' },
+        { id: 'despesas',       icon: 'i-file-text',    label: 'Despesas' },
+        { id: 'leituras',       icon: 'i-clock',        label: 'Leituras' },
+        { id: 'checklist',      icon: 'i-check-circle', label: 'Checklist' },
+        { id: 'relatorios',     icon: 'i-chart-bar',    label: 'Relatórios' },
+        { id: 'admin-perfil',   icon: 'i-user',         label: 'Perfil',         isTab: true },
+        { id: 'admin-servicos', icon: 'i-cog',          label: 'Configurações',  isTab: true }
+    ];
+
+    const visible = defs.filter(t => !isTabHidden(t.id));
+
+    menu.innerHTML = visible.map(t => {
+        const attr = t.isTab ? `data-tab="${t.id}"` : `data-fleet-tab="${t.id}"`;
+        return `<li><a href="#" ${attr}><svg class="si si-fw"><use href="#${t.icon}"/></svg> ${t.label}</a></li>`;
+    }).join('');
+
     menu.querySelectorAll('[data-fleet-tab]').forEach(a => {
         a.addEventListener('click', (e) => {
             e.preventDefault();
             activateFleetTab(a.getAttribute('data-fleet-tab'));
+            closeMobileSidebar();
         });
     });
     menu.querySelectorAll('[data-tab]').forEach(a => {
         a.addEventListener('click', e => {
             e.preventDefault();
             gotoAdminTab(a.getAttribute('data-tab'));
+            closeMobileSidebar();
         });
     });
 
-    // Se o _fleetCurrentTab atual é "importar", não está no menu
-    // — logo após abrir o menu, ativa o que estiver armazenado
-    if (_fleetCurrentTab === 'importar') {
-        activateFleetTab('importar', true);
-    } else {
-        activateFleetTab(_fleetCurrentTab, true);
-    }
+    if (isTabHidden(_fleetCurrentTab)) _fleetCurrentTab = 'viagens';
+
+    if (_fleetCurrentTab === 'importar') activateFleetTab('importar', true);
+    else activateFleetTab(_fleetCurrentTab, true);
 }
 
 function activateFleetTab(tabKey, silent) {
     if (!tabKey) return;
+    if (isTabHidden(tabKey) && tabKey !== 'importar') tabKey = 'viagens';
     _fleetCurrentTab = tabKey;
 
     const menu = document.getElementById('top-menu-list');
@@ -637,7 +881,6 @@ function activateFleetTab(tabKey, silent) {
     document.getElementById('admin-frota-tab')?.classList.add('active');
     document.getElementById('users-icon-btn')?.classList.remove('active');
 
-    // ✅ Ícone de importar — só aparece em Operações
     const importBtn = document.getElementById('import-icon-btn');
     if (importBtn) {
         if (_areaMode === 'operacoes') {
@@ -666,7 +909,7 @@ function activateFleetTab(tabKey, silent) {
 }
 
 // ============================================================
-// ADMIN MENU — SOLICITAÇÕES
+// ADMIN MENU — SOLICITAÇÕES (FIX: sempre ativa uma guia)
 // ============================================================
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
@@ -678,29 +921,46 @@ function renderAdminMenu() {
         document.getElementById('admin-frota-tab')?.classList.add('active');
         const title = document.getElementById('page-title');
         if (title) title.textContent = 'Frota';
-    } else {
-        menu.innerHTML = `
-            <li><a href="#" data-tab="admin-dashboard"><svg class="si si-fw"><use href="#i-chart-line"/></svg> Dashboard</a></li>
-            <li><a href="#" data-tab="admin-solicitacoes"><svg class="si si-fw"><use href="#i-clipboard"/></svg> Solicitações</a></li>
-            <li><a href="#" data-tab="admin-agenda"><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Agenda</a></li>
-            <li><a href="#" data-tab="admin-relatorios"><svg class="si si-fw"><use href="#i-file-text"/></svg> Relatórios</a></li>
-            <li><a href="#" data-tab="admin-historico"><svg class="si si-fw"><use href="#i-history"/></svg> Histórico</a></li>
-            <li><a href="#" data-tab="admin-lixeira"><svg class="si si-fw"><use href="#i-trash"/></svg> Lixeira</a></li>
-            <li><a href="#" data-tab="admin-perfil"><svg class="si si-fw"><use href="#i-user"/></svg> Perfil</a></li>
-            <li><a href="#" data-tab="admin-servicos"><svg class="si si-fw"><use href="#i-cog"/></svg> Configurações</a></li>
-        `;
-        menu.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', e => {
-                e.preventDefault(); gotoAdminTab(a.getAttribute('data-tab')); closeMobileSidebar();
-            });
-        });
-        const wasOnUsers = document.getElementById('admin-usuarios-tab')?.classList.contains('active');
-        if (wasOnUsers) gotoAdminTab('admin-usuarios');
-        else gotoAdminTab('admin-dashboard');
-
-        // ✅ Esconde ícone de importar quando está em Solicitações
-        document.getElementById('import-icon-btn')?.classList.add('hidden');
+        return;
     }
+
+    // ---- Área: Solicitações ----
+    const defs = [
+        { id: 'admin-dashboard',   icon: 'i-chart-line',     label: 'Dashboard' },
+        { id: 'admin-solicitacoes', icon: 'i-clipboard',     label: 'Solicitações' },
+        { id: 'admin-agenda',      icon: 'i-calendar-check', label: 'Agenda' },
+        { id: 'admin-relatorios',  icon: 'i-file-text',      label: 'Relatórios' },
+        { id: 'admin-historico',   icon: 'i-history',        label: 'Histórico' },
+        { id: 'admin-lixeira',     icon: 'i-trash',          label: 'Lixeira' },
+        { id: 'admin-perfil',      icon: 'i-user',           label: 'Perfil' },
+        { id: 'admin-servicos',    icon: 'i-cog',            label: 'Configurações' }
+    ];
+    const visible = defs.filter(t => !isTabHidden(t.id));
+
+    menu.innerHTML = visible.map(t =>
+        `<li><a href="#" data-tab="${t.id}"><svg class="si si-fw"><use href="#${t.icon}"/></svg> ${t.label}</a></li>`
+    ).join('');
+
+    menu.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            gotoAdminTab(a.getAttribute('data-tab'));
+            closeMobileSidebar();
+        });
+    });
+
+    document.getElementById('import-icon-btn')?.classList.add('hidden');
+
+    // FIX: garante que SEMPRE exista uma guia ativa
+    const wasOnUsers = document.getElementById('admin-usuarios-tab')?.classList.contains('active');
+    if (wasOnUsers) {
+        gotoAdminTab('admin-usuarios');
+        return;
+    }
+
+    const currentTabId = document.querySelector('#admin-area .tab-content.active')?.id?.replace(/-tab$/, '');
+    const targetTab = (!currentTabId || isTabHidden(currentTabId)) ? 'admin-dashboard' : currentTabId;
+    gotoAdminTab(targetTab);
 }
 
 // ============================================================
@@ -711,6 +971,11 @@ export function gotoAdminTab(tabId) {
     const solicitacoesOnly = ['admin-solicitacoes', 'admin-usuarios', 'admin-agenda', 'admin-historico', 'admin-lixeira', 'admin-dashboard', 'admin-relatorios'];
     if (_areaMode === 'operacoes' && solicitacoesOnly.includes(tabId)) tabId = 'admin-frota';
     if (_areaMode === 'solicitacoes' && tabId === 'admin-frota') tabId = 'admin-dashboard';
+
+    if (isTabHidden(tabId)) {
+        tabId = _areaMode === 'operacoes' ? 'admin-frota' : 'admin-dashboard';
+        if (_areaMode === 'operacoes') { activateFleetTab('viagens'); return; }
+    }
 
     document.querySelectorAll('#admin-area .tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById(tabId + '-tab')?.classList.add('active');
@@ -726,12 +991,11 @@ export function gotoAdminTab(tabId) {
         else usersIcon.classList.remove('active');
     }
 
-    // ✅ Ícone de importar só em Operações
     const importBtn = document.getElementById('import-icon-btn');
     if (importBtn) {
         if (_areaMode === 'operacoes') importBtn.classList.remove('hidden');
         else importBtn.classList.add('hidden');
-        importBtn.classList.remove('active'); // nunca fica ativo fora da aba importar
+        importBtn.classList.remove('active');
     }
 
     const title = document.getElementById('page-title');
@@ -763,7 +1027,10 @@ export function gotoAdminTab(tabId) {
         case 'admin-perfil': Profile.refreshProfileState(); Profile.populateProfileForm(); break;
         case 'admin-servicos':
             updateNetworkStatus();
-            Settings.renderDashboardSettings();
+            try { Settings.renderDashboardSettings(); } catch (e) {}
+            const sel = document.getElementById('menu-layout-selector');
+            if (sel) sel.value = getMenuLayout();
+            renderTabsVisibilityUI();
             break;
         case 'admin-frota':
             try { FleetExcel.initFleetExcel(); } catch (e) { console.error('[SSOT] Frota Excel:', e); }
@@ -783,11 +1050,7 @@ async function updateArchiveBadge() {
         const count = await ScheduleArchive.countPastSlots(db);
         let badge = btn.querySelector('.archive-badge');
         if (count > 0) {
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'archive-badge';
-                btn.appendChild(badge);
-            }
+            if (!badge) { badge = document.createElement('span'); badge.className = 'archive-badge'; btn.appendChild(badge); }
             badge.textContent = count;
             btn.classList.add('has-archive');
         } else {
@@ -813,7 +1076,7 @@ function prefillUserForm() {
 }
 
 // ============================================================
-// LOGOUT — agora recebe 'reason'
+// LOGOUT
 // ============================================================
 async function doLogout(reason = 'manual') {
     const wasTimeout = reason === 'timeout';
@@ -839,7 +1102,6 @@ async function doLogout(reason = 'manual') {
     setHashRoute('auth/selecao');
 
     if (wasTimeout) {
-        // ✅ Mensagem clara de desconexão por segurança
         showNotification(
             'Desconectado por segurança',
             'Sua sessão expirou após 8 minutos de inatividade. Faça login novamente para continuar.',
@@ -908,7 +1170,13 @@ function setupEventListeners() {
     document.getElementById('requerimento-form')?.addEventListener('submit', handleSignupSubmit);
     document.getElementById('user-request-form')?.addEventListener('submit', handleRequestSubmit);
 
-    // ✅ Ícone de usuários
+    document.getElementById('admin-print-requests')?.addEventListener('click', () => window.printAdminRequests());
+
+    document.getElementById('menu-layout-selector')?.addEventListener('change', function () {
+        applyMenuLayout(this.value);
+        showNotification('Salvo', 'Posição do menu atualizada.', 'success', 2000);
+    });
+
     document.getElementById('users-icon-btn')?.addEventListener('click', () => {
         if (!isAdmin) return;
         if (_areaMode !== 'solicitacoes') {
@@ -920,7 +1188,6 @@ function setupEventListeners() {
         gotoAdminTab('admin-usuarios');
     });
 
-    // ✅ NOVO: Ícone de Importar/Exportar (só em Operações)
     document.getElementById('import-icon-btn')?.addEventListener('click', () => {
         if (!isAdmin) return;
         if (_areaMode !== 'operacoes') return;
@@ -1069,7 +1336,7 @@ function setupEventListeners() {
 }
 
 // ============================================================
-// LOGIN HANDLERS (restantes iguais ao original)
+// LOGIN HANDLERS
 // ============================================================
 async function handleLoginSubmit(e) {
     e.preventDefault();

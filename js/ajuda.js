@@ -25,7 +25,6 @@ let _app = null;
 let _auth = null;
 let _db = null;
 
-// Instância secundária para SMS (não afeta a sessão principal)
 let _smsApp = null;
 let _smsAuth = null;
 
@@ -51,7 +50,6 @@ function init() {
         showAlert('email', 'Não foi possível conectar. Recarregue a página.', 'danger');
         return;
     }
-
     setupTabs();
     setupEmailForm();
     setupSmsFlow();
@@ -64,14 +62,10 @@ function setupTabs() {
     document.querySelectorAll('.help-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const target = tab.getAttribute('data-tab');
-
             document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.help-panel').forEach(p => p.classList.remove('active'));
-
             tab.classList.add('active');
             document.getElementById(`panel-${target}`)?.classList.add('active');
-
-            // Foco no primeiro input da aba
             setTimeout(() => {
                 const input = document.querySelector(`#panel-${target} input`);
                 if (input) input.focus();
@@ -113,7 +107,6 @@ function setLoading(btn, loading, originalHTML) {
 function setupEmailForm() {
     const form = document.getElementById('form-email');
     if (!form) return;
-
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         await handleSendEmail();
@@ -122,51 +115,30 @@ function setupEmailForm() {
 
 async function handleSendEmail() {
     hideAlert('email');
-
     const emailInput = document.getElementById('email-input');
     const sendBtn = document.getElementById('email-send-btn');
     const successBox = document.getElementById('email-success');
     const form = document.getElementById('form-email');
-
     const email = (emailInput?.value || '').trim().toLowerCase();
 
-    if (!email) {
-        showAlert('email', 'Informe seu e-mail.', 'warning');
-        emailInput?.focus();
-        return;
-    }
-    if (!isValidEmail(email)) {
-        showAlert('email', 'Formato de e-mail inválido.', 'warning');
-        emailInput?.focus();
-        return;
-    }
-
-    if (_emailCooldown > 0) {
-        showAlert('email', `Aguarde ${_emailCooldown}s antes de tentar novamente.`, 'warning');
-        return;
-    }
+    if (!email) { showAlert('email', 'Informe seu e-mail.', 'warning'); emailInput?.focus(); return; }
+    if (!isValidEmail(email)) { showAlert('email', 'Formato de e-mail inválido.', 'warning'); emailInput?.focus(); return; }
+    if (_emailCooldown > 0) { showAlert('email', `Aguarde ${_emailCooldown}s antes de tentar novamente.`, 'warning'); return; }
 
     setLoading(sendBtn, true);
     const originalHTML = sendBtn.dataset.originalHtml;
 
     try {
         await sendPasswordResetEmail(_auth, email);
-
-        // Sucesso — mostra tela de sucesso
         form.classList.add('hidden');
         successBox.classList.remove('hidden');
         document.getElementById('email-success-address').textContent = `Enviado para: ${email}`;
-
-        // Cooldown 60s
         startEmailCooldown(60);
     } catch (err) {
         console.error('[Ajuda] Email reset:', err);
         const msg = mapEmailError(err);
         showAlert('email', msg, err.code === 'auth/user-not-found' ? 'warning' : 'danger');
-
-        if (err.code === 'auth/too-many-requests') {
-            startEmailCooldown(120);
-        }
+        if (err.code === 'auth/too-many-requests') startEmailCooldown(120);
     } finally {
         setLoading(sendBtn, false, originalHTML);
     }
@@ -188,11 +160,7 @@ function startEmailCooldown(seconds) {
     if (_emailTimer) clearInterval(_emailTimer);
     _emailTimer = setInterval(() => {
         _emailCooldown--;
-        if (_emailCooldown <= 0) {
-            clearInterval(_emailTimer);
-            _emailTimer = null;
-            _emailCooldown = 0;
-        }
+        if (_emailCooldown <= 0) { clearInterval(_emailTimer); _emailTimer = null; _emailCooldown = 0; }
     }, 1000);
 }
 
@@ -209,18 +177,27 @@ function setupSmsFlow() {
     verifyBtn?.addEventListener('click', handleVerifyCode);
     resendBtn?.addEventListener('click', handleResendSms);
 
-    // Enter no código dispara verificação
     codeInput?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleVerifyCode();
-        }
+        if (e.key === 'Enter') { e.preventDefault(); handleVerifyCode(); }
     });
-
-    // Só aceita dígitos no código
     codeInput?.addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
     });
+
+    // ---- máscara simples no input de telefone ----
+    const phoneInput = document.getElementById('phone-input');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', (e) => {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+            let formatted = '';
+            if (digits.length > 0) formatted = '(' + digits.slice(0, 2);
+            if (digits.length >= 3) formatted += ') ' + digits.slice(2, digits.length <= 10 ? 6 : 7);
+            if (digits.length > (digits.length <= 10 ? 6 : 7)) {
+                formatted += '-' + digits.slice(digits.length <= 10 ? 6 : 7);
+            }
+            e.target.value = formatted;
+        });
+    }
 }
 
 async function ensureSmsAuth() {
@@ -232,44 +209,71 @@ async function ensureSmsAuth() {
 }
 
 async function cleanupSmsAuth() {
-    try {
-        if (_smsAuth) await signOut(_smsAuth);
-    } catch (e) { /* ignore */ }
-    try {
-        if (_smsApp) await deleteApp(_smsApp);
-    } catch (e) { /* ignore */ }
+    try { if (_smsAuth) await signOut(_smsAuth); } catch (e) {}
+    try { if (_smsApp) await deleteApp(_smsApp); } catch (e) {}
     _smsApp = null;
     _smsAuth = null;
-
-    // Limpa reCAPTCHA
-    try { if (_recaptchaVerifier) _recaptchaVerifier.clear(); } catch (e) { /* ignore */ }
+    try { if (_recaptchaVerifier) _recaptchaVerifier.clear(); } catch (e) {}
     _recaptchaVerifier = null;
     _confirmationResult = null;
 }
 
+// ============================================================
+// TELEFONE — entrada SIMPLES, saída E.164 para o Firebase
+// Aceita: "(11) 99999-9999", "11999999999", "5511999999999",
+//         "+55 (11) 99999-9999", "+5511999999999", etc.
+// ============================================================
 function normalizePhone(p) {
-    let s = String(p || '').replace(/[^\d+]/g, '');
-    // Se só tem dígitos (sem +), assume Brasil +55
-    if (!s.startsWith('+')) {
-        // Se começar com 55 e tem 12+ dígitos, já é o código do país
-        if (/^55\d{10,11}$/.test(s)) s = '+' + s;
-        // Se tem 10-11 dígitos (DDD + número), prefixa +55
-        else if (/^\d{10,11}$/.test(s)) s = '+55' + s;
+    let digits = String(p || '').replace(/\D/g, '');
+    if (!digits) return '';
+    digits = digits.replace(/^0+/, '');
+    if (!digits) return '';
+
+    // Se tem 10 ou 11 dígitos → DDD + número (Brasil). Prefixa +55.
+    // Se tem 12 ou 13 dígitos e começa com 55 → já tem DDI, mantém.
+    if (digits.length === 10 || digits.length === 11) {
+        digits = '55' + digits;
+    } else if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
+        // já está em E.164
+    } else if (digits.length > 13) {
+        // corta possíveis sobras
+        digits = digits.slice(-13);
+        if (!digits.startsWith('55')) return '';
+    } else if (!digits.startsWith('55')) {
+        return '';
     }
-    return s;
+
+    if (!/^55\d{10,11}$/.test(digits)) return '';
+    return '+' + digits;
+}
+
+/** Exibe o telefone no formato brasileiro simples */
+function formatPhoneDisplay(p) {
+    const digits = String(p || '').replace(/\D/g, '');
+    const local = digits.startsWith('55') && digits.length >= 12 ? digits.slice(2) : digits;
+    if (local.length === 11) return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`;
+    if (local.length === 10) return `(${local.slice(0, 2)}) ${local.slice(2, 6)}-${local.slice(6)}`;
+    return local;
 }
 
 async function handleSendSms() {
     hideAlert('sms');
-
     const phoneInput = document.getElementById('phone-input');
     const sendBtn = document.getElementById('sms-send-btn');
     const originalHTML = sendBtn?.innerHTML;
 
-    const phone = normalizePhone(phoneInput?.value || '');
+    const rawValue = (phoneInput?.value || '').trim();
+    const digits = rawValue.replace(/\D/g, '');
 
-    if (!phone || !/^\+\d{10,15}$/.test(phone)) {
-        showAlert('sms', 'Telefone inválido. Use o formato +5511999999999.', 'warning');
+    if (digits.length < 10 || digits.length > 13) {
+        showAlert('sms', 'Telefone inválido. Use DDD + número. Ex: (11) 99999-9999', 'warning');
+        phoneInput?.focus();
+        return;
+    }
+
+    const phone = normalizePhone(rawValue);
+    if (!phone) {
+        showAlert('sms', 'Telefone inválido. Use DDD + número. Ex: (11) 99999-9999', 'warning');
         phoneInput?.focus();
         return;
     }
@@ -279,13 +283,12 @@ async function handleSendSms() {
     try {
         const smsAuth = await ensureSmsAuth();
 
-        // Cria/reutiliza o reCAPTCHA
         if (!_recaptchaVerifier) {
             const container = document.getElementById('help-recaptcha');
             if (!container) throw new Error('Container reCAPTCHA não encontrado.');
             _recaptchaVerifier = new RecaptchaVerifier(smsAuth, 'help-recaptcha', {
                 size: 'invisible',
-                callback: () => { /* resolve automaticamente */ },
+                callback: () => {},
                 'expired-callback': () => {
                     try { _recaptchaVerifier.clear(); } catch (e) {}
                     _recaptchaVerifier = null;
@@ -297,16 +300,12 @@ async function handleSendSms() {
         _confirmationResult = result;
         _verifiedPhone = phone;
 
-        // Avança para etapa 2
         document.getElementById('sms-step-phone').classList.add('hidden');
         document.getElementById('sms-step-code').classList.remove('hidden');
         document.getElementById('sms-step-result').classList.add('hidden');
-        document.getElementById('sms-phone-shown').textContent = phone;
+        document.getElementById('sms-phone-shown').textContent = formatPhoneDisplay(phone);
 
-        // Foca no código
         document.getElementById('code-input')?.focus();
-
-        // Inicia cooldown de reenvio
         startResendCooldown(60);
     } catch (err) {
         console.error('[Ajuda] SMS send:', err);
@@ -321,7 +320,7 @@ async function handleSendSms() {
 
 function mapSmsSendError(err) {
     const map = {
-        'auth/invalid-phone-number': 'Telefone inválido. Use o formato +5511999999999.',
+        'auth/invalid-phone-number': 'Telefone inválido. Verifique o DDD e o número.',
         'auth/too-many-requests': 'Muitas tentativas de envio. Aguarde alguns minutos.',
         'auth/quota-exceeded': 'Cota de SMS diária excedida. Tente novamente amanhã.',
         'auth/captcha-check-failed': 'Verificação de segurança falhou. Recarregue a página.',
@@ -334,12 +333,9 @@ function mapSmsSendError(err) {
 async function handleResendSms() {
     if (_resendSeconds > 0) return;
     hideAlert('sms');
-
     const resendBtn = document.getElementById('sms-resend-btn');
     if (resendBtn) resendBtn.disabled = true;
-
     try {
-        // Limpa credencial anterior
         await cleanupSmsAuth();
         await handleSendSms();
     } catch (err) {
@@ -353,10 +349,8 @@ function startResendCooldown(seconds) {
     _resendSeconds = seconds;
     const countEl = document.getElementById('sms-resend-count');
     const resendBtn = document.getElementById('sms-resend-btn');
-
     if (resendBtn) resendBtn.disabled = true;
     if (countEl) countEl.textContent = _resendSeconds;
-
     if (_resendTimer) clearInterval(_resendTimer);
     _resendTimer = setInterval(() => {
         _resendSeconds--;
@@ -371,35 +365,20 @@ function startResendCooldown(seconds) {
 
 async function handleVerifyCode() {
     hideAlert('sms');
-
     const codeInput = document.getElementById('code-input');
     const verifyBtn = document.getElementById('sms-verify-btn');
     const originalHTML = verifyBtn?.innerHTML;
-
     const code = (codeInput?.value || '').trim();
 
-    if (!/^\d{6}$/.test(code)) {
-        showAlert('sms', 'O código deve ter 6 dígitos.', 'warning');
-        codeInput?.focus();
-        return;
-    }
-    if (!_confirmationResult) {
-        showAlert('sms', 'Sessão expirada. Reenvie o código.', 'warning');
-        return;
-    }
+    if (!/^\d{6}$/.test(code)) { showAlert('sms', 'O código deve ter 6 dígitos.', 'warning'); codeInput?.focus(); return; }
+    if (!_confirmationResult) { showAlert('sms', 'Sessão expirada. Reenvie o código.', 'warning'); return; }
 
     if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.innerHTML = 'Verificando...'; }
 
     try {
         await _confirmationResult.confirm(code);
-
-        // Código válido — busca conta com esse telefone
         const account = await findAccountByPhone(_verifiedPhone);
-
-        // Limpa estado da auth
         await cleanupSmsAuth();
-
-        // Mostra resultado
         document.getElementById('sms-step-phone').classList.add('hidden');
         document.getElementById('sms-step-code').classList.add('hidden');
         renderSmsResult(account);
@@ -423,7 +402,6 @@ async function findAccountByPhone(phone) {
         const target = normalizePhone(phone);
         const snap = await get(ref(_db, 'users'));
         if (!snap.exists()) return null;
-
         let found = null;
         snap.forEach(child => {
             if (found) return;
@@ -431,13 +409,7 @@ async function findAccountByPhone(phone) {
             if (!u || u.active === false) return;
             const uPhone = normalizePhone(u.phone || '');
             if (!uPhone) return;
-
-            // Comparação robusta: exato ou terminações (evita problemas de formatação)
-            if (uPhone === target
-                || uPhone.endsWith(target.replace(/^\+/, ''))
-                || target.endsWith(uPhone.replace(/^\+/, ''))) {
-                found = u;
-            }
+            if (uPhone === target) found = u;
         });
         return found;
     } catch (err) {
@@ -449,7 +421,6 @@ async function findAccountByPhone(phone) {
 function renderSmsResult(account) {
     const container = document.getElementById('sms-step-result');
     if (!container) return;
-
     container.classList.remove('hidden');
 
     if (account && account.email) {
@@ -476,7 +447,6 @@ function renderSmsResult(account) {
                 </div>
             </div>
         `;
-
         document.getElementById('sms-reset-email-btn')?.addEventListener('click', async () => {
             await sendResetToAccount(account.email);
         });
@@ -512,10 +482,8 @@ async function sendResetToAccount(email) {
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = 'Enviando...';
-
     try {
         await sendPasswordResetEmail(_auth, email);
-        // Troca conteúdo para tela de sucesso
         const container = document.getElementById('sms-step-result');
         if (container) {
             container.innerHTML = `
@@ -548,7 +516,6 @@ async function sendResetToAccount(email) {
 function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
 }
-
 function escapeHtml(s) {
     return String(s == null ? '' : s)
         .replace(/&/g, '&amp;')
@@ -566,8 +533,4 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-
-// Cleanup ao sair
-window.addEventListener('beforeunload', () => {
-    cleanupSmsAuth();
-});
+window.addEventListener('beforeunload', () => { cleanupSmsAuth(); });
