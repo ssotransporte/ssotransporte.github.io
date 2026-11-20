@@ -1,10 +1,9 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE TRANSPORTE (v13.0)
-// Alterações v13.0:
-//  - FEAT: botão "Solicitar Cancelamento" para solicitações Aprovadas/Em Andamento
-//  - FIX:  PDF do comprovante reescrito inline (sem depender de pdf-generator.js)
-//          Layout A4 consistente, sem colunas quebradas, sem corte de texto
-//  - Mantidas todas as funcionalidades v12.0 (editar horários, etc.)
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v13.1)
+// Alterações v13.1:
+//  - FIX: botão "Solicitar Cancelamento" agora tem TEXTO visível na tabela
+//  - FEAT: botão aparece em Aprovada / Em Andamento (modal + tabela)
+//  - FIX: PDF do comprovante reescrito inline (v13.0)
 // ============================================================
 
 import {
@@ -483,16 +482,18 @@ export function updateUserTable() {
     });
 
     tbody.innerHTML = mine.map(r => {
-        // Ações por linha
+        // ── Ações por linha ──
         let actions = `
-            <button onclick="viewRequest('${r.id}', false)" class="btn btn-primary btn-sm" title="Ver detalhes">
+            <button onclick="viewRequest('${r.id}', false)" class="btn btn-primary btn-sm">
                 <svg class="si"><use href="#i-eye"/></svg> Ver
             </button>
         `;
+
+        // 🔽 v13.1: botão "Solicitar Cancelamento" COM TEXTO visível na tabela
         if (r.status === 'aprovada' || r.status === 'em-andamento') {
             actions += `
-                <button onclick="window.requestCancellation('${r.id}')" class="btn btn-warning btn-sm" title="Solicitar Cancelamento" style="margin-left:6px;">
-                    <svg class="si"><use href="#i-x-circle"/></svg>
+                <button onclick="window.requestCancellation('${r.id}')" class="btn btn-warning btn-sm" style="margin-left:6px;" title="Solicitar cancelamento">
+                    <svg class="si"><use href="#i-x-circle"/></svg> Solicitar Cancelamento
                 </button>
             `;
         }
@@ -695,7 +696,7 @@ export function viewRequest(id, adminView) {
         if (r.status === 'pendente') {
             buttons += `<button class="btn btn-danger" onclick="changeStatus('${r.id}', 'cancelada')"><svg class="si"><use href="#i-ban"/></svg> Cancelar</button>`;
         }
-        // 🔽 NOVO v13.0: botão "Solicitar Cancelamento" para Aprovada / Em Andamento
+        // 🔽 v13.0/v13.1: botão "Solicitar Cancelamento" para Aprovada / Em Andamento
         if (r.status === 'aprovada' || r.status === 'em-andamento') {
             buttons += `<button class="btn btn-warning" onclick="window.requestCancellation('${r.id}')"><svg class="si"><use href="#i-x-circle"/></svg> Solicitar Cancelamento</button>`;
         }
@@ -1014,7 +1015,7 @@ window.closeViewModal = closeViewModal;
 window.downloadUserRequestPDF = downloadUserRequestPDF;
 window.openEditHoursModal = openEditHoursModal;
 window.saveRequestHours = saveRequestHours;
-window.requestCancellation = requestCancellation;   // ⬅️ NOVO
+window.requestCancellation = requestCancellation;
 window.changeStatus = async (id, status) => {
     await changeRequestStatus(id, status);
     closeViewModal();
