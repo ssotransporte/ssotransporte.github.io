@@ -2994,9 +2994,10 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
     .ds-type-select { min-width: 0; flex: 1; }
 }
 /* ============================================================
-   44. LOGIN EM 2 COLUNAS COM IMAGEM — v19.4
-   — Mostra imglogin.png diretamente no painel direito
-   — Mantém fallback visual + proteção anti-drag/clique-direito
+   44. LOGIN EM 2 COLUNAS COM IMAGEM — v19.5
+   — Mostra imglogin.png no painel direito
+   — FIX: elimina scroll causado pela imagem
+   — Mostra topo da imagem, corta só a base
    ============================================================ */
 .login-container:not(.hidden) {
     display: flex !important;
@@ -3004,12 +3005,14 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
     justify-content: stretch !important;
     padding: 0 !important;
     margin: 0 !important;
+    height: 100vh;              /* ← NOVO: altura definida (era min-height) */
     min-height: 100vh;
+    max-height: 100vh;          /* ← NOVO */
     width: 100%;
     max-width: 100%;
     background: #f5f7fa;
     background-image: none !important;
-    overflow-x: hidden;
+    overflow: hidden;           /* ← NOVO: trava qualquer scroll externo */
 }
 
 .login-split {
@@ -3017,10 +3020,13 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     width: 100%;
     max-width: none !important;
+    height: 100vh;              /* ← NOVO: altura definida */
     min-height: 100vh;
+    max-height: 100vh;          /* ← NOVO */
     margin: 0;
     gap: 0;
     align-items: stretch;
+    overflow: hidden;           /* ← NOVO */
 }
 
 .login-left {
@@ -3029,16 +3035,15 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
     justify-content: center;
     padding: 32px 24px;
     background: #f5f7fa;
-    min-height: 100vh;
-    overflow-y: auto;
+    height: 100%;               /* ← era min-height: 100vh */
+    overflow-y: auto;           /* scroll interno se o form for grande */
 }
 
 /* ===== PAINEL DIREITO — mostra a imagem ===== */
 .login-right {
     position: relative;
     overflow: hidden;
-    min-height: 100vh;
-    height: 100%;
+    height: 100%;               /* ← era min-height: 100vh */
     background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
     display: flex;
     align-items: stretch;
@@ -3048,14 +3053,15 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 🔑 AQUI: a <img> volta a aparecer (ocupa 100% do painel) */
+/* 🔑 A IMAGEM — posicionada em absoluto pra não empurrar o layout */
 .login-right > img {
+    position: absolute;         /* ← NOVO: fora do fluxo, não infla o pai */
+    inset: 0;                   /* ← NOVO: cola nas 4 bordas */
     width: 100%;
     height: 100%;
-    object-fit: cover;          /* se quiser ver a imagem INTEIRA, troque para "contain" */
-    object-position: center;
+    object-fit: cover;
+    object-position: center top;/* ← NOVO: alinha no topo → corta só a BASE */
     display: block;
-    position: relative;
     z-index: 2;
 
     /* Proteção: sem clique-direito / sem drag / sem seleção */
@@ -3130,14 +3136,15 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
     font-weight: 700;
 }
 
-/* Se a imagem falhar, troca <img> → fallback */
 .login-right.no-image > img { display: none; }
 .login-right.no-image .login-right-fallback { display: flex; }
 
 @media (max-width: 900px) {
     .login-split { grid-template-columns: 1fr; }
     .login-right { display: none; }
-    .login-left { padding: 16px; min-height: auto; }
+    .login-left { padding: 16px; height: auto; }
+    .login-container:not(.hidden),
+    .login-split { height: auto; max-height: none; overflow: visible; }
 }
 
 /* ============================================================
