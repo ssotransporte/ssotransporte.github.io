@@ -23,6 +23,105 @@
         .logo-img-fw{width:1.25em;height:1.25em}
         .logo-img-lg{width:1.5em;height:1.5em}
         .logo-img-3x{width:3em;height:3em}
+
+        /* ===== Tela de login — painel direito ===== */
+        .login-right {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .login-right > img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            position: relative;
+            z-index: 2;
+            pointer-events: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .login-right-fallback {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            z-index: 3;
+            color: #fff;
+            pointer-events: none;
+        }
+
+        .login-right-fallback-inner {
+            max-width: 420px;
+        }
+
+        .login-right-fallback svg {
+            color: #fff;
+            margin-bottom: 20px;
+            opacity: 0.95;
+        }
+
+        .login-right-fallback h2 {
+            color: #fff;
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0 0 12px;
+        }
+
+        .login-right-fallback p {
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 1.05rem;
+            line-height: 1.5;
+            margin: 0 0 28px;
+        }
+
+        .login-right-fallback ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+            display: inline-block;
+        }
+
+        .login-right-fallback li {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 0.95rem;
+            padding: 6px 0 6px 24px;
+            position: relative;
+        }
+
+        .login-right-fallback li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2ecc71;
+            font-weight: 700;
+        }
+
+        .login-right.no-image > img { display: none; }
+        .login-right.no-image .login-right-fallback { display: flex; }
+
+        @media (max-width: 900px) {
+            .login-right { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -365,8 +464,33 @@
                 </div>
             </div>
         </div>
-        <aside class="login-right">
-            <img src="accesslogin.png" alt="SSOT — Sistema de Solicitações e Operações de Transporte">
+        <aside class="login-right" id="login-right-panel" oncontextmenu="return false;">
+            <img
+                src="accesslogin.png"
+                alt="SSOT — Sistema de Solicitações e Operações de Transporte"
+                id="login-right-image"
+                loading="eager"
+                decoding="async"
+                draggable="false"
+                oncontextmenu="return false;"
+                ondragstart="return false;"
+                onerror="document.getElementById('login-right-panel').classList.add('no-image');"
+            >
+            <div class="login-right-fallback" aria-hidden="true">
+                <div class="login-right-fallback-inner">
+                    <svg class="si si-3x">
+                        <use href="#i-car"/>
+                    </svg>
+                    <h2>SSOT</h2>
+                    <p>Sistema de Solicitações e Operações de Transporte</p>
+                    <ul>
+                        <li>Gestão de frota</li>
+                        <li>Solicitações de transporte</li>
+                        <li>Agenda integrada</li>
+                        <li>Relatórios e gráficos</li>
+                    </ul>
+                </div>
+            </div>
         </aside>
     </div>
 </div>
@@ -687,7 +811,7 @@
 
         <div id="admin-area" class="hidden">
             <div class="tab-content" id="admin-dashboard-tab">
-                <!-- ⬇️ grid dinâmico (populado por dashboard.js) -->
+                <!-- grid dinâmico (populado por dashboard.js) -->
                 <div class="charts-grid" id="dashboard-charts-grid"></div>
 
                 <div class="widgets-grid">
@@ -1495,6 +1619,37 @@
 </div>
 
 <div class="notification-panel" id="notification-panel"></div>
+
+<script>
+(function hardenLoginImage() {
+    function apply() {
+        const panel = document.getElementById('login-right-panel');
+        const img   = document.getElementById('login-right-image');
+        if (!panel) return;
+
+        // Bloqueia clique-direito no painel inteiro
+        panel.addEventListener('contextmenu', function (e) {
+            if (e.target && e.target.tagName === 'IMG') e.preventDefault();
+        }, { capture: true });
+
+        if (img) {
+            img.setAttribute('draggable', 'false');
+            img.addEventListener('dragstart', e => e.preventDefault());
+            // Bloqueia long-press no mobile (que abre menu "Salvar imagem")
+            img.addEventListener('touchstart', e => {
+                if (e.touches.length > 1) e.preventDefault();
+            }, { passive: false });
+            img.addEventListener('selectstart', e => e.preventDefault());
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', apply);
+    } else {
+        apply();
+    }
+})();
+</script>
 
 <script type="module" src="js/main.js"></script>
 </body>

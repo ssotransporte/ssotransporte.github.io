@@ -1,6 +1,7 @@
 /* ============================================================
    SSOT — SISTEMA DE SOLICITAÇÕES E OPERAÇÕES DE TRANSPORTE
-   v18.0 — CSS consolidado (todos os módulos)
+   v19.1 — CSS consolidado (todos os módulos + melhorias)
+   Correção v19.1: login em 2 colunas ocupa 100% da largura
    ============================================================ */
 
 /* ============================================================
@@ -269,7 +270,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     font-weight: 500;
 }
 
-/* ⬇️ NOVO: input com botão de ação ao lado (destino/origem) */
 .input-action-group {
     display: flex;
     gap: 6px;
@@ -1249,7 +1249,7 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 .fleet-row-actions .btn svg { width: 12px; height: 12px; }
 
 /* ============================================================
-   20. FROTA — CARDS (visual de cadastro) — NOVO v9.0
+   20. FROTA — CARDS (visual de cadastro)
    ============================================================ */
 .fleet-card-grid {
     display: grid;
@@ -1351,7 +1351,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     word-break: break-word;
 }
 
-/* Toggle Cards/Tabela */
 .fleet-view-toggle {
     display: inline-flex;
     gap: 2px;
@@ -1420,7 +1419,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     color: var(--color-gray-800);
 }
 
-/* Formulário do CRUD de frota */
 #fleet-crud-fields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1941,7 +1939,6 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     border-top: 1px dashed var(--color-gray-200);
 }
 
-/* ⬇️ NOVO: modal de detalhe da notificação */
 .notif-detail-header {
     display: flex;
     justify-content: space-between;
@@ -2155,7 +2152,7 @@ body.dark-theme .notif-detail-meta strong { color: #e0e0e0; }
 .form-tab-content .form-row { gap: 16px; margin-bottom: 6px; }
 
 /* ============================================================
-   31. PRIORIDADES (cores nos <option>)
+   31. PRIORIDADES
    ============================================================ */
 #u-prioridade option[value="baixa"] { color: #95a5a6; }
 #u-prioridade option[value="normal"] { color: #3498db; font-weight: 600; }
@@ -2825,7 +2822,7 @@ body.dark-theme .dashboard-empty-state {
 body.dark-theme .dashboard-empty-state h3 { color: #e0e0e0; }
 
 /* ============================================================
-   43. DASHBOARD SETTINGS (Configurações → Dashboard)
+   43. DASHBOARD SETTINGS
    ============================================================ */
 .dashboard-settings-list {
     display: flex;
@@ -2845,16 +2842,10 @@ body.dark-theme .dashboard-empty-state h3 { color: #e0e0e0; }
     transition: opacity 0.15s ease, border-color 0.15s ease;
     flex-wrap: wrap;
 }
-.dashboard-settings-item:hover {
-    border-color: var(--color-primary);
-}
-.dashboard-settings-item.disabled {
-    opacity: 0.5;
-}
+.dashboard-settings-item:hover { border-color: var(--color-primary); }
+.dashboard-settings-item.disabled { opacity: 0.5; }
 .dashboard-settings-item.disabled .ds-type-select,
-.dashboard-settings-item.disabled .ds-order-buttons {
-    pointer-events: none;
-}
+.dashboard-settings-item.disabled .ds-order-buttons { pointer-events: none; }
 
 .ds-item-left {
     display: flex;
@@ -2863,90 +2854,115 @@ body.dark-theme .dashboard-empty-state h3 { color: #e0e0e0; }
     flex: 1;
     min-width: 200px;
 }
-.ds-item-icon { color: var(--color-primary); }
+
+.ds-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ds-item-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .ds-item-label {
     font-size: 0.92rem;
     font-weight: 600;
     color: var(--color-secondary);
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+.ds-item-subtitle {
+    font-size: 0.75rem;
+    color: var(--color-gray-600);
+    line-height: 1.2;
+}
+
+.ds-item-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .ds-toggle {
-    position: relative;
-    display: inline-block;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-.ds-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-.ds-toggle-mark {
-    display: inline-block;
-    width: 38px;
-    height: 22px;
-    background: var(--color-gray-300);
-    border-radius: 11px;
-    position: relative;
-    transition: background 0.2s ease;
-}
-.ds-toggle-mark::after {
-    content: '';
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 16px;
-    height: 16px;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    transition: transform 0.2s ease;
-}
-.ds-toggle input:checked + .ds-toggle-mark {
-    background: var(--color-success);
-}
-.ds-toggle input:checked + .ds-toggle-mark::after {
-    transform: translateX(16px);
-}
-
-.ds-item-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.ds-type-select {
-    min-width: 170px;
-    height: 36px;
-    padding: 6px 10px;
-    font-size: 0.85rem;
-}
-.ds-order-buttons {
-    display: inline-flex;
-    gap: 4px;
-}
-.ds-order-buttons .btn {
-    padding: 5px 8px;
-    min-width: 0;
-}
-.ds-order-buttons .btn:disabled {
-    opacity: 0.35;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--color-gray-700);
+    font-weight: 500;
 }
 
-@media (max-width: 640px) {
-    .dashboard-settings-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .ds-item-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
-    .ds-type-select {
-        flex: 1;
-        min-width: 0;
-    }
+.ds-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.ds-type-select {
+    padding: 7px 10px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    background: #fff;
+    font-family: inherit;
+    cursor: pointer;
+    min-width: 150px;
+}
+.ds-type-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.ds-order-buttons {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.ds-order-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--color-gray-300);
+    background: #fff;
+    border-radius: var(--radius-sm);
+    color: var(--color-gray-600);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+.ds-order-btn:hover:not(:disabled) {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary-dark);
+}
+.ds-order-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.dashboard-settings-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 14px;
+    flex-wrap: wrap;
 }
 
 body.dark-theme .dashboard-settings-item {
@@ -2954,109 +2970,217 @@ body.dark-theme .dashboard-settings-item {
     border-color: #3a3a3a;
 }
 body.dark-theme .ds-item-label { color: #e0e0e0; }
-body.dark-theme .ds-toggle-mark { background: #444; }
-body.dark-theme .ds-toggle input:checked + .ds-toggle-mark { background: var(--color-success); }
-body.dark-theme .chart-type-badge {
-    background: #1a3448;
-    color: #6bb6f0;
+body.dark-theme .ds-item-subtitle { color: #b0b0b0; }
+body.dark-theme .ds-type-select {
+    background: #333;
+    border-color: #444;
+    color: #e0e0e0;
 }
+body.dark-theme .ds-order-btn {
+    background: #333;
+    border-color: #444;
+    color: #b0b0b0;
+}
+body.dark-theme .ds-toggle { color: #b0b0b0; }
 
-/* ============================================================
-   44. ÍCONE IMPORTAR/EXPORTAR NO TOPO
-   ============================================================ */
-.top-icon.active {
-    background: var(--color-primary) !important;
-    color: #fff !important;
-}
-
-/* ============================================================
-   45. FIX Z-INDEX — MODAL DE DETALHE DA NOTIFICAÇÃO
-   Garante que ele fique ACIMA do modal de lista e do admin
-   ============================================================ */
-#notif-detail-modal {
-    z-index: 2100;
-}
-#notif-view-modal,
-#notif-admin-modal {
-    z-index: 2000;
-}
-#notif-modal {
-    z-index: 2000;
+@media (max-width: 640px) {
+    .dashboard-settings-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .ds-item-right {
+        justify-content: space-between;
+    }
+    .ds-type-select { min-width: 0; flex: 1; }
 }
 /* ============================================================
-   SSOT v20.1 — Correções
+   44. LOGIN EM 2 COLUNAS COM IMAGEM — v19.4
+   — Mostra accesslogin.png diretamente no painel direito
+   — Mantém fallback visual + proteção anti-drag/clique-direito
    ============================================================ */
-
-/* ---------- FIX CRÍTICO: login/loading/app hidden sempre vencem ---------- */
-#login-page.hidden,
-#app-container.hidden,
-#conn-loading.hidden,
-.login-container.hidden {
-    display: none !important;
-}
-
-/* ---------- (6) Área Select com fundo branco ---------- */
-.area-select-overlay { background: rgba(15, 23, 42, 0.55) !important; }
-.area-select-modal-custom { background: #fff !important; color: #2c3e50; }
-.area-select-header {
-    background: #fff !important;
-    color: #2c3e50 !important;
-    border-bottom: 1px solid #e6ebf0;
-}
-.area-select-header h2,
-.area-select-header p,
-.area-select-brand span { color: #2c3e50 !important; }
-.area-select-body { background: #fff !important; }
-.area-select-footer { color: #7f8c8d; }
-
-/* ---------- (4) Login em 2 colunas ---------- */
 .login-container:not(.hidden) {
     display: flex !important;
     align-items: stretch !important;
-    justify-content: center !important;
+    justify-content: stretch !important;
     padding: 0 !important;
+    margin: 0 !important;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
     background: #f5f7fa;
+    background-image: none !important;
+    overflow-x: hidden;
 }
+
 .login-split {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     width: 100%;
-    max-width: 1280px;
+    max-width: none !important;
     min-height: 100vh;
+    margin: 0;
+    gap: 0;
+    align-items: stretch;
 }
+
 .login-left {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 32px 24px;
     background: #f5f7fa;
+    min-height: 100vh;
+    overflow-y: auto;
 }
+
+/* ===== PAINEL DIREITO — mostra a imagem ===== */
 .login-right {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
-    overflow: hidden;
     position: relative;
+    overflow: hidden;
+    min-height: 100vh;
+    height: 100%;
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
-.login-right img {
+
+/* 🔑 AQUI: a <img> volta a aparecer (ocupa 100% do painel) */
+.login-right > img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover;          /* se quiser ver a imagem INTEIRA, troque para "contain" */
     object-position: center;
     display: block;
+    position: relative;
+    z-index: 2;
+
+    /* Proteção: sem clique-direito / sem drag / sem seleção */
+    pointer-events: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
+
+/* Fallback (só aparece se a imagem der 404) */
+.login-right-fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    z-index: 3;
+    color: #fff;
+    pointer-events: none;
+}
+
+.login-right-fallback-inner { max-width: 420px; }
+
+.login-right-fallback svg {
+    color: #fff;
+    margin-bottom: 20px;
+    opacity: 0.95;
+}
+
+.login-right-fallback h2 {
+    color: #fff;
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0 0 12px;
+}
+
+.login-right-fallback p {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin: 0 0 28px;
+}
+
+.login-right-fallback ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    display: inline-block;
+}
+
+.login-right-fallback li {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.95rem;
+    padding: 6px 0 6px 24px;
+    position: relative;
+}
+
+.login-right-fallback li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #2ecc71;
+    font-weight: 700;
+}
+
+/* Se a imagem falhar, troca <img> → fallback */
+.login-right.no-image > img { display: none; }
+.login-right.no-image .login-right-fallback { display: flex; }
+
 @media (max-width: 900px) {
     .login-split { grid-template-columns: 1fr; }
     .login-right { display: none; }
-    .login-left { padding: 16px; }
+    .login-left { padding: 16px; min-height: auto; }
 }
 
-/* ---------- (5) Layout VERTICAL do menu ---------- */
+/* ============================================================
+   45. ÁREA SELECT — FUNDO BRANCO
+   ============================================================ */
+#area-select-modal.area-select-overlay {
+    background: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+}
+
+#area-select-modal .area-select-modal-custom {
+    background: #ffffff !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25) !important;
+}
+
+.area-select-header {
+    background: #ffffff !important;
+    color: #2c3e50 !important;
+    border-bottom: 2px solid #e6ebf0 !important;
+}
+
+.area-select-header h2 { color: #2c3e50 !important; }
+.area-select-header p { color: #7f8c8d !important; }
+
+.area-select-brand { color: #2c3e50 !important; }
+.area-select-brand span { color: #2c3e50 !important; }
+.area-select-brand svg,
+.area-select-brand img { color: #3498db !important; }
+
+.area-select-footer { color: #7f8c8d !important; }
+.area-select-footer strong { color: #2c3e50 !important; }
+
+/* ============================================================
+   46. MENU VERTICAL (LATERAL)
+   ============================================================ */
 body.menu-vertical #app-container { padding-top: 0 !important; }
+
 body.menu-vertical .top-menu {
     position: fixed !important;
-    top: 0; left: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
     width: 240px;
     height: 100vh;
     flex-direction: column !important;
@@ -3064,11 +3188,19 @@ body.menu-vertical .top-menu {
     padding: 14px 10px !important;
     overflow-y: auto;
     border-right: 1px solid #e6ebf0;
+    border-bottom: none !important;
     z-index: 900;
     box-shadow: 2px 0 12px rgba(0,0,0,0.04);
 }
-body.menu-vertical .top-menu-left { display: flex; align-items: center; margin-bottom: 14px; }
+
+body.menu-vertical .top-menu-left {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
 body.menu-vertical .top-menu-brand { font-size: 1rem; }
+
 body.menu-vertical .top-menu-nav {
     display: block !important;
     width: 100%;
@@ -3077,15 +3209,20 @@ body.menu-vertical .top-menu-nav {
     background: transparent !important;
     border: none !important;
     max-height: none !important;
+    flex: 1;
 }
+
 body.menu-vertical .top-menu-nav ul {
     display: flex !important;
     flex-direction: column !important;
     gap: 4px !important;
     padding: 0 !important;
     margin: 0 !important;
+    align-items: stretch;
 }
+
 body.menu-vertical .top-menu-nav li { width: 100%; }
+
 body.menu-vertical .top-menu-nav a {
     display: flex !important;
     align-items: center;
@@ -3096,65 +3233,145 @@ body.menu-vertical .top-menu-nav a {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    border-left: none !important;
 }
+
 body.menu-vertical .top-menu-nav a.active,
 body.menu-vertical .top-menu-nav a:hover {
-    background: #eef5fb;
-    color: #2980b9;
+    background: #34495e !important;
+    color: #fff !important;
 }
+
+body.menu-vertical .top-menu-nav a svg {
+    margin-right: 6px !important;
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0;
+}
+
 body.menu-vertical .top-menu-icons {
     margin-top: auto !important;
     justify-content: flex-start !important;
     flex-wrap: wrap;
     gap: 6px;
     padding-top: 12px;
-    border-top: 1px solid #e6ebf0;
+    border-top: 1px solid #34495e;
 }
+
 body.menu-vertical .main-content {
     margin-left: 240px !important;
     width: calc(100% - 240px) !important;
 }
+
 body.menu-vertical .mobile-menu-btn { display: none !important; }
+
 @media (max-width: 900px) {
     body.menu-vertical .top-menu {
-        position: static !important;
+        position: sticky !important;
+        top: 0;
+        left: auto;
+        bottom: auto;
         width: 100% !important;
         height: auto !important;
         flex-direction: row !important;
         border-right: none;
-        border-bottom: 1px solid #e6ebf0;
-        overflow-x: auto;
+        border-bottom: 2px solid #34495e;
+        overflow-x: visible;
+        overflow-y: visible;
     }
-    body.menu-vertical .top-menu-nav { display: none !important; }
-    body.menu-vertical .top-menu-nav.active { display: block !important; }
-    body.menu-vertical .main-content { margin-left: 0 !important; width: 100% !important; }
-    body.menu-vertical .mobile-menu-btn { display: inline-flex !important; }
+
+    body.menu-vertical .top-menu-nav {
+        display: flex !important;
+        position: fixed !important;
+        top: 56px;
+        left: -100%;
+        width: 280px;
+        height: calc(100vh - 56px);
+        background: #1a252f !important;
+        z-index: 105;
+        flex-direction: column;
+        justify-content: flex-start !important;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        border-right: 1px solid #34495e;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+        padding: 10px 0;
+        flex: initial;
+    }
+
+    body.menu-vertical .top-menu-nav.active { left: 0; }
+
+    body.menu-vertical .top-menu-nav ul {
+        flex-direction: column;
+        width: 100%;
+        gap: 0;
+        padding: 0;
+    }
+
+    body.menu-vertical .top-menu-nav a {
+        padding: 13px 18px !important;
+        border-radius: 0 !important;
+        border-left: 3px solid transparent !important;
+        font-size: 0.9rem;
+        margin: 0;
+        justify-content: flex-start;
+    }
+
+    body.menu-vertical .top-menu-nav a:hover,
+    body.menu-vertical .top-menu-nav a.active {
+        border-left-color: var(--color-primary) !important;
+        background: #2c3e50 !important;
+    }
+
+    body.menu-vertical .top-menu-icons {
+        margin-top: 0 !important;
+        padding-top: 0;
+        border-top: none;
+        justify-content: flex-end !important;
+    }
+
+    body.menu-vertical .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    body.menu-vertical .mobile-menu-btn {
+        display: inline-flex !important;
+    }
 }
 
-/* ---------- UI "Guias Visíveis" nas Configurações ---------- */
+/* ============================================================
+   47. UI "GUIAS VISÍVEIS"
+   ============================================================ */
 .tabs-visibility-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     margin-top: 8px;
 }
-@media (max-width: 720px) { .tabs-visibility-container { grid-template-columns: 1fr; } }
+
+@media (max-width: 720px) {
+    .tabs-visibility-container { grid-template-columns: 1fr; }
+}
+
 .tabs-visibility-group {
-    border: 1px solid #e6ebf0;
+    border: 1px solid var(--color-gray-200);
     border-radius: 10px;
     padding: 10px 12px;
-    background: #fafbfc;
+    background: var(--color-gray-50);
 }
+
 .tabs-visibility-group-title {
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #7f8c8d;
+    color: var(--color-gray-600);
     margin-bottom: 8px;
     padding-bottom: 6px;
-    border-bottom: 1px dashed #e1e8ed;
+    border-bottom: 1px dashed var(--color-gray-200);
 }
+
 .tabs-visibility-item {
     display: flex;
     align-items: center;
@@ -3164,19 +3381,186 @@ body.menu-vertical .mobile-menu-btn { display: none !important; }
     cursor: pointer;
     font-size: 0.9rem;
     transition: background 0.15s;
+    color: var(--color-gray-800);
 }
-.tabs-visibility-item:hover { background: #eef5fb; }
-.tabs-visibility-item input[type="checkbox"] { accent-color: #3498db; cursor: pointer; width: 16px; height: 16px; }
-.tabs-visibility-item.is-locked { opacity: 0.8; cursor: not-allowed; }
-.tabs-visibility-item.is-locked input { cursor: not-allowed; }
-.tabs-visibility-lock { margin-left: auto; font-size: 0.8rem; opacity: 0.7; }
-.form-hint { display: block; margin-top: 4px; font-size: 0.78rem; color: #95a5a6; }
 
-/* ---------- FIX: bloqueia scroll de fundo quando modal/sidebar abertos ---------- */
+.tabs-visibility-item:hover { background: var(--color-primary-light); }
+
+.tabs-visibility-item input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.tabs-visibility-item svg {
+    color: var(--color-gray-600);
+    flex-shrink: 0;
+}
+
+.tabs-visibility-item:hover svg { color: var(--color-primary); }
+
+.tabs-visibility-item.is-locked {
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.tabs-visibility-item.is-locked input { cursor: not-allowed; }
+
+.tabs-visibility-lock {
+    margin-left: auto;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+body.dark-theme .tabs-visibility-group {
+    background: #262626;
+    border-color: #3a3a3a;
+}
+body.dark-theme .tabs-visibility-group-title {
+    color: #b0b0b0;
+    border-bottom-color: #3a3a3a;
+}
+body.dark-theme .tabs-visibility-item { color: #e0e0e0; }
+body.dark-theme .tabs-visibility-item:hover { background: #333; }
+
+/* ============================================================
+   48. SCROLL LOCK
+   ============================================================ */
 body.modal-open { overflow: hidden !important; }
 
-/* Fallback moderno (navegadores recentes) — cobre todos os casos mesmo antes do JS */
 body:has(.modal-overlay.active),
 body:has(.sidebar-overlay.active) {
     overflow: hidden !important;
+}
+
+/* ============================================================
+   49. BOTÃO IMPRIMIR
+   ============================================================ */
+#admin-print-requests {
+    background: #34495e;
+    color: #fff;
+    border: 1px solid #34495e;
+}
+#admin-print-requests:hover:not(:disabled) {
+    background: #2c3e50;
+    border-color: #2c3e50;
+}
+
+body.dark-theme #admin-print-requests {
+    background: #455a64;
+    border-color: #455a64;
+}
+body.dark-theme #admin-print-requests:hover:not(:disabled) {
+    background: #37474f;
+    border-color: #37474f;
+}
+
+/* ---------- FIM ---------- */
+/* =================================================================
+   LOGIN — PAINEL DIREITO (imagem + fallback + proteção)
+   Adicionar ao FINAL do css/style.css
+   ================================================================= */
+
+.login-right {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.login-right > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    position: relative;
+    z-index: 2;
+
+    /* Bloqueia interações na imagem */
+    pointer-events: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Fallback visível apenas quando a imagem falha */
+.login-right-fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    z-index: 3;
+    color: #fff;
+    pointer-events: none;
+}
+
+.login-right-fallback-inner {
+    max-width: 420px;
+}
+
+.login-right-fallback svg {
+    color: #fff;
+    margin-bottom: 20px;
+    opacity: 0.95;
+}
+
+.login-right-fallback h2 {
+    color: #fff;
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0 0 12px;
+}
+
+.login-right-fallback p {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin: 0 0 28px;
+}
+
+.login-right-fallback ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    display: inline-block;
+}
+
+.login-right-fallback li {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.95rem;
+    padding: 6px 0 6px 24px;
+    position: relative;
+}
+
+.login-right-fallback li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #2ecc71;
+    font-weight: 700;
+}
+
+/* Troca automática imagem → fallback */
+.login-right.no-image > img { display: none; }
+.login-right.no-image .login-right-fallback { display: flex; }
+
+/* Em telas estreitas o painel direito some (padrão de login split) */
+@media (max-width: 900px) {
+    .login-right { display: none; }
 }
