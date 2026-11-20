@@ -1,8 +1,10 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE TRANSPORTE (v12.0)
-// Alterações:
-//  - Botão "Editar Horários" para status Em Andamento / Concluída
-//  - Modal para alterar apenas saída/retorno (com ajuste na agenda)
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v13.0)
+// Alterações v13.0:
+//  - FEAT: botão "Solicitar Cancelamento" para solicitações Aprovadas/Em Andamento
+//  - FIX:  PDF do comprovante reescrito inline (sem depender de pdf-generator.js)
+//          Layout A4 consistente, sem colunas quebradas, sem corte de texto
+//  - Mantidas todas as funcionalidades v12.0 (editar horários, etc.)
 // ============================================================
 
 import {
@@ -15,9 +17,8 @@ import {
     getVeiculoText, truncate
 } from './utils.js';
 
-import { generateRequestPDF } from './pdf-generator.js';
 import { addHistory } from './history.js';
-import { sstConfirm } from './dialogs.js';
+import { sstConfirm, sstPrompt } from './dialogs.js';
 
 let _db = null;
 let _currentUser = null;
@@ -178,6 +179,93 @@ export async function changeRequestStatus(id, newStatus) {
 }
 
 // ============================================================
+// SOLICITAR CANCELAMENTO (v13.0 — NOVO)
+// ============================================================
+export async function requestCancellation(id) {
+    const r = _requests.find(x => x.id === id);
+    if (!r) {
+        showNotification('Erro', 'Solicitação não encontrada.', 'danger');
+        return;
+    }
+    if (!_currentUser) {
+        showNotification('Erro', 'Sessão expirada. Faça login novamente.', 'danger');
+        return;
+    }
+
+    // Só permite cancelar se aprovada ou em andamento
+    if (r.status !== 'aprovada' && r.status !== 'em-andamento') {
+        showNotification(
+            'Não permitido',
+            'Só é possível solicitar cancelamento de solicitações Aprovadas ou Em Andamento.',
+            'warning'
+        );
+        return;
+    }
+
+    // Pede motivo (opcional)
+    const reason = await sstPrompt(
+        `Motivo do cancelamento da solicitação ${r.numero} (opcional):`,
+        '',
+        'Solicitar Cancelamento'
+    );
+    // Se o usuário fechou o prompt sem confirmar
+    if (reason === null) return;
+
+    // Confirmação final
+    const ok = await sstConfirm(
+        `Solicitar cancelamento da solicitação ${r.numero}?\n\n` +
+        `Destino: ${r.destino}\n` +
+        `Saída: ${formatDateTime(r.saida)}\n\n` +
+        `O horário será liberado na agenda automaticamente.`,
+        'Confirmar Cancelamento',
+        'warning'
+    );
+    if (!ok) return;
+
+    try {
+        // Libera o slot na agenda
+        if (r.saida && r.saida.includes('T')) {
+            const [date, time] = r.saida.split('T');
+            if (date && time) {
+                try {
+                    const schedule = await import('./schedule.js');
+                    await schedule.freeSlot(date, time.substring(0, 5));
+                } catch (e) {
+                    console.warn('[Requests] freeSlot:', e);
+                }
+            }
+        }
+
+        const now = new Date().toISOString();
+        await update(ref(_db, 'requests/' + id), {
+            status: 'cancelada',
+            cancellationRequest: {
+                requestedAt: now,
+                requestedBy: _currentUser?.name || 'Sistema',
+                reason: (reason || '').trim(),
+                status: 'aprovado'
+            },
+            cancelledAt: now,
+            cancelledBy: _currentUser?.name || 'Sistema',
+            updatedBy: _currentUser?.name || 'Sistema',
+            timestamp: now
+        });
+
+        await addHistory(
+            'Cancelamento Solicitado',
+            r.numero,
+            `Motivo: ${(reason || '').trim() || '(não informado)'} | Por: ${_currentUser?.name}`
+        );
+
+        closeViewModal();
+        showNotification('Cancelada', `Solicitação ${r.numero} cancelada com sucesso.`, 'success');
+    } catch (err) {
+        console.error('[Requests] requestCancellation:', err);
+        showNotification('Erro', 'Não foi possível cancelar a solicitação.', 'danger');
+    }
+}
+
+// ============================================================
 // EDITAR HORÁRIOS (Em Andamento / Concluída)
 // ============================================================
 export function openEditHoursModal(id) {
@@ -220,15 +308,12 @@ export function openEditHoursModal(id) {
 function toDatetimeLocal(value) {
     if (!value) return '';
     const s = String(value).trim();
-    // Já está no formato YYYY-MM-DDTHH:mm(:ss)? — só corta
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) {
         return s.slice(0, 16);
     }
-    // YYYY-MM-DD puro
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
         return `${s}T00:00`;
     }
-    // Tenta parsear (ISO com Z etc.)
     const d = new Date(s);
     if (isNaN(d.getTime())) return '';
     const pad = n => String(n).padStart(2, '0');
@@ -265,9 +350,7 @@ export async function saveRequestHours() {
     if (errBox) errBox.classList.add('hidden');
 
     try {
-        // Ajuste da agenda — libera slot antigo, reserva novo
         if (newSaida !== oldSaida) {
-            // Libera antigo
             if (oldSaida && oldSaida.includes('T')) {
                 const [oldDate, oldTime] = oldSaida.split('T');
                 if (oldDate && oldTime) {
@@ -277,7 +360,6 @@ export async function saveRequestHours() {
                     } catch (e) { console.warn('[Requests] freeSlot:', e); }
                 }
             }
-            // Reserva novo
             if (newSaida.includes('T')) {
                 const [newDate, newTime] = newSaida.split('T');
                 if (newDate && newTime) {
@@ -400,20 +482,32 @@ export function updateUserTable() {
         return nb - na;
     });
 
-    tbody.innerHTML = mine.map(r => `
-        <tr>
-            <td><strong>${escapeHtml(r.numero)}</strong></td>
-            <td>${escapeHtml(r.destino)}</td>
-            <td>${r.saida ? formatDateTime(r.saida) : '—'}</td>
-            <td>${r.retorno ? formatDateTime(r.retorno) : '—'}</td>
-            <td><span class="badge ${getStatusBadgeClass(r.status)}">${getStatusText(r.status)}</span></td>
-            <td>
-                <button onclick="viewRequest('${r.id}', false)" class="btn btn-primary btn-sm">
-                    <svg class="si"><use href="#i-eye"/></svg> Ver
+    tbody.innerHTML = mine.map(r => {
+        // Ações por linha
+        let actions = `
+            <button onclick="viewRequest('${r.id}', false)" class="btn btn-primary btn-sm" title="Ver detalhes">
+                <svg class="si"><use href="#i-eye"/></svg> Ver
+            </button>
+        `;
+        if (r.status === 'aprovada' || r.status === 'em-andamento') {
+            actions += `
+                <button onclick="window.requestCancellation('${r.id}')" class="btn btn-warning btn-sm" title="Solicitar Cancelamento" style="margin-left:6px;">
+                    <svg class="si"><use href="#i-x-circle"/></svg>
                 </button>
-            </td>
-        </tr>
-    `).join('');
+            `;
+        }
+
+        return `
+            <tr>
+                <td><strong>${escapeHtml(r.numero)}</strong></td>
+                <td>${escapeHtml(r.destino)}</td>
+                <td>${r.saida ? formatDateTime(r.saida) : '—'}</td>
+                <td>${r.retorno ? formatDateTime(r.retorno) : '—'}</td>
+                <td><span class="badge ${getStatusBadgeClass(r.status)}">${getStatusText(r.status)}</span></td>
+                <td>${actions}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 export function updateAdminTable() {
@@ -558,6 +652,7 @@ export function viewRequest(id, adminView) {
         ${r.necessidades ? `<div class="detail-group detail-full"><div class="detail-label">Necessidades</div><div class="detail-value">${escapeHtml(r.necessidades)}</div></div>` : ''}
         ${r.nomesPassageiros ? `<div class="detail-group detail-full"><div class="detail-label">Passageiros</div><div class="detail-value">${escapeHtml(r.nomesPassageiros).replace(/\n/g, '<br>')}</div></div>` : ''}
         ${r.observacoes ? `<div class="detail-group detail-full"><div class="detail-label">Observações</div><div class="detail-value">${escapeHtml(r.observacoes).replace(/\n/g, '<br>')}</div></div>` : ''}
+        ${r.cancellationRequest?.reason ? `<div class="detail-group detail-full"><div class="detail-label">Cancelamento — Motivo</div><div class="detail-value">${escapeHtml(r.cancellationRequest.reason)}</div></div>` : ''}
         <div class="detail-group"><div class="detail-label">Criado em</div><div class="detail-value">${formatDateTime(r.timestamp)}</div></div>
     `;
 
@@ -585,7 +680,6 @@ export function viewRequest(id, adminView) {
         if (r.status === 'em-andamento') {
             buttons += `<button class="btn btn-info" onclick="changeStatus('${r.id}', 'concluida')"><svg class="si"><use href="#i-flag"/></svg> Concluir</button>`;
         }
-        // ⬇️ NOVO: editar horários (em-andamento / concluida)
         if (r.status === 'em-andamento' || r.status === 'concluida') {
             buttons += `<button class="btn btn-warning" onclick="window.openEditHoursModal('${r.id}')"><svg class="si"><use href="#i-clock"/></svg> Editar Horários</button>`;
         }
@@ -595,10 +689,17 @@ export function viewRequest(id, adminView) {
         `;
         footer.innerHTML = buttons;
     } else {
+        // ── Área do usuário comum ──
         let buttons = `<button class="btn btn-success" onclick="window.downloadUserRequestPDF('${r.id}')"><svg class="si"><use href="#i-file-pdf"/></svg> Baixar PDF</button>`;
+
         if (r.status === 'pendente') {
             buttons += `<button class="btn btn-danger" onclick="changeStatus('${r.id}', 'cancelada')"><svg class="si"><use href="#i-ban"/></svg> Cancelar</button>`;
         }
+        // 🔽 NOVO v13.0: botão "Solicitar Cancelamento" para Aprovada / Em Andamento
+        if (r.status === 'aprovada' || r.status === 'em-andamento') {
+            buttons += `<button class="btn btn-warning" onclick="window.requestCancellation('${r.id}')"><svg class="si"><use href="#i-x-circle"/></svg> Solicitar Cancelamento</button>`;
+        }
+
         buttons += `<button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>`;
         footer.innerHTML = buttons;
     }
@@ -658,7 +759,7 @@ export function renderTodayRequestsWidget() {
 }
 
 // ============================================================
-// PDF DO COMPROVANTE — delega para pdf-generator.js
+// PDF DO COMPROVANTE — gerado inline com html2pdf (v13.0)
 // ============================================================
 export async function downloadUserRequestPDF(requestId) {
     const r = _requests.find(x => x.id === requestId);
@@ -666,15 +767,243 @@ export async function downloadUserRequestPDF(requestId) {
         showNotification('Erro', 'Solicitação não encontrada.', 'danger');
         return;
     }
+    if (!window.html2pdf) {
+        showNotification('Erro', 'Biblioteca PDF não carregada. Recarregue com Ctrl+F5.', 'danger');
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:999998;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;font-weight:600;font-family:"Segoe UI",Arial,sans-serif;';
+    overlay.innerHTML = '<div style="text-align:center"><div style="margin-bottom:10px">📄 Gerando PDF...</div><div style="font-size:0.85rem;opacity:0.8;">Aguarde um instante</div></div>';
+    document.body.appendChild(overlay);
 
     try {
-        await generateRequestPDF(r);
+        const htmlString = buildUserRequestHTML(r);
+        await window.html2pdf().set({
+            margin: 0,
+            filename: `solicitacao_${r.numero}_${new Date().toISOString().slice(0, 10)}.pdf`,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        }).from(htmlString).save();
+
         await addHistory('PDF Baixado', r.numero, `Por: ${_currentUser?.name}`);
         showNotification('PDF Gerado', 'Comprovante baixado com sucesso!', 'success');
     } catch (err) {
         console.error('[Requests] Erro ao gerar PDF:', err);
         showNotification('Erro', 'Não foi possível gerar o PDF.', 'danger');
+    } finally {
+        overlay.remove();
     }
+}
+
+function buildUserRequestHTML(r) {
+    const now = new Date();
+    const user = _currentUser?.name || 'Sistema';
+
+    const esc = (v) => escapeHtml(v == null ? '' : String(v));
+    const fmtDT = (v) => v ? formatDateTime(v) : '—';
+
+    const statusClass = {
+        'pendente': 'b-w',
+        'aprovada': 'b-s',
+        'recusada': 'b-d',
+        'em-andamento': 'b-p',
+        'concluida': 'b-i',
+        'cancelada': 'b-x'
+    }[r.status] || 'b-w';
+
+    const prioridadeClass = {
+        'baixa': 'b-x',
+        'normal': 'b-p',
+        'alta': 'b-w',
+        'urgente': 'b-d'
+    }[r.prioridade] || 'b-p';
+
+    const qrUrl = window.location.origin + window.location.pathname + '?request=' + r.id;
+
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Solicitação ${esc(r.numero)} - SSOT</title>
+<style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; color: #2c3e50; }
+    .a4-container { width: 210mm; min-height: 297mm; padding: 15mm; box-sizing: border-box; margin: 0 auto; background: #fff; }
+
+    .header { border-bottom: 3px solid #3498db; padding-bottom: 12px; margin-bottom: 20px; }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
+    .header-brand h1 { color: #2c3e50; margin: 0; font-size: 16px; font-weight: bold; }
+    .header-brand h2 { color: #3498db; margin: 3px 0 0; font-size: 11px; font-weight: normal; }
+    .header-meta { text-align: right; font-size: 10px; color: #7f8c8d; line-height: 1.6; flex-shrink: 0; }
+    .header-meta strong { color: #2c3e50; }
+
+    .status-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #3498db; }
+    .status-box .numero-label { font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; margin-bottom: 2px; }
+    .status-box .numero { font-size: 20px; font-weight: bold; color: #2c3e50; }
+
+    .section { margin-bottom: 18px; page-break-inside: avoid; }
+    .section-title { font-size: 11px; font-weight: bold; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; background: #eaf4fc; border-left: 3px solid #3498db; margin-bottom: 10px; }
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 0 6px; }
+    .field { min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .field-label { font-size: 9px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; margin-bottom: 3px; }
+    .field-value { font-size: 12px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; }
+    .field-value.multi { white-space: pre-wrap; }
+
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; color: #fff; }
+    .b-w { background: #d68910; }
+    .b-s { background: #27ae60; }
+    .b-d { background: #c0392b; }
+    .b-p { background: #3498db; }
+    .b-i { background: #1abc9c; }
+    .b-x { background: #95a5a6; }
+
+    .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #7f8c8d; border-top: 1px solid #eeeeee; padding-top: 15px; }
+    .footer p { margin: 3px 0; }
+    .footer-obs { padding: 10px 12px; background: #fff3cd; border-left: 3px solid #d68910; margin: 14px 0; font-size: 10px; color: #856404; border-radius: 3px; page-break-inside: avoid; }
+
+    .qr-section { margin-top: 20px; text-align: center; page-break-inside: avoid; }
+    .qr-section img { width: 100px; height: 100px; }
+    .qr-label { font-size: 9px; color: #7f8c8d; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="a4-container">
+
+    <div class="header">
+        <div class="header-top">
+            <div class="header-brand">
+                <h1>SSOT — Comprovante de Solicitação</h1>
+                <h2>Sistema de Solicitações e Operações de Transporte</h2>
+            </div>
+            <div class="header-meta">
+                Gerado em<br>
+                <strong>${esc(now.toLocaleDateString('pt-BR'))}</strong> às <strong>${esc(now.toLocaleTimeString('pt-BR'))}</strong><br>
+                Por: ${esc(user)}
+            </div>
+        </div>
+    </div>
+
+    <div class="status-box">
+        <div>
+            <div class="numero-label">Solicitação</div>
+            <div class="numero">${esc(r.numero)}</div>
+        </div>
+        <div>
+            <span class="badge ${statusClass}">${esc(getStatusText(r.status))}</span>
+            <span class="badge ${prioridadeClass}" style="margin-left:6px;">${esc(r.prioridade || 'normal')}</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Solicitante</div>
+        <div class="fields-grid">
+            <div class="field full">
+                <div class="field-label">Nome</div>
+                <div class="field-value">${esc(r.solicitante)}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">E-mail</div>
+                <div class="field-value">${esc(r.email || '—')}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Ramal</div>
+                <div class="field-value">${esc(r.ramal || '—')}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Setor</div>
+                <div class="field-value">${esc(r.setor || '—')}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Cargo</div>
+                <div class="field-value">${esc(r.cargo || '—')}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Detalhes da Viagem</div>
+        <div class="fields-grid">
+            <div class="field">
+                <div class="field-label">Destino</div>
+                <div class="field-value"><strong>${esc(r.destino)}</strong></div>
+            </div>
+            <div class="field">
+                <div class="field-label">Origem</div>
+                <div class="field-value">${esc(r.origem || '—')}</div>
+            </div>
+            <div class="field full">
+                <div class="field-label">Finalidade</div>
+                <div class="field-value multi">${esc(r.finalidade || '—')}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Saída</div>
+                <div class="field-value"><strong>${fmtDT(r.saida)}</strong></div>
+            </div>
+            <div class="field">
+                <div class="field-label">Retorno</div>
+                <div class="field-value">${fmtDT(r.retorno)}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Nº de Passageiros</div>
+                <div class="field-value">${esc(String(r.passageiros || '1'))}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Veículo</div>
+                <div class="field-value">${esc(getVeiculoText(r.veiculo))}</div>
+            </div>
+        </div>
+    </div>
+
+    ${(r.necessidades || r.nomesPassageiros || r.observacoes) ? `
+    <div class="section">
+        <div class="section-title">Observações</div>
+        <div class="fields-grid">
+            ${r.necessidades ? `
+            <div class="field full">
+                <div class="field-label">Necessidades Especiais</div>
+                <div class="field-value multi">${esc(r.necessidades)}</div>
+            </div>` : ''}
+            ${r.nomesPassageiros ? `
+            <div class="field full">
+                <div class="field-label">Nomes dos Passageiros</div>
+                <div class="field-value multi">${esc(r.nomesPassageiros)}</div>
+            </div>` : ''}
+            ${r.observacoes ? `
+            <div class="field full">
+                <div class="field-label">Observações</div>
+                <div class="field-value multi">${esc(r.observacoes)}</div>
+            </div>` : ''}
+        </div>
+    </div>
+    ` : ''}
+
+    ${r.cancellationRequest && r.cancellationRequest.reason ? `
+    <div class="footer-obs">
+        <strong>⚠️ Cancelamento solicitado</strong><br>
+        Motivo: ${esc(r.cancellationRequest.reason)}<br>
+        Solicitado em: ${fmtDT(r.cancellationRequest.requestedAt)}
+    </div>
+    ` : ''}
+
+    <div class="qr-section">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}" alt="QR Code">
+        <div class="qr-label">Escaneie para abrir esta solicitação</div>
+    </div>
+
+    <div class="footer">
+        <p><strong>SSOT — Sistema de Solicitações e Operações de Transporte</strong></p>
+        <p>Documento gerado automaticamente · ${esc(now.toLocaleString('pt-BR'))}</p>
+        <p>Criada em ${fmtDT(r.timestamp)}</p>
+    </div>
+
+</div>
+</body>
+</html>`;
 }
 
 // ============================================================
@@ -685,6 +1014,7 @@ window.closeViewModal = closeViewModal;
 window.downloadUserRequestPDF = downloadUserRequestPDF;
 window.openEditHoursModal = openEditHoursModal;
 window.saveRequestHours = saveRequestHours;
+window.requestCancellation = requestCancellation;   // ⬅️ NOVO
 window.changeStatus = async (id, status) => {
     await changeRequestStatus(id, status);
     closeViewModal();
