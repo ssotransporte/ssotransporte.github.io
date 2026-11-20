@@ -2995,7 +2995,7 @@ body.dark-theme .ds-toggle { color: #b0b0b0; }
 }
 /* ============================================================
    44. LOGIN EM 2 COLUNAS COM IMAGEM — v19.4
-   — Mostra accesslogin.png diretamente no painel direito
+   — Mostra imglogin.png diretamente no painel direito
    — Mantém fallback visual + proteção anti-drag/clique-direito
    ============================================================ */
 .login-container:not(.hidden) {
