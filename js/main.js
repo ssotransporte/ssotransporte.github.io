@@ -1,14 +1,16 @@
 // ============================================================
-// SSOT - MAIN (v20.1)
-// Alterações v20.1:
-//  - FIX: renderAdminMenu agora SEMPRE ativa uma guia (corrige tela em branco pós-login)
-//  - FIX: setupScrollLock() impede scroll de fundo com modal/sidebar aberto
-//  - Mantidas todas as funcionalidades v20 (menu h/v, guias ocultas, imprimir)
+// SSOT - MAIN (v20.2)
+// Alterações v20.2:
+//  - FEAT: Firebase App Check inicializado com reCAPTCHA v3
+//          (protege Realtime Database, Auth e demais serviços)
+//  - Herdadas todas as correções v20.1
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, get, ref, set, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+// 🔽 NOVO v20.2: App Check (reCAPTCHA v3)
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js";
 
 import { firebaseConfig } from './firebase-config.js';
 import {
@@ -55,6 +57,9 @@ let _fleetCurrentTab = 'viagens';
 let _routerActive = false;
 
 const AREA_KEY = 'ssot_area_';
+
+// 🔽 NOVO v20.2: Site Key pública do reCAPTCHA v3 (App Check)
+const RECAPTCHA_SITE_KEY = '6LdT8ikuAAAAAD9gymlGt5UZG1pDvYg-IDXXrU2c';
 
 // ============================================================
 // ROUTER
@@ -189,6 +194,34 @@ window.addEventListener('hashchange', () => applyRouteFromHash());
 function init() {
     console.log(`[SSOT] Inicializando v${APP_VERSION}...`);
     app = initializeApp(firebaseConfig);
+
+    // ========================================================
+    // 🔽 NOVO v20.2: Firebase App Check (reCAPTCHA v3)
+    // ========================================================
+    // Ativa em produção (GitHub Pages). Em localhost usa debug token
+    // (caso você queira testar localmente — gere o token em
+    //  Firebase Console → App Check → Apps → Web → Gerenciar tokens de depuração
+    //  e substitua 'SEU_DEBUG_TOKEN_AQUI' abaixo).
+    try {
+        if (
+            location.hostname === 'localhost' ||
+            location.hostname === '127.0.0.1' ||
+            location.hostname === ''
+        ) {
+            // Ambiente de desenvolvimento — habilita modo debug
+            // self.FIREBASE_APPCHECK_DEBUG_TOKEN = 'SEU_DEBUG_TOKEN_AQUI';
+            self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // gera token automático no console
+        }
+
+        initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+            isTokenAutoRefreshEnabled: true
+        });
+        console.log('[SSOT] App Check inicializado (reCAPTCHA v3).');
+    } catch (e) {
+        console.warn('[SSOT] App Check falhou ao inicializar:', e);
+    }
+
     db = getDatabase(app);
     auth = getAuth(app);
     window._db = db;
