@@ -1,9 +1,12 @@
 // ============================================================
-// SSOT · FROTA — Cadastro Personalizado + Firebase (v10.0)
-// Alterações:
-//  - Importa initFleetReports diretamente (relatórios funcionam)
-//  - Botão "Gráfico" removido do painel de Import
-//  - Aba "importar" continua funcional (acessível pelo ícone do topo)
+// SSOT · FROTA — Cadastro Personalizado + Firebase (v11.0)
+// Alterações v11.0:
+//  - FEAT: Cards de Viagens com "Origem → Destino" em destaque
+//  - FEAT: Cálculo de KM por odômetro (inicial → final)
+//  - FEAT: Detecção automática de colunas (origem/destino/odômetros)
+//  - FEAT: Campos extras aparecem no rodapé do card de viagem
+//  - FIX:  Índice correto da linha com busca/ordenação ativas
+//  - (herdado v10.0)
 // ============================================================
 
 import {
@@ -13,7 +16,7 @@ import {
 import { showNotification, escapeHtml } from './utils.js';
 import { sstConfirm, sstAlert } from './dialogs.js';
 import { addHistory } from './history.js';
-import { initFleetReports } from './fleet-reports.js';   // ⬅️ NOVO: import direto
+import { initFleetReports } from './fleet-reports.js';
 
 const FLEET_DB  = 'fleet';
 const COLS_KEY  = 'ssot_fleet_visible_cols_v3';
@@ -40,6 +43,23 @@ const ABAS = {
     leituras:       { label: 'Leituras',          icon: 'i-clock',        sheetKey: 'leituras',       sheetName: 'Leituras' },
     checklist:      { label: 'Checklist',         icon: 'i-check-circle', sheetKey: 'checklist',      sheetName: 'Checklist' },
     relatorios:     { label: 'Relatórios',        icon: 'i-chart-bar',    render: 'reports' }
+};
+
+// ============================================================
+// ALIASES DE COLUNAS DE VIAGEM (v11.0)
+// ============================================================
+const VIAGEM_ALIASES = {
+    origem:           ['origem', 'origem_viagem', 'partida', 'de', 'local_saida', 'local_de_saida', 'inicio', 'local_partida', 'saida', 'ponto_de_partida'],
+    destino:          ['destino', 'destino_viagem', 'para', 'chegada', 'local_chegada', 'local_destino', 'ponto_de_chegada'],
+    odometro_inicial: ['odometro_inicial', 'km_inicial', 'km_saida', 'odometro_saida', 'km_ini', 'odometro_de_saida', 'km_inicio', 'odometro_ini', 'km_ini_', 'km_inicial_saida'],
+    odometro_final:   ['odometro_final', 'km_final', 'km_chegada', 'km_retorno', 'odometro_chegada', 'km_fim', 'km_termino', 'odometro_fim', 'km_fin', 'km_final_chegada'],
+    distancia_km:     ['distancia', 'distancia_km', 'km_percorridos', 'km', 'kms', 'distancia_percorrida', 'km_percorrido'],
+    data:             ['data', 'data_viagem', 'data_saida', 'data_de_saida', 'dt', 'data_partida', 'data_do_percurso', 'data_ini'],
+    motorista:        ['motorista', 'condutor', 'driver', 'nome_motorista', 'motorista_nome'],
+    veiculo:          ['veiculo', 'placa', 'viatura', 'carro', 'veiculo_placa', 'frota'],
+    finalidade:       ['finalidade', 'motivo', 'objetivo', 'descricao', 'observacao', 'obs'],
+    passageiros:      ['passageiros', 'passageiro', 'qtd_passageiros', 'quantidade_passageiros', 'num_passageiros'],
+    setor:            ['setor', 'departamento', 'area', 'unidade', 'centro_custo'],
 };
 
 let _db = null;
@@ -315,8 +335,90 @@ function truncateValue(v, max = 80) {
 }
 
 // ============================================================
+// HELPERS DE VIAGEM (v11.0)
+// ============================================================
+function normalizeHeaderKey(h) {
+    return String(h || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function findColIdx(headers, aliases) {
+    if (!Array.isArray(headers)) return -1;
+    for (let i = 0; i < headers.length; i++) {
+        const key = normalizeHeaderKey(headers[i]);
+        if (aliases.includes(key)) return i;
+    }
+    return -1;
+}
+
+function getViagemCols(headers) {
+    return {
+        origem:           findColIdx(headers, VIAGEM_ALIASES.origem),
+        destino:          findColIdx(headers, VIAGEM_ALIASES.destino),
+        odometro_inicial: findColIdx(headers, VIAGEM_ALIASES.odometro_inicial),
+        odometro_final:   findColIdx(headers, VIAGEM_ALIASES.odometro_final),
+        distancia_km:     findColIdx(headers, VIAGEM_ALIASES.distancia_km),
+        data:             findColIdx(headers, VIAGEM_ALIASES.data),
+        motorista:        findColIdx(headers, VIAGEM_ALIASES.motorista),
+        veiculo:          findColIdx(headers, VIAGEM_ALIASES.veiculo),
+        finalidade:       findColIdx(headers, VIAGEM_ALIASES.finalidade),
+        passageiros:      findColIdx(headers, VIAGEM_ALIASES.passageiros),
+        setor:            findColIdx(headers, VIAGEM_ALIASES.setor),
+    };
+}
+
+function parseNumeric(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number' && !isNaN(v)) return v;
+    const s = String(v).trim();
+    if (!s) return null;
+    const cleaned = s.replace(/[^\d,.\-]/g, '');
+    if (!cleaned) return null;
+    let num;
+    if (cleaned.includes(',')) {
+        num = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+        num = cleaned;
+    }
+    const n = parseFloat(num);
+    return isNaN(n) ? null : n;
+}
+
+function computeKm(cols, row) {
+    const ini = cols.odometro_inicial >= 0 ? parseNumeric(row[cols.odometro_inicial]) : null;
+    const fin = cols.odometro_final   >= 0 ? parseNumeric(row[cols.odometro_final])   : null;
+    const dist = cols.distancia_km    >= 0 ? parseNumeric(row[cols.distancia_km])     : null;
+
+    if (dist !== null && dist >= 0) {
+        return { total: dist, inicial: ini, final: fin, source: 'distancia' };
+    }
+    if (ini !== null && fin !== null) {
+        if (fin >= ini) return { total: fin - ini, inicial: ini, final: fin, source: 'odometro' };
+        return { total: null, inicial: ini, final: fin, source: 'invalido' };
+    }
+    return { total: null, inicial: ini, final: fin, source: 'incompleto' };
+}
+
+function formatKmNumber(n) {
+    if (n === null || n === undefined) return '—';
+    return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+}
+
+function formatKm(n) {
+    if (n === null || n === undefined) return '—';
+    return `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
+}
+
+function isViagensSheet(aba) {
+    return aba && (aba.sheetKey === 'percursos' || aba.label === 'Viagens');
+}
+
+// ============================================================
 // PAINEL IMPORTAR / EXPORTAR
-// (botão "Gráfico" foi REMOVIDO — agora está em Relatórios)
 // ============================================================
 function renderImportPanel() {
     const total = Object.values(_data).reduce((s, d) => s + (d?.rows?.length || 0), 0);
@@ -398,16 +500,21 @@ function renderDataPanel(key, aba) {
     const rows = sheetData.rows || [];
     const hasHeaders = headers.length > 0;
 
-    let filtered = rows.slice();
+    // ⬇️ FIX v11.0: carrega cada linha com seu índice ORIGINAL,
+    // para que editar/excluir/ver funcionem mesmo com filtros ativos.
+    let filtered = rows.map((row, origIdx) => ({ row, origIdx }));
+
     if (_searchTerm.trim()) {
         const s = _searchTerm.toLowerCase();
-        filtered = filtered.filter(r => (r || []).some(c => String(c ?? '').toLowerCase().includes(s)));
+        filtered = filtered.filter(item =>
+            (item.row || []).some(c => String(c ?? '').toLowerCase().includes(s))
+        );
     }
 
     if (_sortCol >= 0 && _sortCol < headers.length) {
         filtered.sort((a, b) => {
-            const va = String(a[_sortCol] ?? '').toLowerCase();
-            const vb = String(b[_sortCol] ?? '').toLowerCase();
+            const va = String(a.row[_sortCol] ?? '').toLowerCase();
+            const vb = String(b.row[_sortCol] ?? '').toLowerCase();
             if (va < vb) return -_sortDir;
             if (va > vb) return _sortDir;
             return 0;
@@ -418,7 +525,7 @@ function renderDataPanel(key, aba) {
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     if (_page >= totalPages) _page = 0;
     const start = _page * PAGE_SIZE;
-    const pageRows = filtered.slice(start, start + PAGE_SIZE);
+    const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
     const visibleIdx = getVisibleIdx(aba.sheetKey, headers.length);
     const colsToShow = visibleIdx.length > 0 ? visibleIdx : headers.map((_, i) => i);
@@ -519,8 +626,8 @@ function renderDataPanel(key, aba) {
                         <p>${_searchTerm ? 'Nenhum resultado para a busca.' : 'Clique em <strong>Adicionar</strong> para incluir o primeiro registro.'}</p>
                        </div>`
                     : _viewMode === 'cards'
-                        ? renderCardsView(key, aba, headers, pageRows, colsToShow, start)
-                        : renderTableView(key, aba, headers, pageRows, colsToShow, start)
+                        ? renderCardsView(key, aba, headers, pageItems, colsToShow)
+                        : renderTableView(key, aba, headers, pageItems, colsToShow)
                 }
 
                 ${(totalPages > 1 && hasHeaders && total > 0) ? `
@@ -539,11 +646,173 @@ function renderDataPanel(key, aba) {
     `;
 }
 
-function renderCardsView(key, aba, headers, pageRows, colsToShow, startIndex) {
+// ============================================================
+// CARDS VIEW — dispatcher (detecta viagens e usa renderizador próprio)
+// ============================================================
+function renderCardsView(key, aba, headers, pageItems, colsToShow) {
+    // v11.0: viagens tem card próprio com Origem → Destino + KM
+    if (isViagensSheet(aba)) {
+        const cols = getViagemCols(headers);
+        if (cols.origem >= 0 || cols.destino >= 0 || cols.odometro_inicial >= 0 || cols.odometro_final >= 0) {
+            return renderViagensGrid(key, headers, pageItems, colsToShow, cols);
+        }
+    }
+    return renderGenericCards(key, headers, pageItems, colsToShow);
+}
+
+// ============================================================
+// ✨ CARDS DE VIAGEM (v11.0)
+// ============================================================
+function renderViagensGrid(key, headers, pageItems, colsToShow, cols) {
+    return `
+        <div class="viagens-grid">
+            ${pageItems.map(item => renderViagemCard(key, item.row, item.origIdx, headers, colsToShow, cols)).join('')}
+        </div>
+    `;
+}
+
+function renderViagemCard(key, row, realIndex, headers, colsToShow, cols) {
+    const origem  = cols.origem  >= 0 ? String(row[cols.origem]  ?? '').trim() : '';
+    const destino = cols.destino >= 0 ? String(row[cols.destino] ?? '').trim() : '';
+    const km = computeKm(cols, row);
+
+    const data       = cols.data       >= 0 ? formatFieldValue('date', row[cols.data])            : '';
+    const motorista  = cols.motorista  >= 0 ? String(row[cols.motorista]  ?? '').trim()           : '';
+    const veiculo    = cols.veiculo    >= 0 ? String(row[cols.veiculo]    ?? '').trim()           : '';
+    const finalidade = cols.finalidade >= 0 ? String(row[cols.finalidade] ?? '').trim()           : '';
+    const passageiros= cols.passageiros>= 0 ? String(row[cols.passageiros]?? '').trim()           : '';
+    const setor      = cols.setor      >= 0 ? String(row[cols.setor]      ?? '').trim()           : '';
+
+    // ---- Cabeçalho: Origem → Destino ----
+    const rotaHtml = (origem || destino) ? `
+        <div class="viagem-rota">
+            <span class="viagem-origem" title="${escapeHtml(origem)}">${escapeHtml(origem || '—')}</span>
+            <span class="viagem-arrow" aria-hidden="true">→</span>
+            <span class="viagem-destino" title="${escapeHtml(destino)}">${escapeHtml(destino || '—')}</span>
+        </div>
+    ` : `<div class="viagem-rota viagem-rota-empty">Sem origem/destino informados</div>`;
+
+    // ---- Bloco de KM ----
+    let kmBlock = '';
+    if (km.total !== null) {
+        const odoHtml = (km.inicial !== null && km.final !== null) ? `
+            <div class="viagem-km-odometro">
+                <span>${formatKmNumber(km.inicial)}</span>
+                <span class="viagem-km-arrow">→</span>
+                <span>${formatKmNumber(km.final)}</span>
+            </div>
+        ` : '';
+        kmBlock = `
+            <div class="viagem-km-block">
+                <div class="viagem-km-total">
+                    <svg class="si"><use href="#i-route"/></svg>
+                    <strong>${formatKm(km.total)}</strong>
+                    <span class="viagem-km-label">percorridos</span>
+                </div>
+                ${odoHtml}
+            </div>
+        `;
+    } else if (km.source === 'invalido') {
+        kmBlock = `
+            <div class="viagem-km-block viagem-km-incomplete" title="Odômetro final menor que inicial">
+                <svg class="si"><use href="#i-alert"/></svg>
+                <span>Odômetro inválido (final &lt; inicial)</span>
+            </div>
+        `;
+    } else if (km.inicial !== null || km.final !== null) {
+        kmBlock = `
+            <div class="viagem-km-block viagem-km-incomplete">
+                <svg class="si"><use href="#i-clock"/></svg>
+                <span>Odômetro incompleto</span>
+            </div>
+        `;
+    }
+
+    // ---- Meta (data, motorista, veículo, passageiros, setor) ----
+    const metaItems = [];
+    if (data)        metaItems.push({ label: '📅', text: data });
+    if (motorista)   metaItems.push({ label: '👤', text: motorista });
+    if (veiculo)     metaItems.push({ label: '🚗', text: veiculo });
+    if (passageiros) metaItems.push({ label: '👥', text: passageiros });
+    if (setor)       metaItems.push({ label: '🏢', text: setor });
+
+    const metaHtml = metaItems.length ? `
+        <div class="viagem-meta">
+            ${metaItems.map(m => `
+                <span class="viagem-meta-item" title="${escapeHtml(m.text)}">
+                    <span class="viagem-meta-emoji">${m.label}</span>
+                    <span class="viagem-meta-text">${escapeHtml(m.text)}</span>
+                </span>
+            `).join('')}
+        </div>
+    ` : '';
+
+    // ---- Finalidade ----
+    const finalidadeHtml = finalidade ? `
+        <div class="viagem-finalidade" title="${escapeHtml(finalidade)}">
+            ${escapeHtml(truncateValue(finalidade, 120))}
+        </div>
+    ` : '';
+
+    // ---- Campos extras (colunas não mapeadas) ----
+    const usedCols = new Set([
+        cols.origem, cols.destino, cols.odometro_inicial, cols.odometro_final,
+        cols.distancia_km, cols.data, cols.motorista, cols.veiculo, cols.finalidade,
+        cols.passageiros, cols.setor
+    ].filter(i => i >= 0));
+
+    const extraCols = colsToShow.filter(i => !usedCols.has(i));
+    const extraHtml = extraCols.length ? `
+        <div class="viagem-extra">
+            ${extraCols.map(i => {
+                const raw = String(row[i] ?? '').trim();
+                if (!raw) return '';
+                const role = detectFieldRole(headers[i], raw);
+                return `
+                    <div class="viagem-extra-item">
+                        <div class="viagem-extra-label">${escapeHtml(headers[i])}</div>
+                        <div class="viagem-extra-value">${escapeHtml(formatFieldValue(role, raw))}</div>
+                    </div>
+                `;
+            }).filter(Boolean).join('')}
+        </div>
+    ` : '';
+
+    return `
+        <div class="viagem-card">
+            <div class="viagem-card-header">
+                <div class="viagem-card-header-left">
+                    ${rotaHtml}
+                </div>
+                <div class="viagem-card-actions">
+                    <button class="btn btn-primary btn-sm" title="Ver" onclick="window.fleetExcelView('${key}', ${realIndex})">
+                        <svg class="si"><use href="#i-eye"/></svg>
+                    </button>
+                    <button class="btn btn-warning btn-sm" title="Editar" onclick="window.fleetExcelEdit('${key}', ${realIndex})">
+                        <svg class="si"><use href="#i-edit"/></svg>
+                    </button>
+                    <button class="btn btn-danger btn-sm" title="Excluir" onclick="window.fleetExcelDelete('${key}', ${realIndex})">
+                        <svg class="si"><use href="#i-trash"/></svg>
+                    </button>
+                </div>
+            </div>
+            ${kmBlock}
+            ${metaHtml}
+            ${finalidadeHtml}
+            ${extraHtml}
+        </div>
+    `;
+}
+
+// ============================================================
+// CARDS GENÉRICOS (demais abas)
+// ============================================================
+function renderGenericCards(key, headers, pageItems, colsToShow) {
     return `
         <div class="fleet-card-grid">
-            ${pageRows.map((row, i) => {
-                const realIndex = startIndex + i;
+            ${pageItems.map((item) => {
+                const row = item.row;
+                const realIndex = item.origIdx;
                 const fields = colsToShow.map(j => ({
                     idx: j,
                     header: headers[j],
@@ -607,7 +876,10 @@ function renderCardsView(key, aba, headers, pageRows, colsToShow, startIndex) {
     `;
 }
 
-function renderTableView(key, aba, headers, pageRows, colsToShow, startIndex) {
+// ============================================================
+// TABLE VIEW
+// ============================================================
+function renderTableView(key, aba, headers, pageItems, colsToShow) {
     return `
         <div class="frota-table-container">
             <table class="frota-data-table">
@@ -618,8 +890,9 @@ function renderTableView(key, aba, headers, pageRows, colsToShow, startIndex) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${pageRows.map((row, i) => {
-                        const realIndex = startIndex + i;
+                    ${pageItems.map(item => {
+                        const row = item.row;
+                        const realIndex = item.origIdx;
                         return `
                             <tr>
                                 ${colsToShow.map(j => {
