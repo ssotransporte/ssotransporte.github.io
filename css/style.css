@@ -3571,3 +3571,58 @@ body.dark-theme #admin-print-requests:hover:not(:disabled) {
 @media (max-width: 900px) {
     .login-right { display: none; }
 }
+/* ============================================================
+   51. EXCLUSÃO DE CONTA E PAGINAÇÃO
+   ============================================================ */
+
+/* Botão "Excluir Minha Conta" no perfil */
+.danger-zone {
+    margin-top: 24px;
+    padding: 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-md);
+}
+.danger-zone-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #991b1b;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.danger-zone-title svg { color: #b91c1c; }
+.danger-zone-text {
+    font-size: 0.85rem;
+    color: #7f1d1d;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+.danger-zone .btn-danger { width: 100%; }
+
+/* Badge de pendentes em "Exclusões" */
+[data-deletion-badge] {
+    display: inline-block;
+    margin-left: 6px;
+    background: #c0392b;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* Container de paginação admin */
+#admin-requests-pagination { margin-top: 16px; }
+#admin-requests-pagination .fleet-pagination {
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-md);
+    background: #fff;
+    margin: 0;
+}
