@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitar Cadastro — SSOT</title>
+    <meta name="description" content="Solicite acesso ao Sistema de Solicitações e Operações de Transporte.">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        /* ============================================================
+           REQUERIMENTO — DESIGN NEUTRO PROFISSIONAL
+           ============================================================ */
+        :root {
+            --zinc-50: #fafafa;
+            --zinc-100: #f4f4f5;
+            --zinc-200: #e4e4e7;
+            --zinc-300: #d4d4d8;
+            --zinc-400: #a1a1aa;
+            --zinc-500: #71717a;
+            --zinc-600: #52525b;
+            --zinc-700: #3f3f46;
+            --zinc-800: #27272a;
+            --zinc-900: #18181b;
+            --success: #15803d;
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --danger: #b91c1c;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --info: #1e40af;
+            --info-bg: #eff6ff;
+            --info-border: #bfdbfe;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: var(--zinc-900);
+            font-size: 15px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 16px;
+        }
+
+        .si {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            vertical-align: -0.125em;
+            flex-shrink: 0;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .si-2x { width: 2em; height: 2em; }
+
+        .req-container {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .req-card {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25), 0 8px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .req-accent {
+            height: 4px;
+            background: linear-gradient(90deg, #334155 0%, #1e293b 100%);
+        }
+
+        /* ============ HEADER ============ */
+        .req-header {
+            padding: 32px 32px 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--zinc-200);
+            background: linear-gradient(180deg, var(--zinc-50) 0%, #ffffff 100%);
+        }
+        .req-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            background: var(--zinc-900);
+            color: #ffffff;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+        .req-logo::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .req-logo .si {
+            width: 24px;
+            height: 24px;
+        }
+        .req-header h1 {
+            font-size: 22px;
+            font-weight: 650;
+            color: var(--zinc-900);
+            letter-spacing: -0.025em;
+            margin-bottom: 6px;
+        }
+        .req-header p {
+            font-size: 14px;
+            color: var(--zinc-500);
+            line-height: 1.5;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* ============ ALERTA INFORMATIVO ============ */
+        .req-info-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 16px;
+            margin: 20px 32px 0;
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--info);
+            line-height: 1.5;
+        }
+        .req-info-banner .si {
+            flex-shrink: 0;
+            margin-top: 1px;
+            font-size: 16px;
+        }
+        .req-info-banner strong {
+            font-weight: 600;
+        }
+
+        /* ============ FORM ============ */
+        .req-form {
+            padding: 24px 32px 32px;
+        }
+        .req-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--zinc-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--zinc-200);
+        }
+        .req-section-title .si {
+            font-size: 14px;
+            color: var(--zinc-500);
+        }
+        .req-section-title:not(:first-child) {
+            margin-top: 8px;
+        }
+
+        .req-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        .req-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        .req-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .req-field label {
+            font-size: 13px;
+            font-weight: 550;
+            color: var(--zinc-700);
+            letter-spacing: -0.005em;
+        }
+        .req-field label .required {
+            color: var(--danger);
+            margin-left: 2px;
+        }
+        .req-input,
+        .req-textarea {
+            width: 100%;
+            padding: 10px 13px;
+            font-family: inherit;
+            font-size: 14.5px;
+            color: var(--zinc-900);
+            background: #ffffff;
+            border: 1px solid var(--zinc-300);
+            border-radius: var(--radius-md);
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            letter-spacing: -0.005em;
+        }
+        .req-input::placeholder,
+        .req-textarea::placeholder {
+            color: var(--zinc-400);
+        }
+        .req-input:hover:not(:focus),
+        .req-textarea:hover:not(:focus) {
+            border-color: var(--zinc-400);
+        }
+        .req-input:focus,
+        .req-textarea:focus {
+            border-color: var(--zinc-900);
+            box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.08);
+        }
+        .req-textarea {
+            resize: vertical;
+            min-height: 76px;
+            line-height: 1.5;
+        }
+        .req-field-hint {
+            font-size: 12px;
+            color: var(--zinc-500);
+            margin-top: -2px;
+        }
+
+        /* ============ SENHA COM TOGGLE ============ */
+        .req-password-wrap {
+            position: relative;
+        }
+        .req-password-wrap .req-input {
+            padding-right: 42px;
+        }
+        .req-toggle-pass {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--zinc-500);
+            cursor: pointer;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+        .req-toggle-pass:hover {
+            color: var(--zinc-900);
+            background: var(--zinc-100);
+        }
+
+        /* ============ ALERTAS ============ */
+        .req-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            border: 1px solid;
+        }
+        .req-alert-danger {
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+            color: var(--danger);
+        }
+        .req-alert-success {
+            background: var(--success-bg);
+            border-color: var(--success-border);
+            color: var(--success);
+        }
+        .req-alert .si {
+            flex-shrink: 0;
+            margin-top: 1px;
+            font-size: 16px;
+        }
+        .req-alert strong {
+            display: block;
+            margin-bottom: 2px;
+            font-weight: 650;
+        }
+        .req-alert.hidden {
+            display: none;
+        }
+
+        /* ============ BOTÃO ============ */
+        .req-btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 20px;
+            margin-top: 8px;
+            font-family: inherit;
+            font-size: 14.5px;
+            font-weight: 600;
+            color: #ffffff;
+            background: var(--zinc-900);
+            border: 1px solid var(--zinc-900);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+            letter-spacing: -0.005em;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .req-btn-primary:hover:not(:disabled) {
+            background: var(--zinc-800);
+            border-color: var(--zinc-800);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .req-btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .req-btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .req-btn-primary .si {
+            font-size: 15px;
+        }
+
+        /* ============ SUCCESS PANEL ============ */
+        .req-success {
+            text-align: center;
+            padding: 16px 0;
+            animation: reqFadeIn 0.35s ease;
+        }
+        @keyframes reqFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .req-success-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid var(--success-border);
+            position: relative;
+        }
+        .req-success-icon::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: inherit;
+            border: 1px solid var(--success-border);
+            opacity: 0.5;
+        }
+        .req-success h2 {
+            font-size: 18px;
+            font-weight: 650;
+            color: var(--zinc-900);
+            margin-bottom: 8px;
+            letter-spacing: -0.015em;
+        }
+        .req-success p {
+            font-size: 14px;
+            color: var(--zinc-600);
+            line-height: 1.6;
+            max-width: 420px;
+            margin: 0 auto 20px;
+        }
+        .req-success .req-btn-primary {
+            max-width: 260px;
+            margin: 8px auto 0;
+        }
+
+        /* ============ FOOTER ============ */
+        .req-footer {
+            padding: 16px 32px 24px;
+            text-align: center;
+            border-top: 1px solid var(--zinc-200);
+            background: var(--zinc-50);
+        }
+        .req-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--zinc-600);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+        .req-back-link:hover {
+            color: var(--zinc-900);
+            background: var(--zinc-100);
+        }
+        .req-back-link .si {
+            font-size: 14px;
+        }
+
+        .req-bottom-note {
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+            margin-top: 4px;
+        }
+        .req-bottom-note a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: underline;
+        }
+
+        /* ============ RESPONSIVO ============ */
+        @media (max-width: 640px) {
+            body {
+                padding: 16px 12px;
+                align-items: flex-start;
+            }
+            .req-card {
+                border-radius: var(--radius-md);
+            }
+            .req-header {
+                padding: 24px 20px 20px;
+            }
+            .req-header h1 {
+                font-size: 19px;
+            }
+            .req-header p {
+                font-size: 13px;
+            }
+            .req-info-banner {
+                margin: 16px 20px 0;
+                padding: 10px 12px;
+                font-size: 12.5px;
+            }
+            .req-form {
+                padding: 20px;
+            }
+            .req-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .req-footer {
+                padding: 14px 20px 20px;
+            }
+            .req-input,
+            .req-textarea {
+                font-size: 16px; /* evita zoom no iOS */
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Ícones SVG -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-envelope" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></symbol>
+    <symbol id="i-id-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 10h5M14 14h5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-sign-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+</svg>
+
+<main class="req-container">
+    <div class="req-card">
+        <div class="req-accent"></div>
+
+        <!-- HEADER -->
+        <header class="req-header">
+            <div class="req-logo" aria-hidden="true">
+                <svg class="si"><use href="#i-user-plus"/></svg>
+            </div>
+            <h1>Solicitar Cadastro</h1>
+            <p>Preencha seus dados. Um administrador analisará sua solicitação antes de liberar o acesso.</p>
+        </header>
+
+        <!-- ALERTA INFORMATIVO -->
+        <div class="req-info-banner">
+            <svg class="si"><use href="#i-info"/></svg>
+            <div>
+                <strong>Sua solicitação será analisada.</strong> Você receberá acesso após a aprovação de um administrador. Use um e-mail válido que possa ser confirmado.
+            </div>
+        </div>
+
+        <!-- FORM -->
+        <form class="req-form" id="requerimento-form" autocomplete="off">
+
+            <!-- Erro / Sucesso -->
+            <div id="req-error" class="req-alert req-alert-danger hidden" role="alert">
+                <svg class="si"><use href="#i-alert"/></svg>
+                <div><strong>Não foi possível enviar.</strong><span id="req-error-msg"></span></div>
+            </div>
+            <div id="req-success" class="req-alert req-alert-success hidden" role="status">
+                <svg class="si"><use href="#i-check-circle"/></svg>
+                <div><strong>Solicitação enviada!</strong>Aguarde a aprovação de um administrador.</div>
+            </div>
+
+            <!-- Dados pessoais -->
+            <div class="req-section-title">
+                <svg class="si"><use href="#i-user"/></svg> Dados Pessoais
+            </div>
+
+            <div class="req-row full">
+                <div class="req-field">
+                    <label for="r-nome">Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="r-nome" class="req-input" placeholder="Seu nome completo" required autocomplete="name">
+                </div>
+            </div>
+
+            <div class="req-row">
+                <div class="req-field">
+                    <label for="r-email">E-mail <span class="required">*</span></label>
+                    <input type="email" id="r-email" class="req-input" placeholder="seu@email.com" required autocomplete="email">
+                </div>
+                <div class="req-field">
+                    <label for="r-ramal">Ramal <span class="required">*</span></label>
+                    <input type="text" id="r-ramal" class="req-input" placeholder="Ex: 1234" required autocomplete="off">
+                </div>
+            </div>
+
+            <!-- Dados profissionais -->
+            <div class="req-section-title">
+                <svg class="si"><use href="#i-building"/></svg> Dados Profissionais
+            </div>
+
+            <div class="req-row">
+                <div class="req-field">
+                    <label for="r-setor">Setor <span class="required">*</span></label>
+                    <input type="text" id="r-setor" class="req-input" placeholder="Ex: Administrativo" required autocomplete="organization">
+                </div>
+                <div class="req-field">
+                    <label for="r-cargo">Cargo</label>
+                    <input type="text" id="r-cargo" class="req-input" placeholder="Ex: Analista" autocomplete="organization-title">
+                </div>
+            </div>
+
+            <!-- Acesso -->
+            <div class="req-section-title">
+                <svg class="si"><use href="#i-lock"/></svg> Credenciais de Acesso
+            </div>
+
+            <div class="req-row">
+                <div class="req-field">
+                    <label for="r-senha">Senha <span class="required">*</span></label>
+                    <div class="req-password-wrap">
+                        <input type="password" id="r-senha" class="req-input" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" minlength="6">
+                        <button type="button" class="req-toggle-pass" data-toggle-target="r-senha" aria-label="Mostrar senha">
+                            <svg class="si"><use href="#i-eye"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="req-field">
+                    <label for="r-senha2">Confirmar Senha <span class="required">*</span></label>
+                    <div class="req-password-wrap">
+                        <input type="password" id="r-senha2" class="req-input" placeholder="Repita a senha" required autocomplete="new-password" minlength="6">
+                        <button type="button" class="req-toggle-pass" data-toggle-target="r-senha2" aria-label="Mostrar senha">
+                            <svg class="si"><use href="#i-eye"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="req-row full">
+                <div class="req-field">
+                    <label for="r-justificativa">Justificativa <span style="color:var(--zinc-500);font-weight:400;">(opcional)</span></label>
+                    <textarea id="r-justificativa" class="req-input req-textarea" rows="3" placeholder="Descreva brevemente por que você precisa de acesso ao sistema..."></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="req-btn-primary" id="req-submit-btn">
+                <svg class="si"><use href="#i-send"/></svg>
+                <span>Enviar Solicitação</span>
+            </button>
+        </form>
+
+        <!-- SUCCESS PANEL (oculto por padrão) -->
+        <div id="req-success-panel" class="req-form req-success hidden" style="display:none;">
+            <div class="req-success-icon">
+                <svg class="si si-2x"><use href="#i-check-circle"/></svg>
+            </div>
+            <h2>Solicitação enviada com sucesso!</h2>
+            <p>
+                Recebemos sua solicitação. Você será notificado por e-mail quando um administrador aprovar seu acesso.<br><br>
+                <strong>Tempo estimado:</strong> até 48 horas úteis.
+            </p>
+            <a href="index.html" class="req-btn-primary" style="text-decoration:none;">
+                <svg class="si"><use href="#i-sign-in"/></svg>
+                <span>Voltar ao Login</span>
+            </a>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="req-footer">
+            <a href="index.html" class="req-back-link">
+                <svg class="si"><use href="#i-arrow-left"/></svg>
+                <span>Voltar ao login</span>
+            </a>
+        </footer>
+    </div>
+
+    <p class="req-bottom-note">
+        Já tem uma conta? <a href="index.html">Entre aqui</a>
+    </p>
+</main>
+
+<script type="module">
+// ============================================================
+// REQUERIMENTO — Lógica standalone (Firebase + validação)
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// Importa a config do Firebase do seu projeto (mesmo arquivo usado pelo main.js)
+import { firebaseConfig } from './js/firebase-config.js';
+
+// ============================================================
+// HELPERS DE VALIDAÇÃO
+// ============================================================
+function isValidEmail(email) {
+    if (!email) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
+}
+
+function showError(msg) {
+    const box = document.getElementById('req-error');
+    const msgEl = document.getElementById('req-error-msg');
+    if (box && msgEl) {
+        msgEl.textContent = ' ' + msg;
+        box.classList.remove('hidden');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function hideError() {
+    document.getElementById('req-error')?.classList.add('hidden');
+}
+
+function showSuccess() {
+    const form = document.getElementById('requerimento-form');
+    const info = document.querySelector('.req-info-banner');
+    const panel = document.getElementById('req-success-panel');
+    if (form) form.style.display = 'none';
+    if (info) info.style.display = 'none';
+    if (panel) {
+        panel.style.display = 'block';
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+// ============================================================
+// TOGGLE SENHA
+// ============================================================
+document.querySelectorAll('.req-toggle-pass').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-toggle-target');
+        const input = document.getElementById(targetId);
+        const icon = btn.querySelector('use');
+        if (!input || !icon) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.setAttribute('href', '#i-eye-off');
+            btn.setAttribute('aria-label', 'Ocultar senha');
+        } else {
+            input.type = 'password';
+            icon.setAttribute('href', '#i-eye');
+            btn.setAttribute('aria-label', 'Mostrar senha');
+        }
+    });
+});
+
+// ============================================================
+// INICIALIZAÇÃO DO FIREBASE
+// ============================================================
+let _db = null;
+try {
+    const app = initializeApp(firebaseConfig);
+    _db = getDatabase(app);
+} catch (err) {
+    console.error('[Requerimento] Firebase init falhou:', err);
+}
+
+// ============================================================
+// SUBMIT DO FORMULÁRIO
+// ============================================================
+const form = document.getElementById('requerimento-form');
+const submitBtn = document.getElementById('req-submit-btn');
+
+form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    // ---- Coleta ----
+    const nome = document.getElementById('r-nome')?.value.trim() || '';
+    const email = document.getElementById('r-email')?.value.trim().toLowerCase() || '';
+    const ramal = document.getElementById('r-ramal')?.value.trim() || '';
+    const setor = document.getElementById('r-setor')?.value.trim() || '';
+    const cargo = document.getElementById('r-cargo')?.value.trim() || '';
+    const senha = document.getElementById('r-senha')?.value || '';
+    const senha2 = document.getElementById('r-senha2')?.value || '';
+    const justificativa = document.getElementById('r-justificativa')?.value.trim() || '';
+
+    // ---- Validação local ----
+    if (!nome) return showError('Informe seu nome completo.');
+    if (!email) return showError('Informe seu e-mail.');
+    if (!isValidEmail(email)) return showError('E-mail inválido. Verifique o formato.');
+    if (!ramal) return showError('Informe seu ramal.');
+    if (!setor) return showError('Informe seu setor.');
+    if (!senha || senha.length < 6) return showError('A senha deve ter no mínimo 6 caracteres.');
+    if (senha !== senha2) return showError('As senhas não coincidem.');
+
+    if (!_db) return showError('Sistema não conectado. Recarregue a página e tente novamente.');
+
+    // ---- Estado de loading ----
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="si"><use href="#i-send"/></svg><span>Enviando...</span>';
+    }
+
+    try {
+        // 1) Verifica se já existe conta com esse e-mail em /users
+        const usersSnap = await get(ref(_db, 'users'));
+        let existsInUsers = false;
+        if (usersSnap.exists()) {
+            usersSnap.forEach(child => {
+                const u = child.val();
+                if (u && u.email && u.email.toLowerCase() === email) existsInUsers = true;
+            });
+        }
+        if (existsInUsers) {
+            throw new Error('Este e-mail já está cadastrado no sistema. Faça login ou recupere sua senha.');
+        }
+
+        // 2) Verifica se já tem solicitação pendente em /signups
+        const signupsSnap = await get(ref(_db, 'signups'));
+        let existsPending = false;
+        if (signupsSnap.exists()) {
+            signupsSnap.forEach(child => {
+                const s = child.val();
+                if (s && s.email && s.email.toLowerCase() === email && s.status === 'pendente') {
+                    existsPending = true;
+                }
+            });
+        }
+        if (existsPending) {
+            throw new Error('Você já tem uma solicitação pendente. Aguarde a análise do administrador.');
+        }
+
+        // 3) Envia nova solicitação
+        const newRef = push(ref(_db, 'signups'));
+        await set(newRef, {
+            nome: nome,
+            email: email,
+            ramal: ramal,
+            setor: setor,
+            cargo: cargo,
+            justificativa: justificativa,
+            password: senha,
+            status: 'pendente',
+            origin: 'standalone-page',
+            timestamp: new Date().toISOString()
+        });
+
+        // 4) Sucesso
+        showSuccess();
+    } catch (err) {
+        console.error('[Requerimento] Erro ao enviar:', err);
+        showError(err.message || 'Erro ao enviar a solicitação. Tente novamente.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<svg class="si"><use href="#i-send"/></svg><span>Enviar Solicitação</span>';
+        }
+    }
+});
+</script>
+
+</body>
+</html>
