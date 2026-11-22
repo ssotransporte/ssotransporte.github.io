@@ -1,18 +1,22 @@
 // ============================================================
-// SSOT - PERFIL DO USUÁRIO (v10.3)
+// SSOT - PERFIL DO USUÁRIO (v11.0)
+// Novidades v11.0:
+//  - FEAT: Solicitação de exclusão de conta
+//    (dupla confirmação + senha + aprovação admin)
+//  - Bloqueio de nome/e-mail por 30 dias após exclusão
 // ============================================================
 
-import { ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { ref, update, set, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { showNotification } from './utils.js';
 import { getInitials, resizeImage } from './utils.js';
-import { sstAlert } from './dialogs.js';
+import { sstAlert, sstConfirm, sstPrompt } from './dialogs.js';
 import { addHistory } from './history.js';
 
 let _db = null;
 let _currentUser = null;
 let _isAdmin = false;
 let _photoDataUrl = null;
-let _prefix = 'up'; // 'up' para user, 'ap' para admin
+let _prefix = 'up';
 
 export function setProfileContext(db, currentUser, isAdmin) {
     _db = db;
@@ -114,7 +118,6 @@ export async function saveProfile() {
 
         await update(ref(_db, 'users/' + _currentUser.uid), data);
 
-        // Atualiza estado local
         _currentUser.name = name;
         _currentUser.phone = phone;
         _currentUser.ramal = ramal;
@@ -122,7 +125,6 @@ export async function saveProfile() {
         _currentUser.cargo = cargo;
         _currentUser.photo = _photoDataUrl || null;
 
-        // Atualiza header
         const avatarEl = document.getElementById('user-avatar');
         if (avatarEl) {
             if (_photoDataUrl) {
@@ -143,3 +145,115 @@ export async function saveProfile() {
         if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
     }
 }
+
+// ============================================================
+// EXCLUIR CONTA (v11.0)
+// ============================================================
+export async function requestAccountDeletion() {
+    if (!_currentUser || !_db) {
+        showNotification('Erro', 'Sessão expirada.', 'danger');
+        return;
+    }
+
+    // Já tem solicitação pendente?
+    try {
+        const existing = await get(ref(_db, 'account_deletions/' + _currentUser.uid));
+        if (existing.exists()) {
+            const data = existing.val();
+            if (data.status === 'pendente') {
+                await sstAlert(
+                    `Você já tem uma solicitação de exclusão pendente.\n\n` +
+                    `Solicitada em: ${new Date(data.requestedAt).toLocaleString('pt-BR')}\n\n` +
+                    `Aguarde a análise do administrador.`,
+                    'Já solicitado',
+                    'warning'
+                );
+                return;
+            }
+        }
+    } catch (e) { console.warn(e); }
+
+    // 1ª confirmação — lista de consequências
+    const ok1 = await sstConfirm(
+        'ATENÇÃO — Exclusão de Conta\n\n' +
+        '• Todos os seus dados serão removidos do sistema\n' +
+        '• Você NÃO poderá mais acessar o sistema\n' +
+        '• Seu nome e e-mail ficarão BLOQUEADOS por 30 dias\n' +
+        '• A ação requer APROVAÇÃO de um administrador\n\n' +
+        'Deseja continuar?',
+        'Excluir Minha Conta',
+        'danger'
+    );
+    if (!ok1) return;
+
+    // Pedir senha
+    const password = await sstPrompt(
+        'Digite sua senha para confirmar a exclusão:',
+        '',
+        'Confirmação de Segurança'
+    );
+    if (password === null) return;
+    if (!password) {
+        showNotification('Cancelado', 'Senha não informada.', 'warning');
+        return;
+    }
+
+    // Verificar senha
+    const { verifyCurrentPassword } = await import('./auth.js');
+    const valid = await verifyCurrentPassword(password);
+    if (!valid) {
+        await sstAlert('Senha incorreta. A solicitação foi cancelada por segurança.', 'Não autorizado', 'danger');
+        return;
+    }
+
+    // Última confirmação
+    const ok2 = await sstConfirm(
+        'Última confirmação.\n\n' +
+        'Sua conta será marcada para exclusão e você será desconectado após a aprovação do administrador.\n\n' +
+        'Confirmar?',
+        'Confirmar Exclusão',
+        'danger'
+    );
+    if (!ok2) return;
+
+    // Salvar solicitação
+    try {
+        await set(ref(_db, 'account_deletions/' + _currentUser.uid), {
+            uid: _currentUser.uid,
+            name: _currentUser.name,
+            email: _currentUser.email,
+            role: _currentUser.role || 'user',
+            setor: _currentUser.setor || '',
+            ramal: _currentUser.ramal || '',
+            cargo: _currentUser.cargo || '',
+            requestedAt: new Date().toISOString(),
+            requestedBy: _currentUser.name,
+            status: 'pendente',
+            requestedFrom: 'profile-tab'
+        });
+
+        await addHistory(
+            'Exclusão de Conta Solicitada',
+            '-',
+            `Nome: ${_currentUser.name} | E-mail: ${_currentUser.email}`
+        );
+
+        await sstAlert(
+            'Sua solicitação de exclusão foi ENVIADA.\n\n' +
+            'Um administrador irá analisar o pedido. Após aprovação:\n\n' +
+            '• Você será desconectado automaticamente\n' +
+            '• Seus dados serão removidos\n' +
+            '• Nome e e-mail ficarão bloqueados por 30 dias\n\n' +
+            'Você pode continuar usando o sistema enquanto aguarda.',
+            'Solicitação Enviada',
+            'info'
+        );
+
+        showNotification('Solicitação enviada', 'Aguarde aprovação do administrador.', 'info', 6000);
+    } catch (err) {
+        console.error('[Profile] requestAccountDeletion:', err);
+        await sstAlert('Não foi possível solicitar a exclusão. Tente novamente.', 'Erro', 'danger');
+    }
+}
+
+window.requestAccountDeletion = requestAccountDeletion;
