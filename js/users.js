@@ -1,5 +1,8 @@
 // ============================================================
-// SSOT - GERENCIAMENTO DE USUÁRIOS (v11.1)
+// SSOT - GERENCIAMENTO DE USUÁRIOS (v12.0)
+// Novidades v12.0:
+//  - FEAT: Aprovação/recusa de solicitações de exclusão de conta
+//  - Bloqueio de nome/e-mail por 30 dias após exclusão
 // ============================================================
 
 import {
@@ -8,11 +11,11 @@ import {
 
 import { createUserSafely, getAuthErrorMessage } from './auth.js';
 import {
-    showNotification, escapeHtml, debounce,
+    showNotification, escapeHtml, debounce, formatDateTime,
     isValidEmail, isValidPassword, getInitials, resizeImage
 } from './utils.js';
 import { addHistory } from './history.js';
-import { sstConfirm, sstAlert } from './dialogs.js';
+import { sstConfirm, sstAlert, sstPrompt } from './dialogs.js';
 
 let _db = null;
 let _currentUser = null;
@@ -24,12 +27,16 @@ let _searchTerm = '';
 let _filterRole = '';
 let _photoDataUrl = null;
 
+let _deletionRequests = [];
+let _deletionUnsub = null;
+
 export function setUsersContext(db, currentUser) {
     _db = db;
     _currentUser = currentUser;
 }
 
 export function getUsers() { return _users; }
+export function getDeletionRequests() { return _deletionRequests; }
 
 export function subscribeUsers(callback) {
     if (!_db) return null;
@@ -95,7 +102,6 @@ export function updateUsersTable() {
 
     if (_filterRole) filtered = filtered.filter(u => u.role === _filterRole);
 
-    // ✅ ORDENAÇÃO: 1º Admin, 2º Setor, 3º Usuário, depois por nome.
     const roleWeight = { 'admin': 1, 'setor': 2, 'user': 3 };
     filtered.sort((a, b) => {
         const weightA = roleWeight[a.role] || 4;
@@ -165,6 +171,181 @@ function updateUsersCount() {
     if (el) el.textContent = _users.length;
 }
 
+// ============================================================
+// SOLICITAÇÕES DE EXCLUSÃO DE CONTA (v12.0)
+// ============================================================
+export function subscribeDeletionRequests() {
+    if (!_db) return null;
+    if (_deletionUnsub) { try { _deletionUnsub(); } catch (e) {} }
+
+    _deletionUnsub = onValue(ref(_db, 'account_deletions'), (snap) => {
+        _deletionRequests = [];
+        snap.forEach(child => {
+            const val = child.val();
+            if (val && val.status === 'pendente') {
+                _deletionRequests.push({ ...val, id: child.key });
+            }
+        });
+        _deletionRequests.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+        renderDeletionRequests();
+        updateDeletionBadge();
+    }, (error) => console.error('[Users] deletion requests:', error));
+
+    return _deletionUnsub;
+}
+
+export function unsubscribeDeletionRequests() {
+    if (_deletionUnsub) { try { _deletionUnsub(); } catch (e) {} _deletionUnsub = null; }
+}
+
+function renderDeletionRequests() {
+    const tbody = document.getElementById('deletions-table');
+    if (!tbody) return;
+
+    if (_deletionRequests.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="5" class="table-empty">
+                <svg class="si si-2x"><use href="#i-user-check"/></svg>
+                <p>Nenhuma solicitação de exclusão pendente.</p>
+            </td></tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = _deletionRequests.map(d => {
+        const isMe = d.uid === _currentUser?.uid;
+        return `
+            <tr style="${isMe ? 'background:#fef3c7;' : ''}">
+                <td>${formatDateTime(d.requestedAt)}</td>
+                <td>
+                    <strong>${escapeHtml(d.name || '—')}</strong>
+                    ${isMe ? '<span class="badge badge-warning" style="font-size:0.6rem;margin-left:4px;">Você</span>' : ''}
+                </td>
+                <td>${escapeHtml(d.email || '—')}</td>
+                <td>${escapeHtml(d.setor || '—')}</td>
+                <td class="table-actions-col">
+                    <div class="action-buttons" style="justify-content:flex-end;">
+                        ${!isMe ? `
+                            <button onclick="window.approveDeletion('${d.id}')" class="btn btn-danger btn-sm" title="Aprovar Exclusão">
+                                <svg class="si"><use href="#i-check"/></svg> Aprovar
+                            </button>
+                            <button onclick="window.rejectDeletion('${d.id}')" class="btn btn-secondary btn-sm" title="Recusar">
+                                <svg class="si"><use href="#i-x"/></svg>
+                            </button>
+                        ` : `
+                            <span style="font-size:0.8rem;color:#7f8c8d;font-style:italic;">Aguarda outro admin</span>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateDeletionBadge() {
+    const badges = document.querySelectorAll('[data-deletion-badge]');
+    const count = _deletionRequests.length;
+    badges.forEach(b => {
+        b.textContent = count;
+        b.classList.toggle('hidden', count === 0);
+    });
+}
+
+export async function approveDeletion(uid) {
+    const req = _deletionRequests.find(d => d.id === uid);
+    if (!req) {
+        showNotification('Erro', 'Solicitação não encontrada.', 'danger');
+        return;
+    }
+
+    if (req.uid === _currentUser?.uid) {
+        await sstAlert('Você não pode aprovar sua própria exclusão.\n\nOutro administrador deve aprovar.', 'Não permitido', 'warning');
+        return;
+    }
+
+    const ok = await sstConfirm(
+        `Aprovar a EXCLUSÃO da conta?\n\n` +
+        `Nome: ${req.name}\n` +
+        `E-mail: ${req.email}\n` +
+        `Setor: ${req.setor || '—'}\n\n` +
+        `Esta ação:\n` +
+        `• Remove o usuário do sistema\n` +
+        `• Bloqueia nome e e-mail por 30 dias\n` +
+        `• Não pode ser desfeita`,
+        'Aprovar Exclusão',
+        'danger'
+    );
+    if (!ok) return;
+
+    try {
+        const now = new Date();
+        const releaseAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        // 1. Salva em /deleted_accounts para bloqueio de 30 dias
+        await set(ref(_db, 'deleted_accounts/' + uid), {
+            name: req.name,
+            email: req.email,
+            setor: req.setor || '',
+            ramal: req.ramal || '',
+            deletedAt: now.toISOString(),
+            deletedBy: _currentUser?.name || 'Sistema',
+            releaseAt: releaseAt
+        });
+
+        // 2. Remove de /users (o Firebase Auth permanece, mas o sistema bloqueia)
+        await remove(ref(_db, 'users/' + uid));
+
+        // 3. Atualiza /account_deletions
+        await update(ref(_db, 'account_deletions/' + uid), {
+            status: 'aprovado',
+            approvedAt: now.toISOString(),
+            approvedBy: _currentUser?.name || 'Sistema'
+        });
+
+        await addHistory('Conta Excluída', req.name,
+            `E-mail: ${req.email} | Aprovado por: ${_currentUser?.name} | Bloqueio até: ${new Date(releaseAt).toLocaleDateString('pt-BR')}`);
+
+        showNotification('Excluída', `Conta de ${req.name} foi excluída. Nome/e-mail bloqueados por 30 dias.`, 'success');
+    } catch (err) {
+        console.error('[Users] approveDeletion:', err);
+        await sstAlert('Erro ao excluir conta: ' + (err.message || ''), 'Erro', 'danger');
+    }
+}
+
+export async function rejectDeletion(uid) {
+    const req = _deletionRequests.find(d => d.id === uid);
+    if (!req) return;
+
+    const motivo = await sstPrompt('Motivo da recusa (opcional):', '', 'Recusar Exclusão') || '';
+
+    const ok = await sstConfirm(
+        `Recusar a exclusão da conta de "${req.name}"?\n\nA conta continuará ativa normalmente.`,
+        'Confirmar Recusa',
+        'warning'
+    );
+    if (!ok) return;
+
+    try {
+        await update(ref(_db, 'account_deletions/' + uid), {
+            status: 'recusado',
+            rejectedAt: new Date().toISOString(),
+            rejectedBy: _currentUser?.name || 'Sistema',
+            motivo: motivo
+        });
+
+        await addHistory('Exclusão Recusada', req.name,
+            `Por: ${_currentUser?.name}${motivo ? ' | Motivo: ' + motivo : ''}`);
+
+        showNotification('Recusada', 'Solicitação de exclusão recusada.', 'success');
+    } catch (err) {
+        console.error(err);
+        showNotification('Erro', 'Não foi possível recusar.', 'danger');
+    }
+}
+
+// ============================================================
+// FILTROS
+// ============================================================
 export function setupUserFilters() {
     const searchEl = document.getElementById('users-search');
     const roleEl = document.getElementById('users-filter-role');
@@ -184,7 +365,7 @@ export function setupUserFilters() {
 }
 
 // ============================================================
-// MODAL
+// MODAL (mantido igual)
 // ============================================================
 export function openUserModal(userUid = null) {
     _editingId = userUid;
@@ -403,3 +584,5 @@ window.openUserModal = openUserModal;
 window.closeUserModal = closeUserModal;
 window.editUser = editUser;
 window.deleteUser = deleteUser;
+window.approveDeletion = approveDeletion;
+window.rejectDeletion = rejectDeletion;
