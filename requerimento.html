@@ -1070,20 +1070,10 @@ document.getElementById('btn-submit')?.addEventListener('click', async () => {
     updateProgress('loading');
 
     try {
-        // 1) Verifica e-mail em /users
-        const usersSnap = await get(ref(_db, 'users'));
-        let existsInUsers = false;
-        if (usersSnap.exists()) {
-            usersSnap.forEach(child => {
-                const u = child.val();
-                if (u && u.email && u.email.toLowerCase() === state.data.email) existsInUsers = true;
-            });
-        }
-        if (existsInUsers) {
-            throw new Error('Este e-mail já está cadastrado no sistema. Faça login ou recupere sua senha.');
-        }
+        // ⚠️ VERIFICAÇÃO DE E-MAIL EM /users REMOVIDA (causava PERMISSION_DENIED)
+        // A checagem de duplicidade continua no /signups abaixo, que é público.
 
-        // 2) Verifica solicitação pendente em /signups
+        // 1) Verifica solicitação pendente em /signups
         const signupsSnap = await get(ref(_db, 'signups'));
         let existsPending = false;
         if (signupsSnap.exists()) {
@@ -1098,10 +1088,10 @@ document.getElementById('btn-submit')?.addEventListener('click', async () => {
             throw new Error('Você já tem uma solicitação pendente. Aguarde a análise do administrador.');
         }
 
-        // 3) Gera código único de acompanhamento
+        // 2) Gera código único de acompanhamento
         state.trackingCode = generateTrackingCode();
 
-        // 4) Salva no Firebase
+        // 3) Salva no Firebase
         const newRef = push(ref(_db, 'signups'));
         await set(newRef, {
             nome: state.data.nome,
@@ -1117,14 +1107,14 @@ document.getElementById('btn-submit')?.addEventListener('click', async () => {
             timestamp: new Date().toISOString()
         });
 
-        // 5) Garante que "Quase lá..." apareça por pelo menos 1.5s
+        // 4) Garante que "Quase lá..." apareça por pelo menos 1.5s
         const elapsed = Date.now() - startTime;
         const minDuration = 1500;
         if (elapsed < minDuration) {
             await new Promise(r => setTimeout(r, minDuration - elapsed));
         }
 
-        // 6) Mostra sucesso
+        // 5) Mostra sucesso
         document.getElementById('req-code-value').textContent = state.trackingCode;
         document.getElementById('btn-track').href = `acompanhar.html?codigo=${encodeURIComponent(state.trackingCode)}`;
         showStep('success');
