@@ -1,9 +1,8 @@
 // ============================================================
-// SSOT - SOLICITAÇÕES DE TRANSPORTE (v13.1)
-// Alterações v13.1:
-//  - FIX: botão "Solicitar Cancelamento" agora tem TEXTO visível na tabela
-//  - FEAT: botão aparece em Aprovada / Em Andamento (modal + tabela)
-//  - FIX: PDF do comprovante reescrito inline (v13.0)
+// SSOT - SOLICITAÇÕES DE TRANSPORTE (v14.0)
+// Novidades v14.0:
+//  - FEAT: Paginação na tabela admin (5 por página)
+//  - Herdado v13.1 (solicitar cancelamento + PDF inline)
 // ============================================================
 
 import {
@@ -25,6 +24,10 @@ let _requests = [];
 let _nextNumber = 1;
 let _unsub = null;
 let _highlightedId = null;
+
+// Paginação admin
+let _adminPage = 0;
+const ADMIN_PAGE_SIZE = 5;
 
 export function setRequestsContext(db, currentUser) {
     _db = db;
@@ -178,7 +181,7 @@ export async function changeRequestStatus(id, newStatus) {
 }
 
 // ============================================================
-// SOLICITAR CANCELAMENTO (v13.0 — NOVO)
+// SOLICITAR CANCELAMENTO
 // ============================================================
 export async function requestCancellation(id) {
     const r = _requests.find(x => x.id === id);
@@ -187,30 +190,23 @@ export async function requestCancellation(id) {
         return;
     }
     if (!_currentUser) {
-        showNotification('Erro', 'Sessão expirada. Faça login novamente.', 'danger');
+        showNotification('Erro', 'Sessão expirada.', 'danger');
         return;
     }
-
-    // Só permite cancelar se aprovada ou em andamento
     if (r.status !== 'aprovada' && r.status !== 'em-andamento') {
-        showNotification(
-            'Não permitido',
+        showNotification('Não permitido',
             'Só é possível solicitar cancelamento de solicitações Aprovadas ou Em Andamento.',
-            'warning'
-        );
+            'warning');
         return;
     }
 
-    // Pede motivo (opcional)
     const reason = await sstPrompt(
         `Motivo do cancelamento da solicitação ${r.numero} (opcional):`,
         '',
         'Solicitar Cancelamento'
     );
-    // Se o usuário fechou o prompt sem confirmar
     if (reason === null) return;
 
-    // Confirmação final
     const ok = await sstConfirm(
         `Solicitar cancelamento da solicitação ${r.numero}?\n\n` +
         `Destino: ${r.destino}\n` +
@@ -222,16 +218,13 @@ export async function requestCancellation(id) {
     if (!ok) return;
 
     try {
-        // Libera o slot na agenda
         if (r.saida && r.saida.includes('T')) {
             const [date, time] = r.saida.split('T');
             if (date && time) {
                 try {
                     const schedule = await import('./schedule.js');
                     await schedule.freeSlot(date, time.substring(0, 5));
-                } catch (e) {
-                    console.warn('[Requests] freeSlot:', e);
-                }
+                } catch (e) { console.warn('[Requests] freeSlot:', e); }
             }
         }
 
@@ -250,22 +243,19 @@ export async function requestCancellation(id) {
             timestamp: now
         });
 
-        await addHistory(
-            'Cancelamento Solicitado',
-            r.numero,
-            `Motivo: ${(reason || '').trim() || '(não informado)'} | Por: ${_currentUser?.name}`
-        );
+        await addHistory('Cancelamento Solicitado', r.numero,
+            `Motivo: ${(reason || '').trim() || '(não informado)'} | Por: ${_currentUser?.name}`);
 
         closeViewModal();
-        showNotification('Cancelada', `Solicitação ${r.numero} cancelada com sucesso.`, 'success');
+        showNotification('Cancelada', `Solicitação ${r.numero} cancelada.`, 'success');
     } catch (err) {
         console.error('[Requests] requestCancellation:', err);
-        showNotification('Erro', 'Não foi possível cancelar a solicitação.', 'danger');
+        showNotification('Erro', 'Não foi possível cancelar.', 'danger');
     }
 }
 
 // ============================================================
-// EDITAR HORÁRIOS (Em Andamento / Concluída)
+// EDITAR HORÁRIOS
 // ============================================================
 export function openEditHoursModal(id) {
     const r = _requests.find(x => x.id === id);
@@ -286,10 +276,7 @@ export function openEditHoursModal(id) {
     const saidaEl = document.getElementById('edit-hours-saida');
     const retornoEl = document.getElementById('edit-hours-retorno');
 
-    if (!idEl || !saidaEl || !retornoEl) {
-        console.error('[Requests] Modal de edição de horários não encontrado.');
-        return;
-    }
+    if (!idEl || !saidaEl || !retornoEl) return;
 
     idEl.value = id;
     if (numEl) numEl.textContent = r.numero;
@@ -307,12 +294,8 @@ export function openEditHoursModal(id) {
 function toDatetimeLocal(value) {
     if (!value) return '';
     const s = String(value).trim();
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) {
-        return s.slice(0, 16);
-    }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        return `${s}T00:00`;
-    }
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return s.slice(0, 16);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T00:00`;
     const d = new Date(s);
     if (isNaN(d.getTime())) return '';
     const pad = n => String(n).padStart(2, '0');
@@ -322,10 +305,8 @@ function toDatetimeLocal(value) {
 export async function saveRequestHours() {
     const id = document.getElementById('edit-hours-request-id')?.value;
     if (!id) return;
-
     const r = _requests.find(x => x.id === id);
     if (!r) return;
-
     if (r.status !== 'em-andamento' && r.status !== 'concluida') {
         showNotification('Não permitido', 'Status não permite edição.', 'warning');
         return;
@@ -334,15 +315,12 @@ export async function saveRequestHours() {
     const newSaida = document.getElementById('edit-hours-saida')?.value || '';
     const newRetorno = document.getElementById('edit-hours-retorno')?.value || '';
     const errBox = document.getElementById('edit-hours-error');
-
     if (!newSaida) {
-        if (errBox) { errBox.textContent = 'A data/hora de saída é obrigatória.'; errBox.classList.remove('hidden'); }
+        if (errBox) { errBox.textContent = 'Data/hora de saída é obrigatória.'; errBox.classList.remove('hidden'); }
         return;
     }
 
     const oldSaida = r.saida || '';
-    const oldRetorno = r.retorno || '';
-
     const btn = document.getElementById('edit-hours-save-btn');
     const originalHTML = btn?.innerHTML;
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
@@ -356,7 +334,7 @@ export async function saveRequestHours() {
                     try {
                         const schedule = await import('./schedule.js');
                         await schedule.freeSlot(oldDate, oldTime.substring(0, 5));
-                    } catch (e) { console.warn('[Requests] freeSlot:', e); }
+                    } catch (e) { console.warn(e); }
                 }
             }
             if (newSaida.includes('T')) {
@@ -365,7 +343,7 @@ export async function saveRequestHours() {
                     try {
                         const schedule = await import('./schedule.js');
                         await schedule.reserveSlot(newDate, newTime.substring(0, 5), r.numero);
-                    } catch (e) { console.warn('[Requests] reserveSlot:', e); }
+                    } catch (e) { console.warn(e); }
                 }
             }
         }
@@ -379,16 +357,14 @@ export async function saveRequestHours() {
 
         const oldSaidaFmt = oldSaida ? formatDateTime(oldSaida) : '—';
         const newSaidaFmt = formatDateTime(newSaida);
-        const detail = `Saída: ${oldSaidaFmt} → ${newSaidaFmt} | Retorno: ${newRetorno ? formatDateTime(newRetorno) : '—'} | Por: ${_currentUser?.name}`;
-
-        await addHistory('Horários Editados', r.numero, detail);
+        await addHistory('Horários Editados', r.numero,
+            `Saída: ${oldSaidaFmt} → ${newSaidaFmt} | Por: ${_currentUser?.name}`);
 
         window.closeModal('edit-hours-modal');
-        showNotification('Atualizado', 'Horários atualizados com sucesso.', 'success');
+        showNotification('Atualizado', 'Horários atualizados.', 'success');
     } catch (err) {
         console.error('[Requests] saveRequestHours:', err);
-        if (errBox) { errBox.textContent = 'Não foi possível salvar: ' + (err.message || ''); errBox.classList.remove('hidden'); }
-        else showNotification('Erro', 'Não foi possível salvar.', 'danger');
+        if (errBox) { errBox.textContent = 'Erro: ' + (err.message || ''); errBox.classList.remove('hidden'); }
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = originalHTML; }
     }
@@ -403,9 +379,8 @@ export async function moveToTrash(id) {
 
     const ok = await sstConfirm(
         `Excluir a solicitação ${r.numero}?\n\n` +
-        `Destino: ${r.destino}\n` +
-        `Solicitante: ${r.solicitante}\n\n` +
-        `Ela irá para a lixeira e o horário será liberado na agenda.`,
+        `Destino: ${r.destino}\nSolicitante: ${r.solicitante}\n\n` +
+        `Ela irá para a lixeira e o horário será liberado.`,
         'Excluir Solicitação',
         'warning'
     );
@@ -418,9 +393,7 @@ export async function moveToTrash(id) {
                 try {
                     const schedule = await import('./schedule.js');
                     await schedule.freeSlot(date, time.substring(0, 5));
-                } catch (e) {
-                    console.warn('[Requests] Falha ao liberar slot:', e);
-                }
+                } catch (e) { console.warn(e); }
             }
         }
 
@@ -432,10 +405,8 @@ export async function moveToTrash(id) {
         });
 
         await remove(ref(_db, 'requests/' + id));
-
         await addHistory('Solicitação Excluída', r.numero,
             `Movida para lixeira por ${_currentUser?.name}`);
-
         showNotification('Excluída', `Solicitação ${r.numero} movida para lixeira.`, 'success');
     } catch (err) {
         console.error(err);
@@ -482,14 +453,11 @@ export function updateUserTable() {
     });
 
     tbody.innerHTML = mine.map(r => {
-        // ── Ações por linha ──
         let actions = `
             <button onclick="viewRequest('${r.id}', false)" class="btn btn-primary btn-sm">
                 <svg class="si"><use href="#i-eye"/></svg> Ver
             </button>
         `;
-
-        // 🔽 v13.1: botão "Solicitar Cancelamento" COM TEXTO visível na tabela
         if (r.status === 'aprovada' || r.status === 'em-andamento') {
             actions += `
                 <button onclick="window.requestCancellation('${r.id}')" class="btn btn-warning btn-sm" style="margin-left:6px;" title="Solicitar cancelamento">
@@ -534,23 +502,30 @@ export function updateAdminTable() {
     if (userFilter) list = list.filter(r => r.solicitanteEmail === userFilter);
     if (priorityFilter) list = list.filter(r => r.prioridade === priorityFilter);
 
-    if (list.length === 0) {
-        tbody.innerHTML = `
-            <tr><td colspan="8" class="table-empty">
-                <svg class="si si-2x"><use href="#i-clipboard"/></svg>
-                <p>Nenhuma solicitação encontrada.</p>
-            </td></tr>
-        `;
-        return;
-    }
-
     list.sort((a, b) => {
         const na = parseInt(String(a.numero).replace(/\D/g, '')) || 0;
         const nb = parseInt(String(b.numero).replace(/\D/g, '')) || 0;
         return nb - na;
     });
 
-    tbody.innerHTML = list.map(r => {
+    const total = list.length;
+    const totalPages = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+    if (_adminPage >= totalPages) _adminPage = 0;
+    const start = _adminPage * ADMIN_PAGE_SIZE;
+    const pageItems = list.slice(start, start + ADMIN_PAGE_SIZE);
+
+    if (total === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="8" class="table-empty">
+                <svg class="si si-2x"><use href="#i-clipboard"/></svg>
+                <p>Nenhuma solicitação encontrada.</p>
+            </td></tr>
+        `;
+        renderPagination(0, 1, 0);
+        return;
+    }
+
+    tbody.innerHTML = pageItems.map(r => {
         const hl = (_highlightedId && r.id === _highlightedId) ? 'highlight' : '';
         return `
             <tr class="${hl}">
@@ -580,6 +555,36 @@ export function updateAdminTable() {
         if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
         _highlightedId = null;
     }
+
+    renderPagination(_adminPage, totalPages, total);
+}
+
+function renderPagination(currentPage, totalPages, total) {
+    const paginationEl = document.getElementById('admin-requests-pagination');
+    if (!paginationEl) return;
+
+    if (totalPages <= 1) {
+        paginationEl.innerHTML = '';
+        return;
+    }
+
+    paginationEl.innerHTML = `
+        <div class="fleet-pagination">
+            <button class="btn btn-secondary btn-sm" ${currentPage === 0 ? 'disabled' : ''} onclick="window.changeAdminPage(${currentPage - 1})">
+                <svg class="si"><use href="#i-chevron-l"/></svg> Anterior
+            </button>
+            <span>Página <strong>${currentPage + 1}</strong> de ${totalPages} · ${total} registro(s)</span>
+            <button class="btn btn-secondary btn-sm" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="window.changeAdminPage(${currentPage + 1})">
+                Próxima <svg class="si"><use href="#i-chevron-r"/></svg>
+            </button>
+        </div>
+    `;
+}
+
+export function changeAdminPage(p) {
+    if (p < 0) return;
+    _adminPage = p;
+    updateAdminTable();
 }
 
 export function updateAllTables() {
@@ -613,20 +618,20 @@ export function setupRequestFilters() {
     if (us) us.addEventListener('input', debounce(updateUserTable, 250));
 
     const as = document.getElementById('admin-search');
-    if (as) as.addEventListener('input', debounce(updateAdminTable, 250));
+    if (as) as.addEventListener('input', debounce(() => { _adminPage = 0; updateAdminTable(); }, 250));
 
     const sf = document.getElementById('admin-filter-status');
-    if (sf) sf.addEventListener('change', updateAdminTable);
+    if (sf) sf.addEventListener('change', () => { _adminPage = 0; updateAdminTable(); });
 
     const uf = document.getElementById('admin-filter-user');
-    if (uf) uf.addEventListener('change', updateAdminTable);
+    if (uf) uf.addEventListener('change', () => { _adminPage = 0; updateAdminTable(); });
 
     const pf = document.getElementById('admin-filter-priority');
-    if (pf) pf.addEventListener('change', updateAdminTable);
+    if (pf) pf.addEventListener('change', () => { _adminPage = 0; updateAdminTable(); });
 }
 
 // ============================================================
-// VIEW REQUEST
+// VIEW REQUEST (modal de detalhes)
 // ============================================================
 export function viewRequest(id, adminView) {
     const r = _requests.find(x => x.id === id);
@@ -690,25 +695,19 @@ export function viewRequest(id, adminView) {
         `;
         footer.innerHTML = buttons;
     } else {
-        // ── Área do usuário comum ──
         let buttons = `<button class="btn btn-success" onclick="window.downloadUserRequestPDF('${r.id}')"><svg class="si"><use href="#i-file-pdf"/></svg> Baixar PDF</button>`;
-
         if (r.status === 'pendente') {
             buttons += `<button class="btn btn-danger" onclick="changeStatus('${r.id}', 'cancelada')"><svg class="si"><use href="#i-ban"/></svg> Cancelar</button>`;
         }
-        // 🔽 v13.0/v13.1: botão "Solicitar Cancelamento" para Aprovada / Em Andamento
         if (r.status === 'aprovada' || r.status === 'em-andamento') {
             buttons += `<button class="btn btn-warning" onclick="window.requestCancellation('${r.id}')"><svg class="si"><use href="#i-x-circle"/></svg> Solicitar Cancelamento</button>`;
         }
-
         buttons += `<button class="btn btn-secondary" onclick="closeViewModal()"><svg class="si"><use href="#i-x"/></svg> Fechar</button>`;
         footer.innerHTML = buttons;
     }
 
     const modalEl = document.querySelector('#view-request-modal .modal');
-    if (modalEl) {
-        modalEl.className = 'modal modal-fullscreen';
-    }
+    if (modalEl) modalEl.className = 'modal modal-fullscreen';
 
     document.getElementById('view-request-modal').classList.add('active');
 }
@@ -760,7 +759,7 @@ export function renderTodayRequestsWidget() {
 }
 
 // ============================================================
-// PDF DO COMPROVANTE — gerado inline com html2pdf (v13.0)
+// PDF DO COMPROVANTE
 // ============================================================
 export async function downloadUserRequestPDF(requestId) {
     const r = _requests.find(x => x.id === requestId);
@@ -790,7 +789,7 @@ export async function downloadUserRequestPDF(requestId) {
         }).from(htmlString).save();
 
         await addHistory('PDF Baixado', r.numero, `Por: ${_currentUser?.name}`);
-        showNotification('PDF Gerado', 'Comprovante baixado com sucesso!', 'success');
+        showNotification('PDF Gerado', 'Comprovante baixado!', 'success');
     } catch (err) {
         console.error('[Requests] Erro ao gerar PDF:', err);
         showNotification('Erro', 'Não foi possível gerar o PDF.', 'danger');
@@ -802,209 +801,89 @@ export async function downloadUserRequestPDF(requestId) {
 function buildUserRequestHTML(r) {
     const now = new Date();
     const user = _currentUser?.name || 'Sistema';
-
     const esc = (v) => escapeHtml(v == null ? '' : String(v));
     const fmtDT = (v) => v ? formatDateTime(v) : '—';
 
     const statusClass = {
-        'pendente': 'b-w',
-        'aprovada': 'b-s',
-        'recusada': 'b-d',
-        'em-andamento': 'b-p',
-        'concluida': 'b-i',
-        'cancelada': 'b-x'
+        'pendente': 'b-w', 'aprovada': 'b-s', 'recusada': 'b-d',
+        'em-andamento': 'b-p', 'concluida': 'b-i', 'cancelada': 'b-x'
     }[r.status] || 'b-w';
 
     const prioridadeClass = {
-        'baixa': 'b-x',
-        'normal': 'b-p',
-        'alta': 'b-w',
-        'urgente': 'b-d'
+        'baixa': 'b-x', 'normal': 'b-p', 'alta': 'b-w', 'urgente': 'b-d'
     }[r.prioridade] || 'b-p';
 
     const qrUrl = window.location.origin + window.location.pathname + '?request=' + r.id;
 
     return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Solicitação ${esc(r.numero)} - SSOT</title>
+<html lang="pt-BR"><head><meta charset="UTF-8"><title>Solicitação ${esc(r.numero)} - SSOT</title>
 <style>
-    @page { size: A4; margin: 0; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; color: #2c3e50; }
-    .a4-container { width: 210mm; min-height: 297mm; padding: 15mm; box-sizing: border-box; margin: 0 auto; background: #fff; }
-
-    .header { border-bottom: 3px solid #3498db; padding-bottom: 12px; margin-bottom: 20px; }
-    .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
-    .header-brand h1 { color: #2c3e50; margin: 0; font-size: 16px; font-weight: bold; }
-    .header-brand h2 { color: #3498db; margin: 3px 0 0; font-size: 11px; font-weight: normal; }
-    .header-meta { text-align: right; font-size: 10px; color: #7f8c8d; line-height: 1.6; flex-shrink: 0; }
-    .header-meta strong { color: #2c3e50; }
-
-    .status-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #3498db; }
-    .status-box .numero-label { font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; margin-bottom: 2px; }
-    .status-box .numero { font-size: 20px; font-weight: bold; color: #2c3e50; }
-
-    .section { margin-bottom: 18px; page-break-inside: avoid; }
-    .section-title { font-size: 11px; font-weight: bold; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; background: #eaf4fc; border-left: 3px solid #3498db; margin-bottom: 10px; }
-    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 0 6px; }
-    .field { min-width: 0; }
-    .field.full { grid-column: 1 / -1; }
-    .field-label { font-size: 9px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; margin-bottom: 3px; }
-    .field-value { font-size: 12px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; }
-    .field-value.multi { white-space: pre-wrap; }
-
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; color: #fff; }
-    .b-w { background: #d68910; }
-    .b-s { background: #27ae60; }
-    .b-d { background: #c0392b; }
-    .b-p { background: #3498db; }
-    .b-i { background: #1abc9c; }
-    .b-x { background: #95a5a6; }
-
-    .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #7f8c8d; border-top: 1px solid #eeeeee; padding-top: 15px; }
-    .footer p { margin: 3px 0; }
-    .footer-obs { padding: 10px 12px; background: #fff3cd; border-left: 3px solid #d68910; margin: 14px 0; font-size: 10px; color: #856404; border-radius: 3px; page-break-inside: avoid; }
-
-    .qr-section { margin-top: 20px; text-align: center; page-break-inside: avoid; }
-    .qr-section img { width: 100px; height: 100px; }
-    .qr-label { font-size: 9px; color: #7f8c8d; margin-top: 4px; }
-</style>
-</head>
-<body>
-<div class="a4-container">
-
-    <div class="header">
-        <div class="header-top">
-            <div class="header-brand">
-                <h1>SSOT — Comprovante de Solicitação</h1>
-                <h2>Sistema de Solicitações e Operações de Transporte</h2>
-            </div>
-            <div class="header-meta">
-                Gerado em<br>
-                <strong>${esc(now.toLocaleDateString('pt-BR'))}</strong> às <strong>${esc(now.toLocaleTimeString('pt-BR'))}</strong><br>
-                Por: ${esc(user)}
-            </div>
-        </div>
-    </div>
-
-    <div class="status-box">
-        <div>
-            <div class="numero-label">Solicitação</div>
-            <div class="numero">${esc(r.numero)}</div>
-        </div>
-        <div>
-            <span class="badge ${statusClass}">${esc(getStatusText(r.status))}</span>
-            <span class="badge ${prioridadeClass}" style="margin-left:6px;">${esc(r.prioridade || 'normal')}</span>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Solicitante</div>
-        <div class="fields-grid">
-            <div class="field full">
-                <div class="field-label">Nome</div>
-                <div class="field-value">${esc(r.solicitante)}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">E-mail</div>
-                <div class="field-value">${esc(r.email || '—')}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Ramal</div>
-                <div class="field-value">${esc(r.ramal || '—')}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Setor</div>
-                <div class="field-value">${esc(r.setor || '—')}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Cargo</div>
-                <div class="field-value">${esc(r.cargo || '—')}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Detalhes da Viagem</div>
-        <div class="fields-grid">
-            <div class="field">
-                <div class="field-label">Destino</div>
-                <div class="field-value"><strong>${esc(r.destino)}</strong></div>
-            </div>
-            <div class="field">
-                <div class="field-label">Origem</div>
-                <div class="field-value">${esc(r.origem || '—')}</div>
-            </div>
-            <div class="field full">
-                <div class="field-label">Finalidade</div>
-                <div class="field-value multi">${esc(r.finalidade || '—')}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Saída</div>
-                <div class="field-value"><strong>${fmtDT(r.saida)}</strong></div>
-            </div>
-            <div class="field">
-                <div class="field-label">Retorno</div>
-                <div class="field-value">${fmtDT(r.retorno)}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Nº de Passageiros</div>
-                <div class="field-value">${esc(String(r.passageiros || '1'))}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Veículo</div>
-                <div class="field-value">${esc(getVeiculoText(r.veiculo))}</div>
-            </div>
-        </div>
-    </div>
-
-    ${(r.necessidades || r.nomesPassageiros || r.observacoes) ? `
-    <div class="section">
-        <div class="section-title">Observações</div>
-        <div class="fields-grid">
-            ${r.necessidades ? `
-            <div class="field full">
-                <div class="field-label">Necessidades Especiais</div>
-                <div class="field-value multi">${esc(r.necessidades)}</div>
-            </div>` : ''}
-            ${r.nomesPassageiros ? `
-            <div class="field full">
-                <div class="field-label">Nomes dos Passageiros</div>
-                <div class="field-value multi">${esc(r.nomesPassageiros)}</div>
-            </div>` : ''}
-            ${r.observacoes ? `
-            <div class="field full">
-                <div class="field-label">Observações</div>
-                <div class="field-value multi">${esc(r.observacoes)}</div>
-            </div>` : ''}
-        </div>
-    </div>
-    ` : ''}
-
-    ${r.cancellationRequest && r.cancellationRequest.reason ? `
-    <div class="footer-obs">
-        <strong>⚠️ Cancelamento solicitado</strong><br>
-        Motivo: ${esc(r.cancellationRequest.reason)}<br>
-        Solicitado em: ${fmtDT(r.cancellationRequest.requestedAt)}
-    </div>
-    ` : ''}
-
-    <div class="qr-section">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}" alt="QR Code">
-        <div class="qr-label">Escaneie para abrir esta solicitação</div>
-    </div>
-
-    <div class="footer">
-        <p><strong>SSOT — Sistema de Solicitações e Operações de Transporte</strong></p>
-        <p>Documento gerado automaticamente · ${esc(now.toLocaleString('pt-BR'))}</p>
-        <p>Criada em ${fmtDT(r.timestamp)}</p>
-    </div>
-
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; }
+body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; color: #2c3e50; }
+.a4-container { width: 210mm; min-height: 297mm; padding: 15mm; box-sizing: border-box; margin: 0 auto; background: #fff; }
+.header { border-bottom: 3px solid #3498db; padding-bottom: 12px; margin-bottom: 20px; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
+.header-brand h1 { color: #2c3e50; margin: 0; font-size: 16px; font-weight: bold; }
+.header-brand h2 { color: #3498db; margin: 3px 0 0; font-size: 11px; font-weight: normal; }
+.header-meta { text-align: right; font-size: 10px; color: #7f8c8d; line-height: 1.6; flex-shrink: 0; }
+.header-meta strong { color: #2c3e50; }
+.status-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #3498db; }
+.status-box .numero-label { font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; margin-bottom: 2px; }
+.status-box .numero { font-size: 20px; font-weight: bold; color: #2c3e50; }
+.section { margin-bottom: 18px; page-break-inside: avoid; }
+.section-title { font-size: 11px; font-weight: bold; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; background: #eaf4fc; border-left: 3px solid #3498db; margin-bottom: 10px; }
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 0 6px; }
+.field { min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field-label { font-size: 9px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; margin-bottom: 3px; }
+.field-value { font-size: 12px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; }
+.field-value.multi { white-space: pre-wrap; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; color: #fff; }
+.b-w { background: #d68910; } .b-s { background: #27ae60; } .b-d { background: #c0392b; }
+.b-p { background: #3498db; } .b-i { background: #1abc9c; } .b-x { background: #95a5a6; }
+.footer { margin-top: 30px; text-align: center; font-size: 9px; color: #7f8c8d; border-top: 1px solid #eeeeee; padding-top: 15px; }
+.footer p { margin: 3px 0; }
+.footer-obs { padding: 10px 12px; background: #fff3cd; border-left: 3px solid #d68910; margin: 14px 0; font-size: 10px; color: #856404; border-radius: 3px; page-break-inside: avoid; }
+.qr-section { margin-top: 20px; text-align: center; page-break-inside: avoid; }
+.qr-section img { width: 100px; height: 100px; }
+.qr-label { font-size: 9px; color: #7f8c8d; margin-top: 4px; }
+</style></head><body><div class="a4-container">
+<div class="header"><div class="header-top">
+<div class="header-brand"><h1>SSOT — Comprovante de Solicitação</h1><h2>Sistema de Solicitações e Operações de Transporte</h2></div>
+<div class="header-meta">Gerado em<br><strong>${esc(now.toLocaleDateString('pt-BR'))}</strong> às <strong>${esc(now.toLocaleTimeString('pt-BR'))}</strong><br>Por: ${esc(user)}</div>
+</div></div>
+<div class="status-box">
+<div><div class="numero-label">Solicitação</div><div class="numero">${esc(r.numero)}</div></div>
+<div><span class="badge ${statusClass}">${esc(getStatusText(r.status))}</span><span class="badge ${prioridadeClass}" style="margin-left:6px;">${esc(r.prioridade || 'normal')}</span></div>
 </div>
-</body>
-</html>`;
+<div class="section"><div class="section-title">Solicitante</div>
+<div class="fields-grid">
+<div class="field full"><div class="field-label">Nome</div><div class="field-value">${esc(r.solicitante)}</div></div>
+<div class="field"><div class="field-label">E-mail</div><div class="field-value">${esc(r.email || '—')}</div></div>
+<div class="field"><div class="field-label">Ramal</div><div class="field-value">${esc(r.ramal || '—')}</div></div>
+<div class="field"><div class="field-label">Setor</div><div class="field-value">${esc(r.setor || '—')}</div></div>
+<div class="field"><div class="field-label">Cargo</div><div class="field-value">${esc(r.cargo || '—')}</div></div>
+</div></div>
+<div class="section"><div class="section-title">Detalhes da Viagem</div>
+<div class="fields-grid">
+<div class="field"><div class="field-label">Destino</div><div class="field-value"><strong>${esc(r.destino)}</strong></div></div>
+<div class="field"><div class="field-label">Origem</div><div class="field-value">${esc(r.origem || '—')}</div></div>
+<div class="field full"><div class="field-label">Finalidade</div><div class="field-value multi">${esc(r.finalidade || '—')}</div></div>
+<div class="field"><div class="field-label">Saída</div><div class="field-value"><strong>${fmtDT(r.saida)}</strong></div></div>
+<div class="field"><div class="field-label">Retorno</div><div class="field-value">${fmtDT(r.retorno)}</div></div>
+<div class="field"><div class="field-label">Nº de Passageiros</div><div class="field-value">${esc(String(r.passageiros || '1'))}</div></div>
+<div class="field"><div class="field-label">Veículo</div><div class="field-value">${esc(getVeiculoText(r.veiculo))}</div></div>
+</div></div>
+${(r.necessidades || r.nomesPassageiros || r.observacoes) ? `<div class="section"><div class="section-title">Observações</div><div class="fields-grid">
+${r.necessidades ? `<div class="field full"><div class="field-label">Necessidades Especiais</div><div class="field-value multi">${esc(r.necessidades)}</div></div>` : ''}
+${r.nomesPassageiros ? `<div class="field full"><div class="field-label">Nomes dos Passageiros</div><div class="field-value multi">${esc(r.nomesPassageiros)}</div></div>` : ''}
+${r.observacoes ? `<div class="field full"><div class="field-label">Observações</div><div class="field-value multi">${esc(r.observacoes)}</div></div>` : ''}
+</div></div>` : ''}
+${r.cancellationRequest?.reason ? `<div class="footer-obs"><strong>⚠️ Cancelamento solicitado</strong><br>Motivo: ${esc(r.cancellationRequest.reason)}<br>Solicitado em: ${fmtDT(r.cancellationRequest.requestedAt)}</div>` : ''}
+<div class="qr-section"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}" alt="QR Code"><div class="qr-label">Escaneie para abrir esta solicitação</div></div>
+<div class="footer"><p><strong>SSOT — Sistema de Solicitações e Operações de Transporte</strong></p><p>Documento gerado automaticamente · ${esc(now.toLocaleString('pt-BR'))}</p><p>Criada em ${fmtDT(r.timestamp)}</p></div>
+</div></body></html>`;
 }
 
 // ============================================================
@@ -1016,6 +895,7 @@ window.downloadUserRequestPDF = downloadUserRequestPDF;
 window.openEditHoursModal = openEditHoursModal;
 window.saveRequestHours = saveRequestHours;
 window.requestCancellation = requestCancellation;
+window.changeAdminPage = changeAdminPage;
 window.changeStatus = async (id, status) => {
     await changeRequestStatus(id, status);
     closeViewModal();
