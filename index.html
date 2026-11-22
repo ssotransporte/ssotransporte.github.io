@@ -24,7 +24,7 @@
         .logo-img-lg{width:1.5em;height:1.5em}
         .logo-img-3x{width:3em;height:3em}
 
-        /* ===== Tela de login — painel direito ===== */
+        /* ===== LOGIN — IMAGEM RESPONSIVA POR BREAKPOINT ===== */
         .login-right {
             position: relative;
             overflow: hidden;
@@ -36,11 +36,18 @@
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-
-        .login-right > img {
+        .login-right-picture {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            inset: 0;
+        }
+        .login-right-image {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: center center;
             display: block;
             position: relative;
             z-index: 2;
@@ -53,6 +60,16 @@
             -webkit-touch-callout: none;
             user-select: none;
             -webkit-user-select: none;
+        }
+        /* Adaptação por tipo de tela (mesma imagem, foco diferente) */
+        @media (min-width: 1600px) {
+            .login-right-image { object-position: center 45%; }
+        }
+        @media (min-width: 1280px) and (max-width: 1599px) {
+            .login-right-image { object-position: center 40%; }
+        }
+        @media (min-width: 900px) and (max-width: 1279px) {
+            .login-right-image { object-position: center 35%; }
         }
 
         .login-right-fallback {
@@ -67,65 +84,321 @@
             color: #fff;
             pointer-events: none;
         }
-
-        .login-right-fallback-inner {
-            max-width: 420px;
-        }
-
-        .login-right-fallback svg {
-            color: #fff;
-            margin-bottom: 20px;
-            opacity: 0.95;
-        }
-
-        .login-right-fallback h2 {
-            color: #fff;
-            font-size: 2.4rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin: 0 0 12px;
-        }
-
-        .login-right-fallback p {
-            color: rgba(255, 255, 255, 0.92);
-            font-size: 1.05rem;
-            line-height: 1.5;
-            margin: 0 0 28px;
-        }
-
-        .login-right-fallback ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            text-align: left;
-            display: inline-block;
-        }
-
-        .login-right-fallback li {
-            color: rgba(255, 255, 255, 0.95);
-            font-size: 0.95rem;
-            padding: 6px 0 6px 24px;
-            position: relative;
-        }
-
-        .login-right-fallback li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #2ecc71;
-            font-weight: 700;
-        }
-
-        .login-right.no-image > img { display: none; }
+        .login-right-fallback-inner { max-width: 420px; }
+        .login-right-fallback svg { color: #fff; margin-bottom: 20px; opacity: 0.95; }
+        .login-right-fallback h2 { color: #fff; font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; margin: 0 0 12px; }
+        .login-right-fallback p { color: rgba(255,255,255,0.92); font-size: 1.05rem; line-height: 1.5; margin: 0 0 28px; }
+        .login-right-fallback ul { list-style: none; padding: 0; margin: 0; text-align: left; display: inline-block; }
+        .login-right-fallback li { color: rgba(255,255,255,0.95); font-size: 0.95rem; padding: 6px 0 6px 24px; position: relative; }
+        .login-right-fallback li::before { content: "✓"; position: absolute; left: 0; color: #2ecc71; font-weight: 700; }
+        .login-right.no-image > picture { display: none; }
         .login-right.no-image .login-right-fallback { display: flex; }
 
         @media (max-width: 900px) {
             .login-right { display: none; }
         }
+
+        /* ===== ÁREA SELECT — MODAL MELHORADO ===== */
+        .area-select-overlay {
+            background: rgba(15, 23, 42, 0.72) !important;
+            backdrop-filter: blur(6px) !important;
+            -webkit-backdrop-filter: blur(6px) !important;
+        }
+        .area-select-modal-custom {
+            max-width: 720px !important;
+            width: 92% !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+            border: none !important;
+            background: #ffffff !important;
+            padding: 0 !important;
+        }
+        .area-select-header-v2 {
+            padding: 32px 36px 26px;
+            text-align: center;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .area-select-brand-v2 {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            color: #0f172a;
+            margin-bottom: 20px;
+        }
+        .area-select-brand-v2 img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 4px;
+        }
+        .area-select-header-v2 h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 8px;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+        .area-select-header-v2 p {
+            font-size: 14.5px;
+            color: #475569;
+            margin: 0;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        .area-select-body-v2 {
+            padding: 24px 28px 28px;
+            background: #ffffff;
+        }
+        .area-cards-grid-v2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .area-card-v2 {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 22px 20px;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            transition: all 0.2s ease;
+            min-height: 200px;
+        }
+        .area-card-v2:hover {
+            border-color: #0f172a;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+            transform: translateY(-2px);
+        }
+        .area-card-v2.area-card-operacoes-v2:hover {
+            border-color: #d97706;
+            box-shadow: 0 12px 28px rgba(217, 119, 6, 0.16);
+        }
+        .area-card-v2.area-card-solicitacoes-v2:hover {
+            border-color: #1e40af;
+            box-shadow: 0 12px 28px rgba(30, 64, 175, 0.16);
+        }
+        .area-card-head-v2 {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .area-card-icon-v2 {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .area-card-operacoes-v2 .area-card-icon-v2 {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .area-card-solicitacoes-v2 .area-card-icon-v2 {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .area-card-icon-v2 svg {
+            width: 26px;
+            height: 26px;
+            stroke-width: 2.2;
+        }
+        .area-card-title-v2 h3 {
+            font-size: 19px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 2px;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+        .area-card-title-v2 span {
+            font-size: 13.5px;
+            color: #475569;
+            font-weight: 500;
+            display: block;
+        }
+        .area-card-features-v2 {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .area-card-features-v2 li {
+            font-size: 13.5px;
+            color: #334155;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        .area-card-features-v2 li::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 7px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+        .area-card-operacoes-v2 .area-card-features-v2 li::before { background: #d97706; }
+        .area-card-solicitacoes-v2 .area-card-features-v2 li::before { background: #1e40af; }
+        .area-card-cta-v2 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            background: #f1f5f9;
+            color: #0f172a;
+            margin-top: auto;
+            transition: all 0.2s ease;
+            letter-spacing: -0.005em;
+        }
+        .area-card-cta-v2 svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+        }
+        .area-card-v2:hover .area-card-cta-v2 {
+            background: #0f172a;
+            color: #ffffff;
+        }
+        .area-card-v2:hover .area-card-cta-v2 svg {
+            transform: translateX(3px);
+        }
+        .area-card-operacoes-v2:hover .area-card-cta-v2 {
+            background: #d97706;
+        }
+        .area-card-solicitacoes-v2:hover .area-card-cta-v2 {
+            background: #1e40af;
+        }
+        .area-select-footer-v2 {
+            text-align: center;
+            font-size: 12.5px;
+            color: #64748b;
+            margin: 0;
+            padding-top: 4px;
+            line-height: 1.5;
+        }
+        .area-select-footer-v2 strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        @media (max-width: 640px) {
+            .area-select-header-v2 { padding: 24px 20px 20px; }
+            .area-select-header-v2 h2 { font-size: 22px; }
+            .area-select-header-v2 p { font-size: 13px; }
+            .area-select-body-v2 { padding: 18px 16px 22px; }
+            .area-cards-grid-v2 { grid-template-columns: 1fr; gap: 12px; }
+            .area-card-v2 { padding: 18px 16px; min-height: auto; gap: 12px; }
+            .area-card-title-v2 h3 { font-size: 17px; }
+            .area-card-features-v2 { gap: 5px; }
+            .area-card-features-v2 li { font-size: 12.5px; }
+            .area-card-cta-v2 { padding: 10px 14px; font-size: 13px; }
+        }
+
+        /* ===== FORM RECOLHÍVEL (área do usuário) ===== */
+        .user-request-card .card-body.collapsible-body {
+            display: none;
+        }
+        .user-request-card.expanded .card-body.collapsible-body {
+            display: block;
+        }
+        #toggle-request-form-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        @media (max-width: 640px) {
+            .user-request-card .card-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #toggle-request-form-btn {
+                justify-content: center;
+                width: 100%;
+                margin-top: 8px;
+            }
+        }
+
+        /* ===== DANGER ZONE (excluir conta) ===== */
+        .danger-zone {
+            margin-top: 24px;
+            padding: 18px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+        }
+        .danger-zone-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #991b1b;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .danger-zone-title svg { color: #b91c1c; width: 18px; height: 18px; }
+        .danger-zone-text {
+            font-size: 0.87rem;
+            color: #7f1d1d;
+            line-height: 1.55;
+            margin: 0 0 14px;
+        }
+        .danger-zone .btn-danger { width: 100%; justify-content: center; }
+
+        /* ===== BADGE DE EXCLUSÕES ===== */
+        [data-deletion-badge] {
+            display: inline-block;
+            margin-left: 6px;
+            background: #c0392b;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 1px 6px;
+            min-width: 18px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* ===== PAGINAÇÃO ADMIN ===== */
+        #admin-requests-pagination { margin-top: 16px; }
+        #admin-requests-pagination .fleet-pagination {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 
+<!-- ============ SVG SPRITE ============ -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path d="M3 17V11l2-5h14l2 5v6"/><path d="M3 11h18"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
@@ -173,7 +446,6 @@
 <symbol id="i-chart-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
 <symbol id="i-history" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="12 7 12 12 15 15"/></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
-<symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 2h12M6 22h12M6 2c0 4 6 6 6 10 0-4 6-6 6-10M6 22c0-4 6-6 6-10 0 4 6 6 6 10"/></symbol>
 <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></symbol>
 <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
@@ -198,6 +470,7 @@
 <symbol id="i-google" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></symbol>
 </svg>
 
+<!-- ============ CONN LOADING ============ -->
 <div id="conn-loading" class="conn-loading">
     <div class="loading-content">
         <div class="loading-logo"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-3x"></div>
@@ -206,6 +479,7 @@
     </div>
 </div>
 
+<!-- ============ MODAL: SESSÃO INATIVA ============ -->
 <div class="modal-overlay" id="session-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-warning">
@@ -224,6 +498,7 @@
     </div>
 </div>
 
+<!-- ============ MODAL: RETOMAR SESSÃO ============ -->
 <div class="modal-overlay" id="resume-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-info"><h3>Continuar Sessão?</h3></div>
@@ -239,69 +514,69 @@
     </div>
 </div>
 
+<!-- ============ MODAL: SELECIONAR MÓDULO (V2 MELHORADO) ============ -->
 <div class="modal-overlay area-select-overlay" id="area-select-modal">
     <div class="modal area-select-modal-custom">
-        <div class="area-select-header">
-            <div class="area-select-brand">
-                <img src="favicon.ico" alt="SSOT" class="logo-img logo-img-lg">
+        <div class="area-select-header-v2">
+            <div class="area-select-brand-v2">
+                <img src="favicon.ico" alt="SSOT">
                 <span>SSOT</span>
             </div>
             <h2>Selecione o módulo</h2>
-            <p>Sistema de Solicitações e Operações de Transporte</p>
+            <p>Escolha a área de trabalho que deseja acessar</p>
         </div>
-        <div class="area-select-body">
-            <div class="area-cards-grid">
-                <button type="button" class="area-card area-card-operacoes" onclick="selectArea('operacoes')">
-                    <div class="area-card-head">
-                        <div class="area-card-icon">
-                            <svg class="si si-lg"><use href="#i-route"/></svg>
+        <div class="area-select-body-v2">
+            <div class="area-cards-grid-v2">
+                <button type="button" class="area-card-v2 area-card-operacoes-v2" onclick="selectArea('operacoes')">
+                    <div class="area-card-head-v2">
+                        <div class="area-card-icon-v2">
+                            <svg class="si"><use href="#i-route"/></svg>
                         </div>
-                        <div class="area-card-title">
+                        <div class="area-card-title-v2">
                             <h3>Operações</h3>
                             <span>Gestão da frota</span>
                         </div>
                     </div>
-                    <ul class="area-card-features">
+                    <ul class="area-card-features-v2">
                         <li>Viagens e percursos</li>
                         <li>Veículos e abastecimentos</li>
                         <li>Serviços e despesas</li>
-                        <li>Checklist e leituras</li>
                     </ul>
-                    <span class="area-card-cta">
-                        Acessar módulo
+                    <span class="area-card-cta-v2">
+                        Acessar
                         <svg class="si"><use href="#i-arrow-right"/></svg>
                     </span>
                 </button>
 
-                <button type="button" class="area-card area-card-solicitacoes" onclick="selectArea('solicitacoes')">
-                    <div class="area-card-head">
-                        <div class="area-card-icon">
-                            <svg class="si si-lg"><use href="#i-clipboard"/></svg>
+                <button type="button" class="area-card-v2 area-card-solicitacoes-v2" onclick="selectArea('solicitacoes')">
+                    <div class="area-card-head-v2">
+                        <div class="area-card-icon-v2">
+                            <svg class="si"><use href="#i-clipboard"/></svg>
                         </div>
-                        <div class="area-card-title">
+                        <div class="area-card-title-v2">
                             <h3>Solicitações</h3>
                             <span>Pedidos de transporte</span>
                         </div>
                     </div>
-                    <ul class="area-card-features">
+                    <ul class="area-card-features-v2">
                         <li>Nova solicitação</li>
                         <li>Aprovações e status</li>
-                        <li>Usuários e cadastros</li>
                         <li>Agenda e relatórios</li>
                     </ul>
-                    <span class="area-card-cta">
-                        Acessar módulo
+                    <span class="area-card-cta-v2">
+                        Acessar
                         <svg class="si"><use href="#i-arrow-right"/></svg>
                     </span>
                 </button>
             </div>
-            <p class="area-select-footer">
-                Você pode trocar de módulo a qualquer momento pelo botão <strong>Trocar Área</strong> no topo.
+            <p class="area-select-footer-v2">
+                Você pode trocar de módulo pelo botão <strong>Trocar Área</strong> no topo a qualquer momento.
             </p>
         </div>
     </div>
 </div>
 
+<!-- ============ MODAL: CONFIRMAR SENHA ============ -->
 <div class="modal-overlay" id="password-confirm-modal">
     <div class="modal modal-small">
         <div class="modal-header modal-header-danger">
@@ -325,6 +600,7 @@
     </div>
 </div>
 
+<!-- ============ LOGIN PAGE ============ -->
 <div id="login-page" class="login-container hidden">
     <div class="login-split">
         <div class="login-left">
@@ -348,7 +624,7 @@
                             <div class="access-text"><h4>Sou Usuário</h4><p>Acessar minhas solicitações</p></div>
                             <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
                         </button>
-                        <button type="button" class="access-btn requerimento" onclick="goToRequerimento()">
+                        <button type="button" class="access-btn requerimento" onclick="window.location.href='requerimento.html'">
                             <div class="access-icon"><svg class="si si-lg"><use href="#i-file-signature"/></svg></div>
                             <div class="access-text"><h4>Solicitar Cadastro</h4><p>Pedir uma conta</p></div>
                             <div class="access-arrow"><svg class="si"><use href="#i-chevron-r"/></svg></div>
@@ -391,96 +667,41 @@
                     </div>
                 </div>
 
-                <div id="screen-requerimento" class="hidden">
-                    <div class="back-link" onclick="backToSelect()"><svg class="si si-fw"><use href="#i-arrow-left"/></svg> Voltar</div>
-                    <div class="screen-title">Solicitar Cadastro</div>
-                    <div class="screen-subtitle">Preencha seus dados. Um administrador aprovará sua conta.</div>
-                    <div id="requerimento-error" class="alert alert-danger hidden"></div>
-                    <div id="requerimento-success" class="alert alert-success hidden"></div>
-
-                    <form id="requerimento-form">
-                        <div class="form-group">
-                            <label for="r-nome">Nome Completo <span class="required">*</span></label>
-                            <input type="text" id="r-nome" class="form-control" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="r-email">E-mail <span class="required">*</span></label>
-                                    <input type="email" id="r-email" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="r-ramal">Ramal <span class="required">*</span></label>
-                                    <input type="text" id="r-ramal" class="form-control" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="r-setor">Setor <span class="required">*</span></label>
-                                    <input type="text" id="r-setor" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="r-cargo">Cargo</label>
-                                    <input type="text" id="r-cargo" class="form-control">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="r-senha">Senha <span class="required">*</span></label>
-                                    <div class="password-container">
-                                        <input type="password" id="r-senha" class="form-control" placeholder="Mínimo 6 caracteres" required>
-                                        <span class="toggle-password" onclick="togglePass('r-senha', this)"><svg class="si"><use href="#i-eye"/></svg></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-col">
-                                <div class="form-group">
-                                    <label for="r-senha2">Confirmar Senha <span class="required">*</span></label>
-                                    <div class="password-container">
-                                        <input type="password" id="r-senha2" class="form-control" required>
-                                        <span class="toggle-password" onclick="togglePass('r-senha2', this)"><svg class="si"><use href="#i-eye"/></svg></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="r-justificativa">Justificativa (opcional)</label>
-                            <textarea id="r-justificativa" class="form-control" rows="3"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success btn-block btn-lg" id="requerimento-submit-btn">Enviar Solicitação</button>
-                    </form>
-                </div>
-
                 <div class="login-footer">
                     <p><a href="ajuda.html">Ajuda</a></p>
                 </div>
             </div>
         </div>
+
+        <!-- ============ IMAGEM RESPONSIVA ============ -->
         <aside class="login-right" id="login-right-panel" oncontextmenu="return false;">
-            <img
-                src="imglogin9.png"
-                alt="SSOT — Sistema de Solicitações e Operações de Transporte"
-                id="login-right-image"
-                loading="eager"
-                decoding="async"
-                draggable="false"
-                oncontextmenu="return false;"
-                ondragstart="return false;"
-                onerror="document.getElementById('login-right-panel').classList.add('no-image');"
-            >
+            <picture class="login-right-picture">
+                <!--
+                    Para usar imagens diferentes por tipo de tela:
+                    1. Salve como accesslogin-mobile.png, accesslogin-tablet.png, accesslogin-wide.png na raiz
+                    2. Descomente os <source> abaixo e ajuste os caminhos
+                -->
+                <!--
+                <source media="(max-width: 899px)" srcset="accesslogin-mobile.png">
+                <source media="(min-width: 900px) and (max-width: 1399px)" srcset="accesslogin-tablet.png">
+                <source media="(min-width: 1400px)" srcset="accesslogin-wide.png">
+                -->
+                <img
+                    src="accesslogin.png"
+                    alt="SSOT — Sistema de Solicitações e Operações de Transporte"
+                    id="login-right-image"
+                    class="login-right-image"
+                    loading="eager"
+                    decoding="async"
+                    draggable="false"
+                    oncontextmenu="return false;"
+                    ondragstart="return false;"
+                    onerror="document.getElementById('login-right-panel').classList.add('no-image');"
+                >
+            </picture>
             <div class="login-right-fallback" aria-hidden="true">
                 <div class="login-right-fallback-inner">
-                    <svg class="si si-3x">
-                        <use href="#i-car"/>
-                    </svg>
+                    <svg class="si si-3x"><use href="#i-car"/></svg>
                     <h2>SSOT</h2>
                     <p>Sistema de Solicitações e Operações de Transporte</p>
                     <ul>
@@ -495,6 +716,7 @@
     </div>
 </div>
 
+<!-- ============ APP CONTAINER ============ -->
 <div id="app-container" class="container hidden">
     <header class="top-menu">
         <div class="top-menu-left">
@@ -503,29 +725,25 @@
             </button>
             <div class="top-menu-brand"><img src="favicon.ico" alt="SSOT" class="logo-img logo-img-fw"><span>SSOT</span></div>
         </div>
-        
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
-        
         <nav class="top-menu-nav" id="main-nav">
             <ul id="top-menu-list"></ul>
         </nav>
-        
-       <div class="top-menu-icons">
-    <!-- Ícone de Importar/Exportar — só aparece em Operações -->
-    <button class="top-icon hidden" id="import-icon-btn" title="Importar / Exportar">
-        <svg class="si si-fw"><use href="#i-upload"/></svg>
-    </button>
-    <button class="top-icon hidden" id="users-icon-btn" title="Gerenciar Usuários">
-        <svg class="si si-fw"><use href="#i-users-cog"/></svg>
-    </button>
-    <button class="top-icon" id="notif-bell-btn" title="Notificações">
-        <svg class="si si-fw"><use href="#i-bell"/></svg>
-        <span class="top-icon-badge hidden" id="notif-badge">0</span>
-    </button>
-    <button class="top-icon" title="Ajuda" disabled>
-        <svg class="si si-fw"><use href="#i-help"/></svg>
-    </button>
-</div>
+        <div class="top-menu-icons">
+            <button class="top-icon hidden" id="import-icon-btn" title="Importar / Exportar">
+                <svg class="si si-fw"><use href="#i-upload"/></svg>
+            </button>
+            <button class="top-icon hidden" id="users-icon-btn" title="Gerenciar Usuários">
+                <svg class="si si-fw"><use href="#i-users-cog"/></svg>
+            </button>
+            <button class="top-icon" id="notif-bell-btn" title="Notificações">
+                <svg class="si si-fw"><use href="#i-bell"/></svg>
+                <span class="top-icon-badge hidden" id="notif-badge">0</span>
+            </button>
+            <button class="top-icon" title="Ajuda" onclick="window.location.href='ajuda.html'">
+                <svg class="si si-fw"><use href="#i-help"/></svg>
+            </button>
+        </div>
     </header>
 
     <div class="main-content">
@@ -550,16 +768,23 @@
             </div>
         </div>
 
+        <!-- ============ ÁREA DO USUÁRIO ============ -->
         <div id="user-area" class="hidden">
             <div class="tab-content active" id="user-solicitacoes-tab">
-                <div class="card card-elevated">
+
+                <!-- FORMULÁRIO RECOLHÍVEL -->
+                <div class="card card-elevated user-request-card" id="user-request-card">
                     <div class="card-header">
                         <div class="card-header-title">
                             <svg class="si si-fw"><use href="#i-plus-circle"/></svg>
                             <h2>Nova Solicitação de Transporte</h2>
                         </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="toggle-request-form-btn">
+                            <svg class="si"><use href="#i-plus-circle"/></svg>
+                            <span id="toggle-request-form-text">Abrir Solicitação</span>
+                        </button>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body collapsible-body" id="user-request-form-body">
                         <form id="user-request-form">
                             <div class="form-tabs">
                                 <button type="button" class="form-tab active" data-form-tab="solicitante">
@@ -618,7 +843,7 @@
                                             <div class="input-action-group">
                                                 <input type="text" id="u-destino" class="form-control" required list="u-destino-list">
                                                 <datalist id="u-destino-list"></datalist>
-                                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Destinos" onclick="openManageDestinations()">
+                                                <button type="button" class="btn btn-secondary btn-sm" onclick="openManageDestinations()" title="Gerenciar Destinos">
                                                     <svg class="si"><use href="#i-edit"/></svg> Gerenciar
                                                 </button>
                                             </div>
@@ -630,7 +855,7 @@
                                             <div class="input-action-group">
                                                 <input type="text" id="u-origem" class="form-control" list="u-origem-list">
                                                 <datalist id="u-origem-list"></datalist>
-                                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Origens" onclick="openManageOrigins()">
+                                                <button type="button" class="btn btn-secondary btn-sm" onclick="openManageOrigins()" title="Gerenciar Origens">
                                                     <svg class="si"><use href="#i-edit"/></svg> Gerenciar
                                                 </button>
                                             </div>
@@ -707,6 +932,7 @@
                     </div>
                 </div>
 
+                <!-- MINHAS SOLICITAÇÕES -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -735,6 +961,7 @@
                 </div>
             </div>
 
+            <!-- PERFIL DO USUÁRIO -->
             <div class="tab-content" id="user-perfil-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
@@ -804,31 +1031,64 @@
                                 <svg class="si"><use href="#i-save"/></svg> Salvar Alterações
                             </button>
                         </div>
+
+                        <!-- ZONA DE PERIGO — EXCLUIR CONTA -->
+                        <div class="danger-zone">
+                            <div class="danger-zone-title">
+                                <svg class="si"><use href="#i-alert"/></svg> Zona de Perigo
+                            </div>
+                            <p class="danger-zone-text">
+                                Excluir sua conta remove permanentemente todos os seus dados. Seu nome e e-mail ficarão bloqueados por 30 dias, e a ação requer aprovação de um administrador.
+                            </p>
+                            <button type="button" class="btn btn-danger" onclick="window.requestAccountDeletion()">
+                                <svg class="si"><use href="#i-trash"/></svg> Excluir Minha Conta
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- ============ ÁREA ADMIN ============ -->
         <div id="admin-area" class="hidden">
-            <div class="tab-content" id="admin-dashboard-tab">
-                <!-- grid dinâmico (populado por dashboard.js) -->
-                <div class="charts-grid" id="dashboard-charts-grid"></div>
 
+            <!-- DASHBOARD -->
+            <div class="tab-content" id="admin-dashboard-tab">
+                <div class="charts-grid" id="dashboard-charts-grid"></div>
                 <div class="widgets-grid">
-                    <div class="widget-card"><div class="widget-header"><h3><svg class="si si-fw"><use href="#i-clock"/></svg> Atividades Recentes</h3><button class="widget-link" onclick="gotoAdminTab('admin-historico')">Ver tudo <svg class="si"><use href="#i-arrow-right"/></svg></button></div><div class="widget-body" id="dashboard-recent-activity"><div class="widget-empty">Carregando...</div></div></div>
-                    <div class="widget-card"><div class="widget-header"><h3><svg class="si si-fw"><use href="#i-calendar"/></svg> Hoje</h3><button class="widget-link" onclick="gotoAdminTab('admin-solicitacoes')">Ver todas <svg class="si"><use href="#i-arrow-right"/></svg></button></div><div class="widget-body" id="dashboard-today-requests"><div class="widget-empty">Nenhuma</div></div></div>
-                    <div class="widget-card"><div class="widget-header"><h3><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Próximos</h3><button class="widget-link" onclick="gotoAdminTab('admin-agenda')">Agenda <svg class="si"><use href="#i-arrow-right"/></svg></button></div><div class="widget-body" id="dashboard-upcoming-slots"><div class="widget-empty">Nenhum</div></div></div>
+                    <div class="widget-card">
+                        <div class="widget-header">
+                            <h3><svg class="si si-fw"><use href="#i-clock"/></svg> Atividades Recentes</h3>
+                            <button class="widget-link" onclick="gotoAdminTab('admin-historico')">Ver tudo <svg class="si"><use href="#i-arrow-right"/></svg></button>
+                        </div>
+                        <div class="widget-body" id="dashboard-recent-activity"><div class="widget-empty">Carregando...</div></div>
+                    </div>
+                    <div class="widget-card">
+                        <div class="widget-header">
+                            <h3><svg class="si si-fw"><use href="#i-calendar"/></svg> Hoje</h3>
+                            <button class="widget-link" onclick="gotoAdminTab('admin-solicitacoes')">Ver todas <svg class="si"><use href="#i-arrow-right"/></svg></button>
+                        </div>
+                        <div class="widget-body" id="dashboard-today-requests"><div class="widget-empty">Nenhuma</div></div>
+                    </div>
+                    <div class="widget-card">
+                        <div class="widget-header">
+                            <h3><svg class="si si-fw"><use href="#i-calendar-check"/></svg> Próximos</h3>
+                            <button class="widget-link" onclick="gotoAdminTab('admin-agenda')">Agenda <svg class="si"><use href="#i-arrow-right"/></svg></button>
+                        </div>
+                        <div class="widget-body" id="dashboard-upcoming-slots"><div class="widget-empty">Nenhum</div></div>
+                    </div>
                 </div>
             </div>
 
+            <!-- SOLICITAÇÕES (com paginação) -->
             <div class="tab-content" id="admin-solicitacoes-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
                         <div class="card-header-title"><svg class="si si-fw"><use href="#i-clipboard"/></svg><h2>Solicitações</h2><span class="card-header-count" id="admin-requests-count">0</span></div>
                         <div class="action-buttons">
-                            <button id="admin-new-request-btn" class="btn btn-primary btn-sm"><svg class="si"><use href="#i-plus-circle"/></svg> Nova Solicitação</button>
+                            <button id="admin-new-request-btn" class="btn btn-primary btn-sm"><svg class="si"><use href="#i-plus-circle"/></svg> Nova</button>
                             <button id="admin-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
-                            <button id="admin-print-requests" class="btn btn-secondary btn-sm" title="Imprimir lista atual"><svg class="si"><use href="#i-file-text"/></svg> Imprimir</button>
+                            <button id="admin-print-requests" class="btn btn-secondary btn-sm" title="Imprimir"><svg class="si"><use href="#i-file-text"/></svg> Imprimir</button>
                             <button id="admin-export-pdf" class="btn btn-success btn-sm"><svg class="si"><use href="#i-file-pdf"/></svg> PDF</button>
                             <button id="admin-export-excel" class="btn btn-success btn-sm"><svg class="si"><use href="#i-file-excel"/></svg> Excel</button>
                         </div>
@@ -853,10 +1113,13 @@
                                 <tbody id="admin-requests-table"><tr><td colspan="8" class="table-empty"><p>Carregando...</p></td></tr></tbody>
                             </table>
                         </div>
+                        <!-- PAGINAÇÃO -->
+                        <div id="admin-requests-pagination"></div>
                     </div>
                 </div>
             </div>
 
+            <!-- USUÁRIOS -->
             <div class="tab-content" id="admin-usuarios-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
@@ -872,7 +1135,7 @@
                     <div class="card-body">
                         <div class="tabs-inner">
                             <button class="tab-inner active" data-users-tab="usuarios">
-                                <svg class="si"><use href="#i-users-cog"/></svg> Usuários Ativos
+                                <svg class="si"><use href="#i-users-cog"/></svg> Ativos
                             </button>
                             <button class="tab-inner" data-users-tab="pendentes">
                                 <svg class="si"><use href="#i-clock"/></svg> Pendentes
@@ -880,6 +1143,10 @@
                             </button>
                             <button class="tab-inner" data-users-tab="recusados">
                                 <svg class="si"><use href="#i-x-circle"/></svg> Recusados
+                            </button>
+                            <button class="tab-inner" data-users-tab="exclusoes">
+                                <svg class="si"><use href="#i-trash"/></svg> Exclusões
+                                <span class="badge" data-deletion-badge style="margin-left:6px;background:#c0392b;display:none;">0</span>
                             </button>
                         </div>
 
@@ -918,16 +1185,30 @@
                                 </table>
                             </div>
                         </div>
+
+                        <div class="users-tab-content" data-users-content="exclusoes" style="display:none;">
+                            <div class="alert alert-warning" style="margin-bottom:14px;font-size:0.85rem;display:flex;gap:8px;align-items:flex-start;">
+                                <svg class="si" style="flex-shrink:0;margin-top:2px;"><use href="#i-alert"/></svg>
+                                <span><strong>Atenção:</strong> aprovar uma exclusão remove o usuário do sistema e bloqueia nome/e-mail por 30 dias.</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th>Solicitado em</th><th>Nome</th><th>E-mail</th><th>Setor</th><th class="table-actions-col">Ações</th></tr></thead>
+                                    <tbody id="deletions-table"><tr><td colspan="5" class="table-empty"><p>Nenhuma solicitação de exclusão.</p></td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- AGENDA -->
             <div class="tab-content" id="admin-agenda-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
                         <div class="card-header-title"><svg class="si si-fw"><use href="#i-calendar-check"/></svg><h2>Agenda</h2></div>
                         <div class="action-buttons">
-                            <button id="archive-past-slots" class="btn btn-warning btn-sm" title="Ver calendário e arquivar dias passados">
+                            <button id="archive-past-slots" class="btn btn-warning btn-sm" title="Arquivar dias passados">
                                 <svg class="si"><use href="#i-archive"/></svg> Arquivar
                                 <span class="card-header-count hidden" id="archive-count" style="margin-left:6px;background:#e67e22;">0</span>
                             </button>
@@ -956,10 +1237,12 @@
                 </div>
             </div>
 
+            <!-- FROTA (painéis dinâmicos) -->
             <div class="tab-content" id="admin-frota-tab">
                 <div id="frota-panels"></div>
             </div>
 
+            <!-- RELATÓRIOS -->
             <div class="tab-content" id="admin-relatorios-tab">
                 <div class="card card-elevated">
                     <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-chart-bar"/></svg><h2>Relatórios</h2></div></div>
@@ -1000,12 +1283,13 @@
                 </div>
             </div>
 
+            <!-- HISTÓRICO -->
             <div class="tab-content" id="admin-historico-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
                         <div class="card-header-title"><svg class="si si-fw"><use href="#i-history"/></svg><h2>Histórico</h2><span class="card-header-count" id="historico-count">0</span></div>
                         <div class="action-buttons">
-                            <button id="historico-clear" class="btn btn-danger btn-sm"><svg class="si"><use href="#i-broom"/></svg> Limpar Histórico</button>
+                            <button id="historico-clear" class="btn btn-danger btn-sm"><svg class="si"><use href="#i-broom"/></svg> Limpar</button>
                             <button id="historico-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
                         </div>
                     </div>
@@ -1018,7 +1302,8 @@
                                 <option value="Logout">Logout</option><option value="Solicitação Criada">Solicitação Criada</option>
                                 <option value="Status Alterado">Status Alterado</option><option value="Usuário Criado">Usuário Criado</option>
                                 <option value="Cadastro Aprovado">Cadastro Aprovado</option>
-                                <option value="Notificação Enviada">Notificação Enviada</option>
+                                <option value="Exclusão de Conta Solicitada">Exclusão Solicitada</option>
+                                <option value="Conta Excluída">Conta Excluída</option>
                             </select>
                         </div>
                         <div class="table-responsive">
@@ -1031,6 +1316,7 @@
                 </div>
             </div>
 
+            <!-- LIXEIRA -->
             <div class="tab-content" id="admin-lixeira-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
@@ -1049,6 +1335,7 @@
                 </div>
             </div>
 
+            <!-- PERFIL ADMIN -->
             <div class="tab-content" id="admin-perfil-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
@@ -1118,19 +1405,30 @@
                                 <svg class="si"><use href="#i-save"/></svg> Salvar Alterações
                             </button>
                         </div>
+
+                        <!-- ZONA DE PERIGO ADMIN -->
+                        <div class="danger-zone">
+                            <div class="danger-zone-title">
+                                <svg class="si"><use href="#i-alert"/></svg> Zona de Perigo
+                            </div>
+                            <p class="danger-zone-text">
+                                Excluir sua conta remove permanentemente todos os seus dados. Seu nome e e-mail ficarão bloqueados por 30 dias. Outro administrador precisará aprovar a exclusão.
+                            </p>
+                            <button type="button" class="btn btn-danger" onclick="window.requestAccountDeletion()">
+                                <svg class="si"><use href="#i-trash"/></svg> Excluir Minha Conta
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- CONFIGURAÇÕES -->
             <div class="tab-content" id="admin-servicos-tab">
                 <div class="card card-elevated">
                     <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Configurações</h2></div></div>
                     <div class="card-body">
-                        <!-- Dashboard Personalizado -->
                         <div class="section-title"><svg class="si si-fw"><use href="#i-chart-bar"/></svg> Dashboard Personalizado</div>
-                        <div id="dashboard-settings-container">
-                            <p class="notes-empty">Carregando configurações...</p>
-                        </div>
+                        <div id="dashboard-settings-container"><p class="notes-empty">Carregando configurações...</p></div>
 
                         <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-palette"/></svg> Aparência</div>
                         <div class="form-group">
@@ -1138,7 +1436,6 @@
                             <select id="theme-selector" class="form-control"><option value="light">Claro</option><option value="dark">Escuro</option></select>
                         </div>
 
-                        <!-- NOVO: Menu e Navegação -->
                         <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-menu"/></svg> Menu e Navegação</div>
                         <div class="form-group">
                             <label for="menu-layout-selector">Posição da Barra de Guias</label>
@@ -1161,7 +1458,7 @@
                             <button id="import-backup" class="btn btn-secondary">Importar</button>
                             <input type="file" id="backup-input" style="display: none;" accept=".json">
                         </div>
-                        
+
                         <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-info"/></svg> Status do Sistema</div>
                         <div class="info-grid">
                             <div class="info-item"><div class="info-label">Conexão</div><div class="info-value" id="servicos-network-status">Online</div></div>
@@ -1173,9 +1470,7 @@
     </div>
 </div>
 
-<!-- ============================================================
-     MODAIS AUXILIARES
-     ============================================================ -->
+<!-- ============ MODAIS AUXILIARES ============ -->
 
 <div class="modal-overlay" id="modal-gerenciar-veiculos">
     <div class="modal modal-large">
@@ -1212,32 +1507,20 @@
 
 <div class="modal-overlay" id="fleet-view-modal">
     <div class="modal modal-large">
-        <div class="modal-header">
-            <h3 id="fleet-view-title">Visualizar</h3>
-            <button class="modal-close" onclick="closeModal('fleet-view-modal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div id="fleet-view-content"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('fleet-view-modal')">Fechar</button>
-        </div>
+        <div class="modal-header"><h3 id="fleet-view-title">Visualizar</h3><button class="modal-close" onclick="closeModal('fleet-view-modal')">&times;</button></div>
+        <div class="modal-body"><div id="fleet-view-content"></div></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('fleet-view-modal')">Fechar</button></div>
     </div>
 </div>
 
 <div class="modal-overlay" id="fleet-crud-modal">
     <div class="modal modal-large">
-        <div class="modal-header">
-            <h3 id="fleet-crud-title">Editar</h3>
-            <button class="modal-close" onclick="closeModal('fleet-crud-modal')">&times;</button>
-        </div>
+        <div class="modal-header"><h3 id="fleet-crud-title">Editar</h3><button class="modal-close" onclick="closeModal('fleet-crud-modal')">&times;</button></div>
         <div class="modal-body">
             <form id="fleet-crud-form" autocomplete="off">
                 <div id="fleet-crud-fields"></div>
                 <div class="action-buttons" style="margin-top:20px;">
-                    <button type="submit" class="btn btn-success" id="fleet-crud-save">
-                        <svg class="si"><use href="#i-save"/></svg> Salvar
-                    </button>
+                    <button type="submit" class="btn btn-success" id="fleet-crud-save"><svg class="si"><use href="#i-save"/></svg> Salvar</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal('fleet-crud-modal')">Cancelar</button>
                 </div>
             </form>
@@ -1268,7 +1551,7 @@
                             <div class="input-action-group">
                                 <input type="text" id="ar-destino" class="form-control" required list="ar-destino-list">
                                 <datalist id="ar-destino-list"></datalist>
-                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Destinos" onclick="openManageDestinations()">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openManageDestinations()" title="Gerenciar Destinos">
                                     <svg class="si"><use href="#i-edit"/></svg> Gerenciar
                                 </button>
                             </div>
@@ -1280,7 +1563,7 @@
                             <div class="input-action-group">
                                 <input type="text" id="ar-origem" class="form-control" list="ar-origem-list">
                                 <datalist id="ar-origem-list"></datalist>
-                                <button type="button" class="btn btn-secondary btn-sm" title="Gerenciar Origens" onclick="openManageOrigins()">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openManageOrigins()" title="Gerenciar Origens">
                                     <svg class="si"><use href="#i-edit"/></svg> Gerenciar
                                 </button>
                             </div>
@@ -1350,7 +1633,7 @@
             </div>
             <div class="alert alert-info" style="font-size:0.82rem;margin-top:8px;">
                 <svg class="si"><use href="#i-info"/></svg>
-                <span>O horário antigo será liberado e o novo será reservado na agenda automaticamente.</span>
+                <span>O horário antigo será liberado e o novo será reservado automaticamente.</span>
             </div>
             <div id="edit-hours-error" class="alert alert-danger hidden"></div>
         </div>
@@ -1416,7 +1699,7 @@
             <div class="form-group"><label for="notif-title">Título <span class="required">*</span></label><input type="text" id="notif-title" class="form-control" maxlength="80"></div>
             <div class="form-group"><label for="notif-message">Mensagem <span class="required">*</span></label><textarea id="notif-message" class="form-control" rows="4" maxlength="500"></textarea></div>
         </div>
-        <div class="modal-footer"><button class="btn btn-primary" id="send-notif-btn">Enviar Notificação</button><button class="btn btn-secondary" onclick="closeNotifModal()">Cancelar</button></div>
+        <div class="modal-footer"><button class="btn btn-primary" id="send-notif-btn">Enviar</button><button class="btn btn-secondary" onclick="closeNotifModal()">Cancelar</button></div>
     </div>
 </div>
 
@@ -1430,16 +1713,9 @@
 
 <div class="modal-overlay" id="notif-detail-modal">
     <div class="modal" style="max-width:560px;">
-        <div class="modal-header">
-            <h3 id="notif-detail-title">Notificação</h3>
-            <button class="modal-close" onclick="closeNotifDetail()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div id="notif-detail-content"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeNotifDetail()">Fechar</button>
-        </div>
+        <div class="modal-header"><h3 id="notif-detail-title">Notificação</h3><button class="modal-close" onclick="closeNotifDetail()">&times;</button></div>
+        <div class="modal-body"><div id="notif-detail-content"></div></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeNotifDetail()">Fechar</button></div>
     </div>
 </div>
 
@@ -1469,36 +1745,28 @@
             <button class="modal-close" onclick="closeModal('manage-origins-modal')">&times;</button>
         </div>
         <div class="modal-body">
-            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">
-                Cadastre origens pré-definidas para aparecerem como sugestão nos formulários.
-            </p>
+            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">Cadastre origens pré-definidas para sugestão nos formulários.</p>
             <div class="form-row">
                 <div class="form-col">
                     <div class="form-group">
                         <label for="new-origin-input">Nova Origem</label>
-                        <input type="text" id="new-origin-input" class="form-control" placeholder="Ex: Sede Central, Terminal, etc.">
+                        <input type="text" id="new-origin-input" class="form-control" placeholder="Ex: Sede Central, Terminal...">
                     </div>
                 </div>
                 <div class="form-col form-col-button">
                     <div class="form-group">
-                        <button class="btn btn-success" onclick="window.addOrigin()">
-                            <svg class="si"><use href="#i-plus"/></svg> Adicionar
-                        </button>
+                        <button class="btn btn-success" onclick="window.addOrigin()"><svg class="si"><use href="#i-plus"/></svg> Adicionar</button>
                     </div>
                 </div>
             </div>
             <div class="table-responsive" style="margin-top:20px;">
                 <table class="table">
                     <thead><tr><th>Nome</th><th class="table-actions-col">Ações</th></tr></thead>
-                    <tbody id="origins-list-table">
-                        <tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr>
-                    </tbody>
+                    <tbody id="origins-list-table"><tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr></tbody>
                 </table>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('manage-origins-modal')">Fechar</button>
-        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('manage-origins-modal')">Fechar</button></div>
     </div>
 </div>
 
@@ -1509,45 +1777,34 @@
             <button class="modal-close" onclick="closeModal('manage-destinations-modal')">&times;</button>
         </div>
         <div class="modal-body">
-            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">
-                Cadastre destinos pré-definidos para aparecerem como sugestão nos formulários.
-            </p>
+            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">Cadastre destinos pré-definidos para sugestão nos formulários.</p>
             <div class="form-row">
                 <div class="form-col">
                     <div class="form-group">
                         <label for="new-destination-input">Novo Destino</label>
-                        <input type="text" id="new-destination-input" class="form-control" placeholder="Ex: Hospital Central, Prefeitura, etc.">
+                        <input type="text" id="new-destination-input" class="form-control" placeholder="Ex: Hospital Central, Prefeitura...">
                     </div>
                 </div>
                 <div class="form-col form-col-button">
                     <div class="form-group">
-                        <button class="btn btn-success" onclick="window.addDestination()">
-                            <svg class="si"><use href="#i-plus"/></svg> Adicionar
-                        </button>
+                        <button class="btn btn-success" onclick="window.addDestination()"><svg class="si"><use href="#i-plus"/></svg> Adicionar</button>
                     </div>
                 </div>
             </div>
             <div class="table-responsive" style="margin-top:20px;">
                 <table class="table">
                     <thead><tr><th>Nome</th><th class="table-actions-col">Ações</th></tr></thead>
-                    <tbody id="destinations-list-table">
-                        <tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr>
-                    </tbody>
+                    <tbody id="destinations-list-table"><tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr></tbody>
                 </table>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('manage-destinations-modal')">Fechar</button>
-        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('manage-destinations-modal')">Fechar</button></div>
     </div>
 </div>
 
 <div class="modal-overlay" id="archive-modal">
     <div class="modal modal-large">
-        <div class="modal-header">
-            <h3>Agenda — Dias Passados</h3>
-            <button class="modal-close" onclick="closeArchiveModal()">&times;</button>
-        </div>
+        <div class="modal-header"><h3>Agenda — Dias Passados</h3><button class="modal-close" onclick="closeArchiveModal()">&times;</button></div>
         <div class="modal-body">
             <div class="archive-calendar-nav">
                 <button class="btn btn-secondary btn-sm" onclick="archiveChangeMonth(-1)">‹ Anterior</button>
@@ -1558,9 +1815,7 @@
             <div id="archive-day-details" class="archive-day-details hidden"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-warning" id="archive-confirm-btn">
-                <svg class="si"><use href="#i-archive"/></svg> Arquivar Dias Passados
-            </button>
+            <button class="btn btn-warning" id="archive-confirm-btn"><svg class="si"><use href="#i-archive"/></svg> Arquivar Dias Passados</button>
             <button class="btn btn-secondary" onclick="closeArchiveModal()">Fechar</button>
         </div>
     </div>
@@ -1568,21 +1823,12 @@
 
 <div class="modal-overlay" id="chart-builder-modal">
     <div class="modal modal-large">
-        <div class="modal-header">
-            <h3>Gráfico Dinâmico</h3>
-            <button class="modal-close" onclick="closeModal('chart-builder-modal')">&times;</button>
-        </div>
+        <div class="modal-header"><h3>Gráfico Dinâmico</h3><button class="modal-close" onclick="closeModal('chart-builder-modal')">&times;</button></div>
         <div class="modal-body">
             <div class="cb-toolbar">
-                <button class="cb-chart-type active" data-type="bar" onclick="setChartType('bar')" title="Barra">
-                    <svg class="si"><use href="#i-chart-bar"/></svg>
-                </button>
-                <button class="cb-chart-type" data-type="line" onclick="setChartType('line')" title="Linha">
-                    <svg class="si"><use href="#i-chart-line"/></svg>
-                </button>
-                <button class="cb-chart-type" data-type="pie" onclick="setChartType('pie')" title="Pizza">
-                    <svg class="si"><use href="#i-chart-pie"/></svg>
-                </button>
+                <button class="cb-chart-type active" data-type="bar" onclick="setChartType('bar')" title="Barra"><svg class="si"><use href="#i-chart-bar"/></svg></button>
+                <button class="cb-chart-type" data-type="line" onclick="setChartType('line')" title="Linha"><svg class="si"><use href="#i-chart-line"/></svg></button>
+                <button class="cb-chart-type" data-type="pie" onclick="setChartType('pie')" title="Pizza"><svg class="si"><use href="#i-chart-pie"/></svg></button>
                 <button class="cb-chart-type" data-type="doughnut" onclick="setChartType('doughnut')" title="Rosca">◯</button>
                 <button class="cb-chart-type" data-type="polarArea" onclick="setChartType('polarArea')" title="Polar">✦</button>
                 <button class="cb-chart-type" data-type="radar" onclick="setChartType('radar')" title="Radar">◇</button>
@@ -1600,19 +1846,13 @@
                 </div>
                 <div class="form-group">
                     <label>&nbsp;</label>
-                    <button class="btn btn-primary" onclick="generateDynamicChart()">
-                        <svg class="si"><use href="#i-refresh"/></svg> Gerar
-                    </button>
+                    <button class="btn btn-primary" onclick="generateDynamicChart()"><svg class="si"><use href="#i-refresh"/></svg> Gerar</button>
                 </div>
             </div>
-            <div class="cb-canvas-wrap">
-                <canvas id="cb-canvas"></canvas>
-            </div>
+            <div class="cb-canvas-wrap"><canvas id="cb-canvas"></canvas></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-success" onclick="downloadDynamicChart()">
-                <svg class="si"><use href="#i-download"/></svg> Baixar PNG
-            </button>
+            <button class="btn btn-success" onclick="downloadDynamicChart()"><svg class="si"><use href="#i-download"/></svg> Baixar PNG</button>
             <button class="btn btn-secondary" onclick="closeModal('chart-builder-modal')">Fechar</button>
         </div>
     </div>
@@ -1620,29 +1860,46 @@
 
 <div class="notification-panel" id="notification-panel"></div>
 
+<!-- ============ SCRIPT DE HARDENING DA IMAGEM + TOGGLE FORM ============ -->
 <script>
 (function hardenLoginImage() {
     function apply() {
         const panel = document.getElementById('login-right-panel');
         const img   = document.getElementById('login-right-image');
         if (!panel) return;
-
-        // Bloqueia clique-direito no painel inteiro
         panel.addEventListener('contextmenu', function (e) {
             if (e.target && e.target.tagName === 'IMG') e.preventDefault();
         }, { capture: true });
-
         if (img) {
             img.setAttribute('draggable', 'false');
             img.addEventListener('dragstart', e => e.preventDefault());
-            // Bloqueia long-press no mobile (que abre menu "Salvar imagem")
             img.addEventListener('touchstart', e => {
                 if (e.touches.length > 1) e.preventDefault();
             }, { passive: false });
             img.addEventListener('selectstart', e => e.preventDefault());
         }
-    }
 
+        // Toggle do formulário de solicitação (recolhível)
+        const toggleBtn = document.getElementById('toggle-request-form-btn');
+        const formCard = document.getElementById('user-request-card');
+        const toggleText = document.getElementById('toggle-request-form-text');
+        if (toggleBtn && formCard && toggleText) {
+            toggleBtn.addEventListener('click', () => {
+                const isExpanded = formCard.classList.contains('expanded');
+                if (isExpanded) {
+                    formCard.classList.remove('expanded');
+                    toggleText.textContent = 'Abrir Solicitação';
+                } else {
+                    formCard.classList.add('expanded');
+                    toggleText.textContent = 'Recolher Formulário';
+                    // Scroll suave até o formulário
+                    setTimeout(() => {
+                        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            });
+        }
+    }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', apply);
     } else {
