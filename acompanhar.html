@@ -101,28 +101,20 @@
             text-align: center;
             border-bottom: 1px solid var(--zinc-200);
         }
+        
+        /* ALTERAÇÃO AQUI: Logo sem fundo, tamanho aumentado */
         .ac-logo {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-md);
-            background: var(--zinc-900);
-            color: #ffffff;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-            position: relative;
+            margin-bottom: 8px;
         }
-        .ac-logo::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%);
-            pointer-events: none;
+        .ac-logo img {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
         }
-        .ac-logo .si { width: 20px; height: 20px; }
+        
         .ac-header h1 {
             font-size: 19px;
             font-weight: 650;
@@ -561,6 +553,7 @@
             body { padding: 12px 10px; align-items: flex-start; }
             .ac-card { border-radius: var(--radius-md); }
             .ac-header { padding: 18px 18px 14px; }
+            .ac-logo img { width: 48px; height: 48px; }
             .ac-header h1 { font-size: 17px; }
             .ac-body { padding: 18px 18px 22px; }
             .ac-footer { padding: 12px 18px; flex-direction: column; }
@@ -606,7 +599,7 @@
         <!-- HEADER -->
         <header class="ac-header">
             <div class="ac-logo" aria-hidden="true">
-                <svg class="si"><use href="#i-search"/></svg>
+                <img src="favicon.ico" alt="SSOT">
             </div>
             <h1>Acompanhar Solicitação</h1>
             <p>Consulte o status do seu pedido de cadastro</p>
