@@ -103,31 +103,17 @@
             border-bottom: 1px solid var(--zinc-200);
             background: #ffffff;
         }
+        
+        /* ALTERAÇÃO AQUI: Logo sem fundo, tamanho aumentado */
         .req-logo {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-md);
-            background: var(--zinc-900);
-            color: #ffffff;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-            position: relative;
+            margin-bottom: 8px;
         }
-        .req-logo::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-        }
-        /* Estilo para a imagem dentro da logo */
         .req-logo img {
-            width: 24px;
-            height: 24px;
+            width: 56px;
+            height: 56px;
             object-fit: contain;
         }
         
@@ -661,14 +647,9 @@
             .req-header {
                 padding: 18px 18px 14px;
             }
-            .req-logo {
-                width: 40px;
-                height: 40px;
-                margin-bottom: 8px;
-            }
             .req-logo img {
-                width: 20px;
-                height: 20px;
+                width: 48px;
+                height: 48px;
             }
             .req-header h1 { font-size: 17px; }
             .req-header p { font-size: 12px; }
@@ -1079,9 +1060,6 @@ document.getElementById('btn-submit')?.addEventListener('click', async () => {
     updateProgress('loading');
 
     try {
-        // ⚠️ VERIFICAÇÃO DE E-MAIL EM /users REMOVIDA (causava PERMISSION_DENIED)
-        // A checagem de duplicidade continua no /signups abaixo, que é público.
-
         // 1) Verifica solicitação pendente em /signups
         const signupsSnap = await get(ref(_db, 'signups'));
         let existsPending = false;
