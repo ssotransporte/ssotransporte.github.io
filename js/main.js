@@ -1,13 +1,15 @@
 // ============================================================
-// SSOT - MAIN (v20.3)
-// Alterações v20.3:
-//  - FEAT: Integração do Dashboard Rápido (limitToLast) 
-//  - FEAT: Exports globais para o Botão "Registro" e "Excluir Conta"
+// SSOT - MAIN (v20.2)
+// Alterações v20.2:
+//  - FEAT: Firebase App Check inicializado com reCAPTCHA v3
+//          (protege Realtime Database, Auth e demais serviços)
+//  - Herdadas todas as correções v20.1
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, get, ref, set, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+// 🔽 NOVO v20.2: App Check (reCAPTCHA v3)
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js";
 
 import { firebaseConfig } from './firebase-config.js';
@@ -55,6 +57,8 @@ let _fleetCurrentTab = 'viagens';
 let _routerActive = false;
 
 const AREA_KEY = 'ssot_area_';
+
+// 🔽 NOVO v20.2: Site Key pública do reCAPTCHA v3 (App Check)
 const RECAPTCHA_SITE_KEY = '6LdT8ikuAAAAAD9gymlGt5UZG1pDvYg-IDXXrU2c';
 
 // ============================================================
@@ -191,13 +195,22 @@ function init() {
     console.log(`[SSOT] Inicializando v${APP_VERSION}...`);
     app = initializeApp(firebaseConfig);
 
+    // ========================================================
+    // 🔽 NOVO v20.2: Firebase App Check (reCAPTCHA v3)
+    // ========================================================
+    // Ativa em produção (GitHub Pages). Em localhost usa debug token
+    // (caso você queira testar localmente — gere o token em
+    //  Firebase Console → App Check → Apps → Web → Gerenciar tokens de depuração
+    //  e substitua 'SEU_DEBUG_TOKEN_AQUI' abaixo).
     try {
         if (
             location.hostname === 'localhost' ||
             location.hostname === '127.0.0.1' ||
             location.hostname === ''
         ) {
-            self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+            // Ambiente de desenvolvimento — habilita modo debug
+            // self.FIREBASE_APPCHECK_DEBUG_TOKEN = 'SEU_DEBUG_TOKEN_AQUI';
+            self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // gera token automático no console
         }
 
         initializeAppCheck(app, {
@@ -250,7 +263,7 @@ function init() {
 }
 
 // ============================================================
-// SCROLL LOCK
+// SCROLL LOCK — bloqueia scroll do body quando overlay estiver ativo
 // ============================================================
 function setupScrollLock() {
     const targets = document.querySelectorAll('.modal-overlay, .sidebar-overlay');
@@ -265,6 +278,7 @@ function setupScrollLock() {
         observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     });
 
+    // Cobre modais criados dinamicamente
     const bodyObserver = new MutationObserver(() => {
         document.querySelectorAll('.modal-overlay:not([data-sl-bound]), .sidebar-overlay:not([data-sl-bound])')
             .forEach(el => {
@@ -279,7 +293,7 @@ function setupScrollLock() {
 }
 
 // ============================================================
-// MENU LAYOUT
+// MENU LAYOUT (horizontal / vertical)
 // ============================================================
 export function getMenuLayout() {
     try {
@@ -537,7 +551,7 @@ window.printAdminRequests = function () {
 };
 
 // ============================================================
-// EXPORTS GLOBAIS (AQUI ESTÃO OS AJUSTES)
+// EXPORTS GLOBAIS
 // ============================================================
 function setupGlobalExports() {
     window.goToLogin = goToLoginFn;
@@ -569,13 +583,6 @@ function setupGlobalExports() {
     window.updateArchiveBadge = updateArchiveBadge;
     window.printAdminRequests = window.printAdminRequests;
     window.applyMenuLayout = applyMenuLayout;
-
-    // ⬇️ NOVOS EXPORTS: Registro, Exclusão de Conta e Dashboard
-    window.openRegistroModal = Requests.openRegistroModal;
-    window.closeRegistroModal = Requests.closeRegistroModal;
-    window.toggleRegistroCustomDates = Requests.toggleRegistroCustomDates;
-    window.calculateRegistros = Requests.calculateRegistros;
-    window.requestAccountDeletion = Profile.requestAccountDeletion;
 
     if (typeof window.openManageOrigins !== 'function') {
         window.openManageOrigins = () => Fleet.openManageOrigins();
@@ -702,7 +709,7 @@ function showResumeModal(fbUser, data) {
 }
 
 // ============================================================
-// ENTER SYSTEM (AQUI ESTÃO OS AJUSTES DO DASHBOARD)
+// ENTER SYSTEM
 // ============================================================
 async function enterSystem() {
     _enterSystemDone = true;
@@ -727,11 +734,7 @@ async function enterSystem() {
     Trash.setTrashContext(db, currentUser, isAdmin);
     FleetExcel.setFleetExcelContext(db, currentUser);
     Fleet.setFleetContext(db, currentUser);
-    
-    // ⬇️ AJUSTE: Contexto do Dashboard agora recebe o DB
-    Dashboard.setDashboardContext(db, currentUser);
-    Dashboard.initDashboard(); 
-    
+    Dashboard.setDashboardContext(currentUser);
     Reports.setReportsContext([], currentUser);
     Settings.setSettingsContext(currentUser);
     Signups.setSignupsContext(db, currentUser, isAdmin);
@@ -779,18 +782,16 @@ async function enterSystem() {
 }
 
 // ============================================================
-// SUBSCRIBERS (AJUSTE: Removido o "setDashboardData")
+// SUBSCRIBERS
 // ============================================================
 function activateSubscribers() {
     if (subscribersActive) return;
     subscribersActive = true;
     Users.subscribeUsers();
-    
-    // O Dashboard agora tem seu próprio subscriber interno (limitToLast(100))
     Requests.subscribeRequests((requests) => {
+        Dashboard.setDashboardData(requests);
         Reports.setReportsContext(requests, currentUser);
     });
-    
     Schedule.subscribeSlots();
     Notifications.subscribeNotifications();
     Fleet.subscribeFleet();
@@ -941,7 +942,7 @@ function activateFleetTab(tabKey, silent) {
 }
 
 // ============================================================
-// ADMIN MENU — SOLICITAÇÕES
+// ADMIN MENU — SOLICITAÇÕES (FIX: sempre ativa uma guia)
 // ============================================================
 function renderAdminMenu() {
     const menu = document.getElementById('top-menu-list');
@@ -956,6 +957,7 @@ function renderAdminMenu() {
         return;
     }
 
+    // ---- Área: Solicitações ----
     const defs = [
         { id: 'admin-dashboard',   icon: 'i-chart-line',     label: 'Dashboard' },
         { id: 'admin-solicitacoes', icon: 'i-clipboard',     label: 'Solicitações' },
@@ -982,6 +984,7 @@ function renderAdminMenu() {
 
     document.getElementById('import-icon-btn')?.classList.add('hidden');
 
+    // FIX: garante que SEMPRE exista uma guia ativa
     const wasOnUsers = document.getElementById('admin-usuarios-tab')?.classList.contains('active');
     if (wasOnUsers) {
         gotoAdminTab('admin-usuarios');
