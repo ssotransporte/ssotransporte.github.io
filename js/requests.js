@@ -415,7 +415,7 @@ export async function moveToTrash(id) {
 }
 
 // ============================================================
-// REGISTRO (NOVO - SOLICITADO)
+// REGISTRO (NOVO)
 // ============================================================
 export function openRegistroModal() {
     const modal = document.getElementById('registro-modal');
@@ -711,7 +711,7 @@ export function setupRequestFilters() {
 }
 
 // ============================================================
-// VIEW REQUEST (modal de detalhes)
+// VIEW REQUEST
 // ============================================================
 export function viewRequest(id, adminView) {
     const r = _requests.find(x => x.id === id);
