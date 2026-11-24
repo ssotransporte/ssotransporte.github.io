@@ -676,6 +676,16 @@
         <!-- ============ IMAGEM RESPONSIVA ============ -->
         <aside class="login-right" id="login-right-panel" oncontextmenu="return false;">
             <picture class="login-right-picture">
+                <!--
+                    Para usar imagens diferentes por tipo de tela:
+                    1. Salve como accesslogin-mobile.png, accesslogin-tablet.png, accesslogin-wide.png na raiz
+                    2. Descomente os <source> abaixo e ajuste os caminhos
+                -->
+                <!--
+                <source media="(max-width: 899px)" srcset="accesslogin-mobile.png">
+                <source media="(min-width: 900px) and (max-width: 1399px)" srcset="accesslogin-tablet.png">
+                <source media="(min-width: 1400px)" srcset="accesslogin-wide.png">
+                -->
                 <img
                     src="imglogin9.png"
                     alt="SSOT — Sistema de Solicitações e Operações de Transporte"
@@ -1074,14 +1084,7 @@
             <div class="tab-content" id="admin-solicitacoes-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
-                        <!-- ALTERAÇÃO AQUI: Botão Registro no lugar do contador -->
-                        <div class="card-header-title">
-                            <svg class="si si-fw"><use href="#i-clipboard"/></svg>
-                            <h2>Solicitações</h2>
-                            <button class="btn btn-warning btn-sm" onclick="window.openRegistroModal()" style="margin-left: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                                <svg class="si" style="width: 14px; height: 14px;"><use href="#i-file-text"/></svg> Registro
-                            </button>
-                        </div>
+                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-clipboard"/></svg><h2>Solicitações</h2><span class="card-header-count" id="admin-requests-count">0</span></div>
                         <div class="action-buttons">
                             <button id="admin-new-request-btn" class="btn btn-primary btn-sm"><svg class="si"><use href="#i-plus-circle"/></svg> Nova</button>
                             <button id="admin-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
@@ -1683,45 +1686,6 @@
         <div class="modal-footer">
             <button class="btn btn-primary" id="save-user-btn">Salvar</button>
             <button class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
-        </div>
-    </div>
-</div>
-
-<!-- ============ MODAL: REGISTRO (NOVO) ============ -->
-<div class="modal-overlay" id="registro-modal">
-    <div class="modal" style="max-width: 420px;">
-        <div class="modal-header">
-            <h3>Registro de Solicitações</h3>
-            <button class="modal-close" onclick="window.closeRegistroModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>Filtrar por Período</label>
-                <select id="registro-periodo" class="form-control" onchange="window.toggleRegistroCustomDates()">
-                    <option value="7">Últimos 7 dias</option>
-                    <option value="30">Últimos 30 dias</option>
-                    <option value="custom">Personalizado</option>
-                </select>
-            </div>
-            
-            <div id="registro-custom-dates" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                <div class="form-group">
-                    <label>Data Inicial</label>
-                    <input type="date" id="registro-data-ini" class="form-control" onchange="window.calculateRegistros()">
-                </div>
-                <div class="form-group">
-                    <label>Data Final</label>
-                    <input type="date" id="registro-data-fim" class="form-control" onchange="window.calculateRegistros()">
-                </div>
-            </div>
-
-            <div class="registro-result" style="margin-top: 24px; text-align: center; background: #f8f9fa; padding: 30px 20px; border-radius: 8px; border: 1px solid #e9ecef; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-                <div style="font-size: 0.8rem; color: #7f8c8d; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Total de Solicitações</div>
-                <div id="registro-total" style="font-size: 4rem; font-weight: 800; color: #2c3e50; line-height: 1;">0</div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="window.closeRegistroModal()">Fechar</button>
         </div>
     </div>
 </div>
