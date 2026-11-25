@@ -1300,6 +1300,42 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
     padding: 4px 8px;
     min-width: 0;
 }
+
+/* ============================================================
+   v20.0 — LAYOUT DA LISTA DA FROTA (configurável em Configurações)
+   - .fleet-layout-grid  → padrão atual (cards lado a lado)
+   - .fleet-layout-list  → um registro por linha, de cima para baixo
+   A classe é aplicada no container .fleet-card-grid pelo JS,
+   conforme a preferência salva na conta do usuário.
+   ============================================================ */
+
+/* GRID — comportamento original, sem alterações */
+.fleet-card-grid.fleet-layout-grid {
+    /* nada muda: herda as regras do .fleet-card-grid */
+}
+
+/* LISTA — um registro por linha, largura total, de cima para baixo */
+.fleet-card-grid.fleet-layout-list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.fleet-card-grid.fleet-layout-list .fleet-card-item {
+    padding: 14px 18px;
+}
+.fleet-card-grid.fleet-layout-list .fleet-card-body {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px 18px;
+}
+.fleet-card-grid.fleet-layout-list .fleet-card-header {
+    padding-bottom: 10px;
+}
+
+/* Em telas pequenas a lista vira 1 coluna de campos (como o grid já faz) */
+@media (max-width: 640px) {
+    .fleet-card-grid.fleet-layout-list .fleet-card-body {
+        grid-template-columns: 1fr;
+    }
+}
 .fleet-card-actions .btn svg { width: 13px; height: 13px; }
 
 .fleet-card-meta {
@@ -1991,38 +2027,29 @@ textarea.form-control { resize: vertical; min-height: 70px; line-height: 1.5; }
 /* ============================================================
    28. LOADING / SCROLLBAR / TABS
    ============================================================ */
+/* v20.0 — loading com fundo branco */
 .conn-loading {
     position: fixed;
     inset: 0;
-    background: #2c3e50;
-    background-image: linear-gradient(180deg, #1a252f 0%, #2c3e50 100%);
+    background: #ffffff;
+    background-image: none;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
 }
-.loading-content { display: flex; flex-direction: column; align-items: center; gap: 12px; color: #fff; }
-.loading-logo { color: #fff; margin-bottom: 10px; animation: float 2s ease-in-out infinite; }
+.loading-content { display: flex; flex-direction: column; align-items: center; gap: 12px; color: #2c3e50; }
+.loading-logo { color: #2c3e50; margin-bottom: 10px; animation: float 2s ease-in-out infinite; }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .spinner {
     width: 46px;
     height: 46px;
-    border: 4px solid rgba(255,255,255,0.25);
-    border-top-color: #fff;
+    border: 4px solid rgba(44,62,80,0.15);
+    border-top-color: #3498db;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
-.loading-title { color: #fff; font-weight: 500; font-size: 1rem; }
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--color-gray-100); border-radius: 4px; }
-::-webkit-scrollbar-thumb { background: var(--color-gray-400); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-gray-500); }
-.tab-content { display: none; animation: fadeIn 0.25s ease-in-out; }
-.tab-content.active { display: block; }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+.loading-title { color: #2c3e50; font-weight: 500; font-size: 1rem; }
 
 /* ============================================================
    29. TEMA ESCURO
