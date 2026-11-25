@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhar Solicitação — SSOT</title>
+    <meta name="description" content="Acompanhe o status da sua solicitação de cadastro no SSOT.">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        /* ============================================================
+           ACOMPANHAR — consistente com requerimento.html
+           ============================================================ */
+        :root {
+            --zinc-50: #fafafa;
+            --zinc-100: #f4f4f5;
+            --zinc-200: #e4e4e7;
+            --zinc-300: #d4d4d8;
+            --zinc-400: #a1a1aa;
+            --zinc-500: #71717a;
+            --zinc-600: #52525b;
+            --zinc-700: #3f3f46;
+            --zinc-800: #27272a;
+            --zinc-900: #18181b;
+            --success: #15803d;
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --success-text: #166534;
+            --danger: #b91c1c;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --danger-text: #991b1b;
+            --warning: #b45309;
+            --warning-bg: #fffbeb;
+            --warning-border: #fde68a;
+            --warning-text: #92400e;
+            --info: #1e40af;
+            --info-bg: #eff6ff;
+            --info-border: #bfdbfe;
+            --info-text: #1e3a8a;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: var(--zinc-900);
+            font-size: 15px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+        .si {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            vertical-align: -0.125em;
+            flex-shrink: 0;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .si-2x { width: 2em; height: 2em; }
+        .hidden { display: none !important; }
+
+        .ac-container {
+            width: 100%;
+            max-width: 560px;
+        }
+        .ac-card {
+            background: #ffffff;
+            border: 1px solid var(--zinc-200);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
+            overflow: hidden;
+        }
+        .ac-accent {
+            height: 4px;
+            background: linear-gradient(90deg, #334155 0%, #18181b 100%);
+        }
+
+        /* ============ HEADER ============ */
+        .ac-header {
+            padding: 22px 28px 18px;
+            text-align: center;
+            border-bottom: 1px solid var(--zinc-200);
+        }
+        
+        /* ALTERAÇÃO AQUI: Logo sem fundo, tamanho aumentado */
+        .ac-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .ac-logo img {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+        }
+        
+        .ac-header h1 {
+            font-size: 19px;
+            font-weight: 650;
+            color: var(--zinc-900);
+            letter-spacing: -0.025em;
+            margin-bottom: 3px;
+        }
+        .ac-header p {
+            font-size: 13px;
+            color: var(--zinc-500);
+            line-height: 1.4;
+        }
+
+        /* ============ CONTEÚDO ============ */
+        .ac-body {
+            padding: 22px 28px 26px;
+        }
+
+        /* ============ FORM (buscar código) ============ */
+        .ac-search-help {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: var(--radius-md);
+            font-size: 12.5px;
+            color: var(--info-text);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        .ac-search-help .si {
+            flex-shrink: 0;
+            font-size: 15px;
+            margin-top: 1px;
+        }
+        .ac-search-help strong { font-weight: 650; }
+
+        .ac-field {
+            margin-bottom: 14px;
+        }
+        .ac-field label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 550;
+            color: var(--zinc-700);
+            margin-bottom: 6px;
+        }
+        .ac-input {
+            width: 100%;
+            padding: 12px 14px;
+            font-family: 'SF Mono', Menlo, Consolas, monospace;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--zinc-900);
+            background: #ffffff;
+            border: 1px solid var(--zinc-300);
+            border-radius: var(--radius-md);
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            letter-spacing: 0.04em;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .ac-input::placeholder {
+            color: var(--zinc-400);
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .ac-input:hover:not(:focus) { border-color: var(--zinc-400); }
+        .ac-input:focus {
+            border-color: var(--zinc-900);
+            box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.08);
+        }
+
+        .ac-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            line-height: 1.45;
+            margin-bottom: 14px;
+            border: 1px solid;
+        }
+        .ac-alert-danger {
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+            color: var(--danger-text);
+        }
+        .ac-alert .si {
+            flex-shrink: 0;
+            margin-top: 1px;
+            font-size: 15px;
+        }
+
+        /* ============ BOTÕES ============ */
+        .ac-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            width: 100%;
+            padding: 12px 18px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+            text-decoration: none;
+            letter-spacing: -0.005em;
+        }
+        .ac-btn .si { font-size: 14px; }
+        .ac-btn-primary {
+            background: var(--zinc-900);
+            color: #ffffff;
+            border-color: var(--zinc-900);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .ac-btn-primary:hover:not(:disabled) {
+            background: var(--zinc-800);
+            border-color: var(--zinc-800);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .ac-btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .ac-btn-secondary {
+            background: #ffffff;
+            color: var(--zinc-700);
+            border-color: var(--zinc-300);
+        }
+        .ac-btn-secondary:hover {
+            background: var(--zinc-50);
+            border-color: var(--zinc-400);
+            color: var(--zinc-900);
+        }
+
+        /* ============ LOADING ============ */
+        .ac-loading {
+            text-align: center;
+            padding: 30px 16px;
+        }
+        .ac-spinner {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 16px;
+            border: 3px solid var(--zinc-200);
+            border-top-color: var(--zinc-900);
+            border-radius: 50%;
+            animation: acSpin 0.8s linear infinite;
+        }
+        @keyframes acSpin { to { transform: rotate(360deg); } }
+        .ac-loading p {
+            font-size: 14px;
+            color: var(--zinc-500);
+        }
+
+        /* ============ RESULTADO — STATUS CARD ============ */
+        .ac-status-card {
+            border-radius: var(--radius-md);
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            border: 1px solid;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+        .ac-status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .ac-status-icon .si {
+            width: 20px;
+            height: 20px;
+            stroke-width: 2.2;
+        }
+        .ac-status-content { flex: 1; min-width: 0; }
+        .ac-status-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+        .ac-status-title {
+            font-size: 17px;
+            font-weight: 650;
+            margin-bottom: 4px;
+            letter-spacing: -0.015em;
+        }
+        .ac-status-text {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Pendente */
+        .ac-status-card.pendente {
+            background: var(--warning-bg);
+            border-color: var(--warning-border);
+        }
+        .ac-status-card.pendente .ac-status-icon {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        .ac-status-card.pendente .ac-status-label { color: var(--warning); }
+        .ac-status-card.pendente .ac-status-title { color: var(--warning-text); }
+        .ac-status-card.pendente .ac-status-text { color: #78350f; }
+
+        /* Aprovado */
+        .ac-status-card.aprovado {
+            background: var(--success-bg);
+            border-color: var(--success-border);
+        }
+        .ac-status-card.aprovado .ac-status-icon {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        .ac-status-card.aprovado .ac-status-label { color: var(--success); }
+        .ac-status-card.aprovado .ac-status-title { color: var(--success-text); }
+        .ac-status-card.aprovado .ac-status-text { color: #14532d; }
+
+        /* Recusado */
+        .ac-status-card.recusado {
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+        }
+        .ac-status-card.recusado .ac-status-icon {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        .ac-status-card.recusado .ac-status-label { color: var(--danger); }
+        .ac-status-card.recusado .ac-status-title { color: var(--danger-text); }
+        .ac-status-card.recusado .ac-status-text { color: #7f1d1d; }
+
+        /* Não encontrado */
+        .ac-status-card.nao-encontrado {
+            background: var(--zinc-50);
+            border-color: var(--zinc-200);
+        }
+        .ac-status-card.nao-encontrado .ac-status-icon {
+            background: var(--zinc-100);
+            color: var(--zinc-500);
+        }
+        .ac-status-card.nao-encontrado .ac-status-label { color: var(--zinc-500); }
+        .ac-status-card.nao-encontrado .ac-status-title { color: var(--zinc-800); }
+        .ac-status-card.nao-encontrado .ac-status-text { color: var(--zinc-600); }
+
+        /* ============ TIMELINE ============ */
+        .ac-timeline {
+            background: var(--zinc-50);
+            border: 1px solid var(--zinc-200);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            margin-bottom: 16px;
+        }
+        .ac-timeline-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--zinc-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        .ac-timeline-item {
+            display: flex;
+            gap: 10px;
+            position: relative;
+            padding-bottom: 14px;
+        }
+        .ac-timeline-item:last-child { padding-bottom: 0; }
+        .ac-timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 18px;
+            bottom: -2px;
+            width: 2px;
+            background: var(--zinc-200);
+        }
+        .ac-timeline-item:last-child::before { display: none; }
+        .ac-timeline-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--zinc-300);
+            background: #ffffff;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+            margin-top: 2px;
+        }
+        .ac-timeline-item.done .ac-timeline-dot {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        .ac-timeline-item.done .ac-timeline-dot::after {
+            content: '✓';
+            position: absolute;
+            inset: 0;
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ac-timeline-item.current .ac-timeline-dot {
+            background: var(--warning);
+            border-color: var(--warning);
+            animation: acPulseDot 1.5s infinite;
+        }
+        @keyframes acPulseDot {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(180, 83, 9, 0); }
+        }
+        .ac-timeline-content { flex: 1; min-width: 0; }
+        .ac-timeline-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--zinc-800);
+            margin-bottom: 1px;
+        }
+        .ac-timeline-date {
+            font-size: 11.5px;
+            color: var(--zinc-500);
+        }
+
+        /* ============ INFO GRID ============ */
+        .ac-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 14px;
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 1px solid var(--zinc-200);
+            border-radius: var(--radius-md);
+        }
+        .ac-info-item { min-width: 0; }
+        .ac-info-item.full { grid-column: 1 / -1; }
+        .ac-info-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--zinc-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 3px;
+        }
+        .ac-info-value {
+            font-size: 13.5px;
+            color: var(--zinc-900);
+            font-weight: 500;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* ============ SUCESSO FINAL ============ */
+        .ac-success-panel {
+            text-align: center;
+            padding: 8px 0;
+        }
+        .ac-success-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid var(--success-border);
+        }
+        .ac-success-icon .si { width: 26px; height: 26px; }
+        .ac-success-panel h2 {
+            font-size: 18px;
+            font-weight: 650;
+            color: var(--zinc-900);
+            margin-bottom: 6px;
+            letter-spacing: -0.015em;
+        }
+        .ac-success-panel p {
+            font-size: 13.5px;
+            color: var(--zinc-600);
+            line-height: 1.55;
+            margin-bottom: 18px;
+        }
+
+        /* ============ FOOTER ============ */
+        .ac-footer {
+            padding: 14px 28px;
+            text-align: center;
+            border-top: 1px solid var(--zinc-200);
+            background: var(--zinc-50);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .ac-footer a {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--zinc-600);
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+        .ac-footer a:hover {
+            color: var(--zinc-900);
+            background: #ffffff;
+        }
+        .ac-footer a .si { font-size: 13px; }
+
+        /* ============ RESPONSIVO ============ */
+        @media (max-width: 600px) {
+            body { padding: 12px 10px; align-items: flex-start; }
+            .ac-card { border-radius: var(--radius-md); }
+            .ac-header { padding: 18px 18px 14px; }
+            .ac-logo img { width: 48px; height: 48px; }
+            .ac-header h1 { font-size: 17px; }
+            .ac-body { padding: 18px 18px 22px; }
+            .ac-footer { padding: 12px 18px; flex-direction: column; }
+            .ac-info-grid { grid-template-columns: 1fr; }
+            .ac-input { font-size: 16px; }
+            .ac-status-card { flex-direction: column; gap: 10px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Ícones SVG -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+    <symbol id="i-alert-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+    <symbol id="i-sign-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+</svg>
+
+<main class="ac-container">
+    <div class="ac-card">
+        <div class="ac-accent"></div>
+
+        <!-- HEADER -->
+        <header class="ac-header">
+            <div class="ac-logo" aria-hidden="true">
+                <img src="favicon.ico" alt="SSOT">
+            </div>
+            <h1>Acompanhar Solicitação</h1>
+            <p>Consulte o status do seu pedido de cadastro</p>
+        </header>
+
+        <div class="ac-body">
+
+            <!-- ============ ESTADO 1: BUSCAR CÓDIGO ============ -->
+            <div id="ac-search-view">
+                <div class="ac-search-help">
+                    <svg class="si"><use href="#i-info"/></svg>
+                    <div>
+                        Digite o <strong>código de acompanhamento</strong> que você recebeu ao enviar sua solicitação. Exemplo: <strong>SSOT-A1B2-C3D4</strong>
+                    </div>
+                </div>
+
+                <div id="ac-search-error" class="ac-alert ac-alert-danger hidden">
+                    <svg class="si"><use href="#i-alert-circle"/></svg>
+                    <div id="ac-search-error-msg">Código não encontrado.</div>
+                </div>
+
+                <form id="ac-search-form">
+                    <div class="ac-field">
+                        <label for="ac-code-input">Código de acompanhamento</label>
+                        <input
+                            type="text"
+                            id="ac-code-input"
+                            class="ac-input"
+                            placeholder="SSOT-XXXX-XXXX"
+                            autocomplete="off"
+                            autocapitalize="characters"
+                            spellcheck="false"
+                            maxlength="15"
+                        >
+                    </div>
+                    <button type="submit" class="ac-btn ac-btn-primary" id="ac-search-btn">
+                        <svg class="si"><use href="#i-search"/></svg>
+                        <span>Consultar Status</span>
+                    </button>
+                </form>
+
+                <div style="margin-top:14px;text-align:center;font-size:12px;color:var(--zinc-500);">
+                    Não tem uma solicitação?
+                    <a href="requerimento.html" style="color:var(--zinc-900);font-weight:600;text-decoration:none;">Solicitar cadastro</a>
+                </div>
+            </div>
+
+            <!-- ============ ESTADO 2: LOADING ============ -->
+            <div id="ac-loading-view" class="ac-loading hidden">
+                <div class="ac-spinner"></div>
+                <p>Buscando sua solicitação...</p>
+            </div>
+
+            <!-- ============ ESTADO 3: RESULTADO ============ -->
+            <div id="ac-result-view" class="hidden">
+                <!-- Status card (preenchido dinamicamente) -->
+                <div id="ac-status-card" class="ac-status-card">
+                    <div class="ac-status-icon" id="ac-status-icon">
+                        <svg class="si"><use href="#i-clock"/></svg>
+                    </div>
+                    <div class="ac-status-content">
+                        <div class="ac-status-label" id="ac-status-label">Status</div>
+                        <div class="ac-status-title" id="ac-status-title">—</div>
+                        <div class="ac-status-text" id="ac-status-text">—</div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="ac-timeline">
+                    <div class="ac-timeline-title">Histórico</div>
+                    <div class="ac-timeline-item done">
+                        <div class="ac-timeline-dot"></div>
+                        <div class="ac-timeline-content">
+                            <div class="ac-timeline-label">Solicitação enviada</div>
+                            <div class="ac-timeline-date" id="ac-tl-submitted">—</div>
+                        </div>
+                    </div>
+                    <div class="ac-timeline-item" id="ac-tl-review-item">
+                        <div class="ac-timeline-dot"></div>
+                        <div class="ac-timeline-content">
+                            <div class="ac-timeline-label">Em análise pelo administrador</div>
+                            <div class="ac-timeline-date" id="ac-tl-review">Aguardando...</div>
+                        </div>
+                    </div>
+                    <div class="ac-timeline-item" id="ac-tl-final-item">
+                        <div class="ac-timeline-dot"></div>
+                        <div class="ac-timeline-content">
+                            <div class="ac-timeline-label" id="ac-tl-final-label">Conclusão</div>
+                            <div class="ac-timeline-date" id="ac-tl-final">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info grid -->
+                <div class="ac-info-grid">
+                    <div class="ac-info-item full">
+                        <div class="ac-info-label">Nome</div>
+                        <div class="ac-info-value" id="ac-info-nome">—</div>
+                    </div>
+                    <div class="ac-info-item">
+                        <div class="ac-info-label">E-mail</div>
+                        <div class="ac-info-value" id="ac-info-email">—</div>
+                    </div>
+                    <div class="ac-info-item">
+                        <div class="ac-info-label">Ramal</div>
+                        <div class="ac-info-value" id="ac-info-ramal">—</div>
+                    </div>
+                    <div class="ac-info-item">
+                        <div class="ac-info-label">Setor</div>
+                        <div class="ac-info-value" id="ac-info-setor">—</div>
+                    </div>
+                    <div class="ac-info-item">
+                        <div class="ac-info-label">Código</div>
+                        <div class="ac-info-value" id="ac-info-code" style="font-family:'SF Mono',Menlo,monospace;">—</div>
+                    </div>
+                </div>
+
+                <!-- Aviso recusa -->
+                <div id="ac-reject-reason" class="ac-alert ac-alert-danger hidden" style="margin-bottom:12px;">
+                    <svg class="si"><use href="#i-alert-circle"/></svg>
+                    <div>
+                        <strong>Motivo da recusa:</strong>
+                        <span id="ac-reject-reason-text"></span>
+                    </div>
+                </div>
+
+                <!-- Painel de sucesso (aprovado) -->
+                <div id="ac-success-panel" class="ac-success-panel hidden">
+                    <div class="ac-success-icon">
+                        <svg class="si"><use href="#i-check-circle"/></svg>
+                    </div>
+                    <h2>Acesso liberado!</h2>
+                    <p>Sua conta foi aprovada. Você já pode fazer login no sistema.</p>
+                    <a href="index.html" class="ac-btn ac-btn-primary" style="text-decoration:none;max-width:280px;margin:0 auto;">
+                        <svg class="si"><use href="#i-sign-in"/></svg>
+                        <span>Ir para o Login</span>
+                    </a>
+                </div>
+
+                <!-- Ações -->
+                <div style="display:flex;gap:8px;margin-top:12px;" id="ac-result-actions">
+                    <button type="button" class="ac-btn ac-btn-secondary" id="ac-new-search-btn">
+                        <svg class="si"><use href="#i-refresh"/></svg>
+                        <span>Nova consulta</span>
+                    </button>
+                    <a href="requerimento.html" class="ac-btn ac-btn-secondary" id="ac-new-signup-btn" style="text-decoration:none;">
+                        <svg class="si"><use href="#i-user-plus"/></svg>
+                        <span>Nova solicitação</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="ac-footer">
+            <a href="index.html">
+                <svg class="si"><use href="#i-arrow-left"/></svg>
+                <span>Voltar ao login</span>
+            </a>
+            <a href="requerimento.html">
+                <span>Solicitar cadastro</span>
+                <svg class="si"><use href="#i-arrow-right"/></svg>
+            </a>
+        </footer>
+    </div>
+</main>
+
+<script type="module">
+// ============================================================
+// ACOMPANHAR — consulta de status por trackingCode
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { firebaseConfig } from './js/firebase-config.js';
+
+// ---- Firebase init ----
+let _db = null;
+try {
+    const app = initializeApp(firebaseConfig);
+    _db = getDatabase(app);
+} catch (err) {
+    console.error('[Acompanhar] Firebase init falhou:', err);
+}
+
+// ---- Elementos ----
+const searchView = document.getElementById('ac-search-view');
+const loadingView = document.getElementById('ac-loading-view');
+const resultView = document.getElementById('ac-result-view');
+const searchForm = document.getElementById('ac-search-form');
+const codeInput = document.getElementById('ac-code-input');
+const searchBtn = document.getElementById('ac-search-btn');
+const searchError = document.getElementById('ac-search-error');
+const searchErrorMsg = document.getElementById('ac-search-error-msg');
+
+// ---- Helpers ----
+function escapeHtml(text) {
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
+function formatDateTime(iso) {
+    if (!iso) return '—';
+    try {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '—';
+        return d.toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) { return '—'; }
+}
+
+function showView(which) {
+    searchView.classList.toggle('hidden', which !== 'search');
+    loadingView.classList.toggle('hidden', which !== 'loading');
+    resultView.classList.toggle('hidden', which !== 'result');
+}
+
+function showSearchError(msg) {
+    searchErrorMsg.textContent = msg;
+    searchError.classList.remove('hidden');
+}
+
+function hideSearchError() {
+    searchError.classList.add('hidden');
+}
+
+function normalizeCode(raw) {
+    if (!raw) return '';
+    let c = String(raw).trim().toUpperCase().replace(/\s+/g, '');
+    // Se o usuário digitou só os 8 chars sem hífen, adiciona "SSOT-"
+    if (!c.startsWith('SSOT-') && /^[A-Z0-9]{8,}$/.test(c.replace(/-/g, ''))) {
+        const clean = c.replace(/-/g, '');
+        c = 'SSOT-' + clean.slice(0, 4) + '-' + clean.slice(4, 8);
+    }
+    return c;
+}
+
+// ---- Aplica máscara no input (SSOT-XXXX-XXXX) ----
+codeInput?.addEventListener('input', function () {
+    let v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (v.startsWith('SSOT')) v = v.slice(4);
+    v = v.slice(0, 8);
+    let formatted = 'SSOT-';
+    if (v.length > 0) formatted += v.slice(0, 4);
+    if (v.length > 4) formatted += '-' + v.slice(4, 8);
+    this.value = formatted;
+});
+
+// ---- Busca a solicitação ----
+async function lookup(code) {
+    if (!_db) {
+        showSearchError('Sistema não conectado. Recarregue a página.');
+        showView('search');
+        return;
+    }
+
+    const cleanCode = normalizeCode(code);
+    if (!/^SSOT-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(cleanCode)) {
+        showSearchError('Formato inválido. Use SSOT-XXXX-XXXX (letras e números).');
+        showView('search');
+        return;
+    }
+
+    hideSearchError();
+    showView('loading');
+
+    try {
+        // Busca em /signups pelo trackingCode
+        const snap = await get(ref(_db, 'signups'));
+        let found = null;
+        if (snap.exists()) {
+            snap.forEach(child => {
+                const s = child.val();
+                if (s && s.trackingCode === cleanCode) {
+                    found = { ...s, id: child.key };
+                }
+            });
+        }
+
+        if (!found) {
+            showSearchError('Código não encontrado. Verifique se digitou corretamente.');
+            showView('search');
+            return;
+        }
+
+        renderResult(found);
+        showView('result');
+    } catch (err) {
+        console.error('[Acompanhar] lookup:', err);
+        showSearchError('Erro ao consultar. Tente novamente em instantes.');
+        showView('search');
+    }
+}
+
+// ---- Renderiza resultado ----
+function renderResult(s) {
+    const statusCard = document.getElementById('ac-status-card');
+    const statusIcon = document.getElementById('ac-status-icon');
+    const statusLabel = document.getElementById('ac-status-label');
+    const statusTitle = document.getElementById('ac-status-title');
+    const statusText = document.getElementById('ac-status-text');
+
+    const tlSubmitted = document.getElementById('ac-tl-submitted');
+    const tlReviewItem = document.getElementById('ac-tl-review-item');
+    const tlReview = document.getElementById('ac-tl-review');
+    const tlFinalItem = document.getElementById('ac-tl-final-item');
+    const tlFinalLabel = document.getElementById('ac-tl-final-label');
+    const tlFinal = document.getElementById('ac-tl-final');
+
+    const successPanel = document.getElementById('ac-success-panel');
+    const rejectBox = document.getElementById('ac-reject-reason');
+    const rejectText = document.getElementById('ac-reject-reason-text');
+
+    // Preenche info grid
+    document.getElementById('ac-info-nome').textContent = s.nome || '—';
+    document.getElementById('ac-info-email').textContent = s.email || '—';
+    document.getElementById('ac-info-ramal').textContent = s.ramal || '—';
+    document.getElementById('ac-info-setor').textContent = s.setor || '—';
+    document.getElementById('ac-info-code').textContent = s.trackingCode || '—';
+
+    // Reset
+    successPanel.classList.add('hidden');
+    rejectBox.classList.add('hidden');
+    statusCard.className = 'ac-status-card';
+
+    // Timeline base
+    tlSubmitted.textContent = formatDateTime(s.timestamp);
+    tlReviewItem.className = 'ac-timeline-item';
+    tlFinalItem.className = 'ac-timeline-item';
+    tlReview.textContent = 'Aguardando...';
+    tlFinal.textContent = '—';
+
+    // ---- Pendente ----
+    if (s.status === 'pendente') {
+        statusCard.classList.add('pendente');
+        statusIcon.innerHTML = '<svg class="si"><use href="#i-clock"/></svg>';
+        statusLabel.textContent = 'Status';
+        statusTitle.textContent = 'Em análise';
+        statusText.textContent = 'Sua solicitação está aguardando análise do administrador. Você será notificado por e-mail quando houver uma resposta.';
+
+        tlReviewItem.classList.add('current');
+        tlReview.textContent = 'Aguardando análise';
+        tlFinalLabel.textContent = 'Conclusão';
+        tlFinal.textContent = '—';
+    }
+
+    // ---- Aprovado ----
+    else if (s.status === 'aprovado' || s.status === 'aprovada') {
+        statusCard.classList.add('aprovado');
+        statusIcon.innerHTML = '<svg class="si"><use href="#i-check-circle"/></svg>';
+        statusLabel.textContent = 'Status';
+        statusTitle.textContent = 'Aprovada';
+        statusText.textContent = 'Sua conta foi aprovada! Você já pode fazer login no sistema com o e-mail e a senha que cadastrou.';
+
+        tlReviewItem.classList.add('done');
+        tlReview.textContent = formatDateTime(s.approvedAt || s.timestamp);
+        tlFinalItem.classList.add('done');
+        tlFinalLabel.textContent = 'Aprovação';
+        tlFinal.textContent = formatDateTime(s.approvedAt || s.timestamp);
+
+        successPanel.classList.remove('hidden');
+    }
+
+    // ---- Recusado ----
+    else if (s.status === 'recusado' || s.status === 'recusada') {
+        statusCard.classList.add('recusado');
+        statusIcon.innerHTML = '<svg class="si"><use href="#i-x-circle"/></svg>';
+        statusLabel.textContent = 'Status';
+        statusTitle.textContent = 'Recusada';
+        statusText.textContent = 'Sua solicitação foi recusada. Se você acredita que houve um engano, entre em contato com o administrador.';
+
+        tlReviewItem.classList.add('done');
+        tlReview.textContent = formatDateTime(s.rejectedAt || s.timestamp);
+        tlFinalItem.classList.add('done');
+        tlFinalLabel.textContent = 'Recusa';
+        tlFinal.textContent = formatDateTime(s.rejectedAt || s.timestamp);
+
+        if (s.motivo) {
+            rejectText.textContent = s.motivo;
+            rejectBox.classList.remove('hidden');
+        }
+    }
+
+    // ---- Outros (fallback) ----
+    else {
+        statusCard.classList.add('nao-encontrado');
+        statusIcon.innerHTML = '<svg class="si"><use href="#i-alert-circle"/></svg>';
+        statusLabel.textContent = 'Status';
+        statusTitle.textContent = s.status || 'Desconhecido';
+        statusText.textContent = 'Consulte o administrador para mais informações.';
+    }
+}
+
+// ---- Submit da busca ----
+searchForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = codeInput.value.trim();
+    if (!code || code === 'SSOT-') {
+        showSearchError('Digite o código de acompanhamento.');
+        return;
+    }
+    lookup(code);
+});
+
+// ---- Botão "Nova consulta" ----
+document.getElementById('ac-new-search-btn')?.addEventListener('click', () => {
+    codeInput.value = '';
+    hideSearchError();
+    showView('search');
+    codeInput.focus();
+});
+
+// ---- Auto-consulta se veio via ?codigo=XXX ----
+(function autoLookup() {
+    const params = new URLSearchParams(window.location.search);
+    const codigo = params.get('codigo') || params.get('code') || params.get('tracking');
+    if (codigo) {
+        const normalized = normalizeCode(codigo);
+        codeInput.value = normalized;
+        // Pequeno delay pra dar tempo do CSS/DOM estabilizar
+        setTimeout(() => lookup(normalized), 200);
+    } else {
+        // Nada na URL: foca o input
+        setTimeout(() => codeInput?.focus(), 200);
+    }
+})();
+
+// ---- Estado inicial ----
+showView('search');
+</script>
+
+</body>
+</html>
