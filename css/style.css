@@ -5,7 +5,7 @@
 }
 
 html, body {
-    height: 100%;
+    min-height: 100%;
 }
 
 body {
@@ -15,7 +15,7 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-.maintenance {
+.wrap {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -23,78 +23,49 @@ body {
     padding: 24px;
 }
 
-.maintenance-box {
-    text-align: center;
-    max-width: 460px;
-    width: 100%;
+.card {
     background: #ffffff;
-    padding: 48px 36px;
     border-radius: 14px;
     box-shadow: 0 8px 32px rgba(44, 62, 80, 0.08);
+    padding: 56px 44px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
 }
 
-.icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #eaf4fd;
-    border-radius: 50%;
+/* Engrenagem pequena */
+.gear {
+    width: 36px;
+    height: 36px;
     color: #3498db;
+    display: block;
+    margin: 0 auto 28px;
+    animation: spin 8s linear infinite;
 }
 
-.icon svg {
-    width: 32px;
-    height: 32px;
-    animation: rotate 6s linear infinite;
-}
-
-@keyframes rotate {
+@keyframes spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
 }
 
-.brand {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    color: #7f8c8d;
-    margin-bottom: 12px;
-}
-
+/* Texto legível */
 h1 {
-    font-size: 26px;
+    font-size: 30px;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 14px;
     line-height: 1.25;
+    color: #1a252f;
+    margin-bottom: 16px;
+    letter-spacing: -0.3px;
 }
 
 p {
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 17px;
+    line-height: 1.65;
     color: #5d6d7e;
-    margin-bottom: 24px;
-}
-
-.bar {
-    width: 60px;
-    height: 3px;
-    background: #3498db;
-    border-radius: 3px;
-    margin: 0 auto 18px;
-}
-
-small {
-    font-size: 13px;
-    color: #95a5a6;
 }
 
 @media (max-width: 480px) {
-    .maintenance-box { padding: 36px 24px; }
-    h1 { font-size: 22px; }
-    p  { font-size: 14px; }
+    .card { padding: 44px 28px; }
+    h1    { font-size: 26px; }
+    p     { font-size: 16px; }
 }
