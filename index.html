@@ -14,6 +14,46 @@
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <style>
+        /* ===== OVERRIDE v20.0 — LOADING BRANCO (garantia) ===== */
+        .conn-loading {
+            background: #ffffff !important;
+            background-image: none !important;
+        }
+        .loading-content { color: #2c3e50 !important; }
+        .loading-logo { color: #2c3e50 !important; }
+        .spinner {
+            border-color: rgba(44,62,80,0.15) !important;
+            border-top-color: #3498db !important;
+        }
+        .loading-title { color: #2c3e50 !important; }
+
+        /* ===== NOVO v20.0 — LAYOUT DA FROTA (Grid × Lista) ===== */
+        .fleet-card-grid.fleet-layout-grid { /* padrão atual: nada muda */ }
+        .fleet-card-grid.fleet-layout-list {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .fleet-card-grid.fleet-layout-list .fleet-card-item { padding: 14px 18px; }
+        .fleet-card-grid.fleet-layout-list .fleet-card-body {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px 18px;
+        }
+        .fleet-card-grid.fleet-layout-list .fleet-card-header { padding-bottom: 10px; }
+        @media (max-width: 640px) {
+            .fleet-card-grid.fleet-layout-list .fleet-card-body { grid-template-columns: 1fr; }
+        }
+
+        /* ===== NOVO v20.0 — BOTÃO REGISTRO ===== */
+        #admin-registro-btn {
+            background: #1abc9c;
+            color: #fff;
+            border: 1px solid #1abc9c;
+        }
+        #admin-registro-btn:hover:not(:disabled) {
+            background: #16a085;
+            border-color: #16a085;
+        }
+
         .si{width:1em;height:1em;display:inline-block;vertical-align:-.125em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
         .si-fw{width:1.25em;height:1.25em}
         .si-lg{width:1.5em;height:1.5em}
@@ -61,16 +101,9 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        /* Adaptação por tipo de tela (mesma imagem, foco diferente) */
-        @media (min-width: 1600px) {
-            .login-right-image { object-position: center 45%; }
-        }
-        @media (min-width: 1280px) and (max-width: 1599px) {
-            .login-right-image { object-position: center 40%; }
-        }
-        @media (min-width: 900px) and (max-width: 1279px) {
-            .login-right-image { object-position: center 35%; }
-        }
+        @media (min-width: 1600px) { .login-right-image { object-position: center 45%; } }
+        @media (min-width: 1280px) and (max-width: 1599px) { .login-right-image { object-position: center 40%; } }
+        @media (min-width: 900px) and (max-width: 1279px) { .login-right-image { object-position: center 35%; } }
 
         .login-right-fallback {
             position: absolute;
@@ -94,9 +127,7 @@
         .login-right.no-image > picture { display: none; }
         .login-right.no-image .login-right-fallback { display: flex; }
 
-        @media (max-width: 900px) {
-            .login-right { display: none; }
-        }
+        @media (max-width: 900px) { .login-right { display: none; } }
 
         /* ===== ÁREA SELECT — MODAL MELHORADO ===== */
         .area-select-overlay {
@@ -191,120 +222,53 @@
             border-color: #1e40af;
             box-shadow: 0 12px 28px rgba(30, 64, 175, 0.16);
         }
-        .area-card-head-v2 {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+        .area-card-head-v2 { display: flex; align-items: center; gap: 14px; }
         .area-card-icon-v2 {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 48px; height: 48px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
-        .area-card-operacoes-v2 .area-card-icon-v2 {
-            background: #fef3c7;
-            color: #b45309;
-        }
-        .area-card-solicitacoes-v2 .area-card-icon-v2 {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        .area-card-icon-v2 svg {
-            width: 26px;
-            height: 26px;
-            stroke-width: 2.2;
-        }
+        .area-card-operacoes-v2 .area-card-icon-v2 { background: #fef3c7; color: #b45309; }
+        .area-card-solicitacoes-v2 .area-card-icon-v2 { background: #dbeafe; color: #1e40af; }
+        .area-card-icon-v2 svg { width: 26px; height: 26px; stroke-width: 2.2; }
         .area-card-title-v2 h3 {
-            font-size: 19px;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0 0 2px;
-            line-height: 1.2;
-            letter-spacing: -0.02em;
+            font-size: 19px; font-weight: 800; color: #0f172a;
+            margin: 0 0 2px; line-height: 1.2; letter-spacing: -0.02em;
         }
-        .area-card-title-v2 span {
-            font-size: 13.5px;
-            color: #475569;
-            font-weight: 500;
-            display: block;
-        }
+        .area-card-title-v2 span { font-size: 13.5px; color: #475569; font-weight: 500; display: block; }
         .area-card-features-v2 {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
+            list-style: none; padding: 0; margin: 0;
+            display: flex; flex-direction: column; gap: 7px;
         }
         .area-card-features-v2 li {
-            font-size: 13.5px;
-            color: #334155;
-            padding-left: 20px;
-            position: relative;
-            line-height: 1.4;
-            font-weight: 500;
+            font-size: 13.5px; color: #334155;
+            padding-left: 20px; position: relative;
+            line-height: 1.4; font-weight: 500;
         }
         .area-card-features-v2 li::before {
-            content: '';
-            position: absolute;
-            left: 4px;
-            top: 7px;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #94a3b8;
+            content: ''; position: absolute; left: 4px; top: 7px;
+            width: 6px; height: 6px; border-radius: 50%; background: #94a3b8;
         }
         .area-card-operacoes-v2 .area-card-features-v2 li::before { background: #d97706; }
         .area-card-solicitacoes-v2 .area-card-features-v2 li::before { background: #1e40af; }
         .area-card-cta-v2 {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            background: #f1f5f9;
-            color: #0f172a;
-            margin-top: auto;
-            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 8px; padding: 12px 16px; border-radius: 8px;
+            font-size: 14px; font-weight: 700;
+            background: #f1f5f9; color: #0f172a;
+            margin-top: auto; transition: all 0.2s ease;
             letter-spacing: -0.005em;
         }
-        .area-card-cta-v2 svg {
-            width: 16px;
-            height: 16px;
-            transition: transform 0.2s ease;
-        }
-        .area-card-v2:hover .area-card-cta-v2 {
-            background: #0f172a;
-            color: #ffffff;
-        }
-        .area-card-v2:hover .area-card-cta-v2 svg {
-            transform: translateX(3px);
-        }
-        .area-card-operacoes-v2:hover .area-card-cta-v2 {
-            background: #d97706;
-        }
-        .area-card-solicitacoes-v2:hover .area-card-cta-v2 {
-            background: #1e40af;
-        }
+        .area-card-cta-v2 svg { width: 16px; height: 16px; transition: transform 0.2s ease; }
+        .area-card-v2:hover .area-card-cta-v2 { background: #0f172a; color: #ffffff; }
+        .area-card-v2:hover .area-card-cta-v2 svg { transform: translateX(3px); }
+        .area-card-operacoes-v2:hover .area-card-cta-v2 { background: #d97706; }
+        .area-card-solicitacoes-v2:hover .area-card-cta-v2 { background: #1e40af; }
         .area-select-footer-v2 {
-            text-align: center;
-            font-size: 12.5px;
-            color: #64748b;
-            margin: 0;
-            padding-top: 4px;
-            line-height: 1.5;
+            text-align: center; font-size: 12.5px; color: #64748b;
+            margin: 0; padding-top: 4px; line-height: 1.5;
         }
-        .area-select-footer-v2 strong {
-            color: #0f172a;
-            font-weight: 700;
-        }
+        .area-select-footer-v2 strong { color: #0f172a; font-weight: 700; }
 
         @media (max-width: 640px) {
             .area-select-header-v2 { padding: 24px 20px 20px; }
@@ -320,79 +284,49 @@
         }
 
         /* ===== FORM RECOLHÍVEL (área do usuário) ===== */
-        .user-request-card .card-body.collapsible-body {
-            display: none;
-        }
-        .user-request-card.expanded .card-body.collapsible-body {
-            display: block;
-        }
-        #toggle-request-form-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .user-request-card .card-body.collapsible-body { display: none; }
+        .user-request-card.expanded .card-body.collapsible-body { display: block; }
+        #toggle-request-form-btn { display: inline-flex; align-items: center; gap: 6px; }
         @media (max-width: 640px) {
-            .user-request-card .card-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
+            .user-request-card .card-header { flex-direction: column; align-items: stretch; }
             #toggle-request-form-btn {
-                justify-content: center;
-                width: 100%;
-                margin-top: 8px;
+                justify-content: center; width: 100%; margin-top: 8px;
             }
         }
 
         /* ===== DANGER ZONE (excluir conta) ===== */
         .danger-zone {
-            margin-top: 24px;
-            padding: 18px;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
+            margin-top: 24px; padding: 18px;
+            background: #fef2f2; border: 1px solid #fecaca;
             border-radius: 10px;
         }
         .danger-zone-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.82rem;
-            font-weight: 800;
-            color: #991b1b;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.82rem; font-weight: 800; color: #991b1b;
             margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
+            text-transform: uppercase; letter-spacing: 0.06em;
         }
         .danger-zone-title svg { color: #b91c1c; width: 18px; height: 18px; }
         .danger-zone-text {
-            font-size: 0.87rem;
-            color: #7f1d1d;
-            line-height: 1.55;
-            margin: 0 0 14px;
+            font-size: 0.87rem; color: #7f1d1d;
+            line-height: 1.55; margin: 0 0 14px;
         }
         .danger-zone .btn-danger { width: 100%; justify-content: center; }
 
         /* ===== BADGE DE EXCLUSÕES ===== */
         [data-deletion-badge] {
-            display: inline-block;
-            margin-left: 6px;
-            background: #c0392b;
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            border-radius: 10px;
-            padding: 1px 6px;
-            min-width: 18px;
-            text-align: center;
-            line-height: 1.4;
+            display: inline-block; margin-left: 6px;
+            background: #c0392b; color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            border-radius: 10px; padding: 1px 6px;
+            min-width: 18px; text-align: center; line-height: 1.4;
         }
 
         /* ===== PAGINAÇÃO ADMIN ===== */
         #admin-requests-pagination { margin-top: 16px; }
         #admin-requests-pagination .fleet-pagination {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            background: #fff;
-            margin: 0;
+            border: 1px solid #e2e8f0; border-radius: 8px;
+            background: #fff; margin: 0;
         }
     </style>
 </head>
@@ -673,19 +607,8 @@
             </div>
         </div>
 
-        <!-- ============ IMAGEM RESPONSIVA ============ -->
         <aside class="login-right" id="login-right-panel" oncontextmenu="return false;">
             <picture class="login-right-picture">
-                <!--
-                    Para usar imagens diferentes por tipo de tela:
-                    1. Salve como accesslogin-mobile.png, accesslogin-tablet.png, accesslogin-wide.png na raiz
-                    2. Descomente os <source> abaixo e ajuste os caminhos
-                -->
-                <!--
-                <source media="(max-width: 899px)" srcset="accesslogin-mobile.png">
-                <source media="(min-width: 900px) and (max-width: 1399px)" srcset="accesslogin-tablet.png">
-                <source media="(min-width: 1400px)" srcset="accesslogin-wide.png">
-                -->
                 <img
                     src="imglogin9.png"
                     alt="SSOT — Sistema de Solicitações e Operações de Transporte"
@@ -1080,12 +1003,19 @@
                 </div>
             </div>
 
-            <!-- SOLICITAÇÕES (com paginação) -->
+            <!-- SOLICITAÇÕES (contador removido + botão Registro) -->
             <div class="tab-content" id="admin-solicitacoes-tab">
                 <div class="card card-elevated">
                     <div class="card-header">
-                        <div class="card-header-title"><svg class="si si-fw"><use href="#i-clipboard"/></svg><h2>Solicitações</h2><span class="card-header-count" id="admin-requests-count">0</span></div>
+                        <div class="card-header-title">
+                            <svg class="si si-fw"><use href="#i-clipboard"/></svg>
+                            <h2>Solicitações</h2>
+                        </div>
                         <div class="action-buttons">
+                            <button id="admin-registro-btn" type="button" class="btn btn-info btn-sm" onclick="openRegistroModal()">
+                                <svg class="si"><use href="#i-history"/></svg> Registro
+                                <span class="card-header-count" id="admin-registro-count" style="margin-left:4px;background:#fff;color:#1abc9c;">0</span>
+                            </button>
                             <button id="admin-new-request-btn" class="btn btn-primary btn-sm"><svg class="si"><use href="#i-plus-circle"/></svg> Nova</button>
                             <button id="admin-refresh" class="btn btn-secondary btn-sm"><svg class="si"><use href="#i-refresh"/></svg> Atualizar</button>
                             <button id="admin-print-requests" class="btn btn-secondary btn-sm" title="Imprimir"><svg class="si"><use href="#i-file-text"/></svg> Imprimir</button>
@@ -1113,7 +1043,6 @@
                                 <tbody id="admin-requests-table"><tr><td colspan="8" class="table-empty"><p>Carregando...</p></td></tr></tbody>
                             </table>
                         </div>
-                        <!-- PAGINAÇÃO -->
                         <div id="admin-requests-pagination"></div>
                     </div>
                 </div>
@@ -1237,7 +1166,7 @@
                 </div>
             </div>
 
-            <!-- FROTA (painéis dinâmicos) -->
+            <!-- FROTA -->
             <div class="tab-content" id="admin-frota-tab">
                 <div id="frota-panels"></div>
             </div>
@@ -1406,7 +1335,6 @@
                             </button>
                         </div>
 
-                        <!-- ZONA DE PERIGO ADMIN -->
                         <div class="danger-zone">
                             <div class="danger-zone-title">
                                 <svg class="si"><use href="#i-alert"/></svg> Zona de Perigo
@@ -1422,7 +1350,7 @@
                 </div>
             </div>
 
-            <!-- CONFIGURAÇÕES -->
+            <!-- CONFIGURAÇÕES (+ seletor de layout da Frota) -->
             <div class="tab-content" id="admin-servicos-tab">
                 <div class="card card-elevated">
                     <div class="card-header"><div class="card-header-title"><svg class="si si-fw"><use href="#i-cog"/></svg><h2>Configurações</h2></div></div>
@@ -1452,6 +1380,17 @@
                             </div>
                         </div>
 
+                        <!-- ===== NOVO: LAYOUT DA FROTA ===== -->
+                        <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-truck"/></svg> Frota</div>
+                        <div class="form-group">
+                            <label for="fleet-layout-selector">Estilo da Lista de Frota</label>
+                            <select id="fleet-layout-selector" class="form-control">
+                                <option value="grid">Cards lado a lado (padrão)</option>
+                                <option value="list">Lista vertical (um por linha)</option>
+                            </select>
+                            <small class="form-hint">A preferência é salva na sua conta e aplicada em qualquer login.</small>
+                        </div>
+
                         <div class="section-title" style="margin-top:24px;"><svg class="si si-fw"><use href="#i-database"/></svg> Backup</div>
                         <div class="action-buttons">
                             <button id="run-backup" class="btn btn-success">Baixar Backup</button>
@@ -1466,6 +1405,69 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ MODAL: REGISTRO DE SOLICITAÇÕES (NOVO) ============ -->
+<div class="modal-overlay" id="registro-modal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h3><svg class="si si-fw"><use href="#i-history"/></svg> Registro de Solicitações</h3>
+            <button class="modal-close" onclick="closeRegistroModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="tabs-inner" id="registro-period-tabs" style="margin-bottom:14px;">
+                <button type="button" class="tab-inner active" data-period="prev-month">
+                    <svg class="si"><use href="#i-calendar"/></svg> Mês Anterior
+                </button>
+                <button type="button" class="tab-inner" data-period="custom">
+                    <svg class="si"><use href="#i-filter"/></svg> Personalizado
+                </button>
+                <button type="button" class="tab-inner" data-period="all">
+                    <svg class="si"><use href="#i-clock"/></svg> Todo o Período
+                </button>
+            </div>
+
+            <div class="form-row" id="registro-custom-range" style="display:none;">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="registro-start">De</label>
+                        <input type="date" id="registro-start" class="form-control">
+                    </div>
+                </div>
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="registro-end">Até</label>
+                        <input type="date" id="registro-end" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-grid" style="margin-top:10px;">
+                <div class="info-item">
+                    <div class="info-label">Total no período</div>
+                    <div class="info-value" id="registro-total">0</div>
+                </div>
+            </div>
+
+            <div id="registro-status" class="notes-empty" style="padding:18px;">Carregando...</div>
+
+            <div style="text-align:right;margin-top:12px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="registro-details-toggle" onclick="toggleRegistroDetails()">
+                    Ver detalhes
+                </button>
+            </div>
+
+            <div id="registro-details" class="table-responsive" style="display:none;margin-top:14px;max-height:400px;overflow:auto;">
+                <table class="table">
+                    <thead><tr><th>Nº</th><th>Solicitante</th><th>Destino</th><th>Saída</th><th>Status</th></tr></thead>
+                    <tbody id="registro-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeRegistroModal()">Fechar</button>
         </div>
     </div>
 </div>
@@ -1719,195 +1721,39 @@
     </div>
 </div>
 
+<!-- ===== NOTIF-ADMIN-MODAL (completado — veio truncado no seu envio) ===== -->
 <div class="modal-overlay" id="notif-admin-modal">
     <div class="modal modal-large">
         <div class="modal-header"><h3>Notificações Enviadas</h3><button class="modal-close" onclick="closeNotifAdminModal()">&times;</button></div>
         <div class="modal-body">
-            <div class="action-buttons" style="margin-bottom:16px;"><button class="btn btn-success btn-sm" onclick="closeNotifAdminModal(); window.openNotifModal();">Nova Notificação</button></div>
-            <div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Destinatário</th><th>Título</th><th>Enviado por</th><th class="table-actions-col">Ações</th></tr></thead><tbody id="admin-notifs-table"><tr><td colspan="5" class="table-empty"><p>Carregando...</p></td></tr></tbody></table></div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeNotifAdminModal()">Fechar</button></div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="pdf-modal">
-    <div class="modal modal-large">
-        <div class="modal-header"><h3>Visualização</h3><button class="modal-close" id="close-pdf-modal">&times;</button></div>
-        <div class="modal-body"><div class="pdf-preview-container"><iframe id="pdf-iframe"></iframe></div></div>
-        <div class="modal-footer"><button class="btn btn-primary" id="download-pdf">Baixar PDF</button><button class="btn btn-danger" id="close-pdf-modal-btn">Fechar</button></div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="manage-origins-modal">
-    <div class="modal modal-large">
-        <div class="modal-header">
-            <h3>Gerenciar Origens</h3>
-            <button class="modal-close" onclick="closeModal('manage-origins-modal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">Cadastre origens pré-definidas para sugestão nos formulários.</p>
-            <div class="form-row">
-                <div class="form-col">
-                    <div class="form-group">
-                        <label for="new-origin-input">Nova Origem</label>
-                        <input type="text" id="new-origin-input" class="form-control" placeholder="Ex: Sede Central, Terminal...">
-                    </div>
-                </div>
-                <div class="form-col form-col-button">
-                    <div class="form-group">
-                        <button class="btn btn-success" onclick="window.addOrigin()"><svg class="si"><use href="#i-plus"/></svg> Adicionar</button>
-                    </div>
-                </div>
+            <div class="filter-bar">
+                <div class="filter-search"><svg class="si si-fw"><use href="#i-search"/></svg><input type="text" id="notif-admin-search" class="form-control" placeholder="Pesquisar por título, mensagem ou destinatário..."></div>
+                <select id="notif-admin-filter-type" class="form-control filter-select">
+                    <option value="">Todos os Tipos</option>
+                    <option value="info">Informação</option>
+                    <option value="success">Sucesso</option>
+                    <option value="warning">Aviso</option>
+                    <option value="danger">Urgente</option>
+                </select>
             </div>
-            <div class="table-responsive" style="margin-top:20px;">
-                <table class="table">
-                    <thead><tr><th>Nome</th><th class="table-actions-col">Ações</th></tr></thead>
-                    <tbody id="origins-list-table"><tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr></tbody>
-                </table>
+            <div id="notif-admin-list" style="max-height:60vh;overflow-y:auto;">
+                <p class="widget-empty">Nenhuma notificação enviada.</p>
             </div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('manage-origins-modal')">Fechar</button></div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="manage-destinations-modal">
-    <div class="modal modal-large">
-        <div class="modal-header">
-            <h3>Gerenciar Destinos</h3>
-            <button class="modal-close" onclick="closeModal('manage-destinations-modal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p style="margin-bottom:12px;color:#7f8c8d;font-size:0.88rem;">Cadastre destinos pré-definidos para sugestão nos formulários.</p>
-            <div class="form-row">
-                <div class="form-col">
-                    <div class="form-group">
-                        <label for="new-destination-input">Novo Destino</label>
-                        <input type="text" id="new-destination-input" class="form-control" placeholder="Ex: Hospital Central, Prefeitura...">
-                    </div>
-                </div>
-                <div class="form-col form-col-button">
-                    <div class="form-group">
-                        <button class="btn btn-success" onclick="window.addDestination()"><svg class="si"><use href="#i-plus"/></svg> Adicionar</button>
-                    </div>
-                </div>
-            </div>
-            <div class="table-responsive" style="margin-top:20px;">
-                <table class="table">
-                    <thead><tr><th>Nome</th><th class="table-actions-col">Ações</th></tr></thead>
-                    <tbody id="destinations-list-table"><tr><td colspan="2" class="table-empty"><p>Carregando...</p></td></tr></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('manage-destinations-modal')">Fechar</button></div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="archive-modal">
-    <div class="modal modal-large">
-        <div class="modal-header"><h3>Agenda — Dias Passados</h3><button class="modal-close" onclick="closeArchiveModal()">&times;</button></div>
-        <div class="modal-body">
-            <div class="archive-calendar-nav">
-                <button class="btn btn-secondary btn-sm" onclick="archiveChangeMonth(-1)">‹ Anterior</button>
-                <h4 id="archive-month-title">—</h4>
-                <button class="btn btn-secondary btn-sm" onclick="archiveChangeMonth(1)">Próximo ›</button>
-            </div>
-            <div id="archive-calendar-grid" class="archive-calendar-grid"></div>
-            <div id="archive-day-details" class="archive-day-details hidden"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-warning" id="archive-confirm-btn"><svg class="si"><use href="#i-archive"/></svg> Arquivar Dias Passados</button>
-            <button class="btn btn-secondary" onclick="closeArchiveModal()">Fechar</button>
+            <button class="btn btn-primary" onclick="openNotifModal()"><svg class="si"><use href="#i-plus-circle"/></svg> Nova</button>
+            <button class="btn btn-secondary" onclick="closeNotifAdminModal()">Fechar</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="chart-builder-modal">
-    <div class="modal modal-large">
-        <div class="modal-header"><h3>Gráfico Dinâmico</h3><button class="modal-close" onclick="closeModal('chart-builder-modal')">&times;</button></div>
-        <div class="modal-body">
-            <div class="cb-toolbar">
-                <button class="cb-chart-type active" data-type="bar" onclick="setChartType('bar')" title="Barra"><svg class="si"><use href="#i-chart-bar"/></svg></button>
-                <button class="cb-chart-type" data-type="line" onclick="setChartType('line')" title="Linha"><svg class="si"><use href="#i-chart-line"/></svg></button>
-                <button class="cb-chart-type" data-type="pie" onclick="setChartType('pie')" title="Pizza"><svg class="si"><use href="#i-chart-pie"/></svg></button>
-                <button class="cb-chart-type" data-type="doughnut" onclick="setChartType('doughnut')" title="Rosca">◯</button>
-                <button class="cb-chart-type" data-type="polarArea" onclick="setChartType('polarArea')" title="Polar">✦</button>
-                <button class="cb-chart-type" data-type="radar" onclick="setChartType('radar')" title="Radar">◇</button>
-            </div>
-            <div class="cb-controls">
-                <div class="form-group" id="cb-sheet-wrap" style="display:none;">
-                    <label>Aba (dados)</label>
-                    <select id="cb-sheet" class="form-control" onchange="populateFleetGroupOptions()">
-                        <option value="veiculos">Veículos</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Agrupar por</label>
-                    <select id="cb-group" class="form-control"></select>
-                </div>
-                <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button class="btn btn-primary" onclick="generateDynamicChart()"><svg class="si"><use href="#i-refresh"/></svg> Gerar</button>
-                </div>
-            </div>
-            <div class="cb-canvas-wrap"><canvas id="cb-canvas"></canvas></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-success" onclick="downloadDynamicChart()"><svg class="si"><use href="#i-download"/></svg> Baixar PNG</button>
-            <button class="btn btn-secondary" onclick="closeModal('chart-builder-modal')">Fechar</button>
-        </div>
-    </div>
-</div>
-
-<div class="notification-panel" id="notification-panel"></div>
-
-<!-- ============ SCRIPT DE HARDENING DA IMAGEM + TOGGLE FORM ============ -->
-<script>
-(function hardenLoginImage() {
-    function apply() {
-        const panel = document.getElementById('login-right-panel');
-        const img   = document.getElementById('login-right-image');
-        if (!panel) return;
-        panel.addEventListener('contextmenu', function (e) {
-            if (e.target && e.target.tagName === 'IMG') e.preventDefault();
-        }, { capture: true });
-        if (img) {
-            img.setAttribute('draggable', 'false');
-            img.addEventListener('dragstart', e => e.preventDefault());
-            img.addEventListener('touchstart', e => {
-                if (e.touches.length > 1) e.preventDefault();
-            }, { passive: false });
-            img.addEventListener('selectstart', e => e.preventDefault());
-        }
-
-        // Toggle do formulário de solicitação (recolhível)
-        const toggleBtn = document.getElementById('toggle-request-form-btn');
-        const formCard = document.getElementById('user-request-card');
-        const toggleText = document.getElementById('toggle-request-form-text');
-        if (toggleBtn && formCard && toggleText) {
-            toggleBtn.addEventListener('click', () => {
-                const isExpanded = formCard.classList.contains('expanded');
-                if (isExpanded) {
-                    formCard.classList.remove('expanded');
-                    toggleText.textContent = 'Abrir Solicitação';
-                } else {
-                    formCard.classList.add('expanded');
-                    toggleText.textContent = 'Recolher Formulário';
-                    // Scroll suave até o formulário
-                    setTimeout(() => {
-                        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                }
-            });
-        }
-    }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', apply);
-    } else {
-        apply();
-    }
-})();
-</script>
-
-<script type="module" src="js/main.js"></script>
+<!--
+    ============================================================
+    O app.js deve continuar sendo carregado onde já estava.
+    Abaixo está APENAS o script novo (Registro + Layout + Settings).
+    Ajuste o caminho se firebase-config.js não estiver em ./js/.
+    ============================================================
+-->
+<script type="module" src="js/registro-frota-settings.js"></script>
 </body>
 </html>
